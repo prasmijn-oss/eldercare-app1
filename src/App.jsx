@@ -1728,22 +1728,24 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
     }
     setSaving(true);
     try{
-      // Create auth user via Admin API
-      const {data:newUser,error:createErr}=await supabaseAdmin.auth.admin.createUser({
-        email:userForm.email,
-        password:userForm.password,
-        email_confirm:true,
-        user_metadata:{display_name:userForm.name},
+      const {data:{session}}=await supabase.auth.getSession();
+      const res=await fetch(`${SUPABASE_URL}/functions/v1/create-user`,{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":`Bearer ${session.access_token}`,
+          "apikey":ANON_KEY,
+        },
+        body:JSON.stringify({
+          email:userForm.email,
+          password:userForm.password,
+          name:userForm.name,
+          role:userForm.role,
+          company_id:userForm.company_id,
+        }),
       });
-      if(createErr)throw new Error(createErr.message);
-      // Insert into user_roles
-      const {error:roleErr}=await supabaseAdmin.from("user_roles").insert({
-        user_id:newUser.user.id,
-        name:userForm.name,
-        role:userForm.role,
-        company_id:userForm.company_id,
-      });
-      if(roleErr)throw new Error(roleErr.message);
+      const result=await res.json();
+      if(!res.ok)throw new Error(result.error||"Failed to create user");
       showToast("success","User created successfully!");
       setUserForm({name:"",email:"",password:"",role:"user",company_id:activeCompanyId||""});
       setShowUserForm(false);
@@ -2205,9 +2207,11 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
     try{
       for(const [key,allowed] of Object.entries(pendingChanges)){
         const isCompany=key.startsWith("c_");
-        const parts=key.split("_");
-        const role=parts[1];
-        const action=parts.slice(2).join("_");
+        const withoutPrefix=key.slice(2);
+        const ROLES=["superadmin","admin","power_user","user","inactive"];
+        const matchedRole=ROLES.find(r=>withoutPrefix.startsWith(r+"_"));
+        const role=matchedRole||withoutPrefix.split("_")[0];
+        const action=withoutPrefix.slice(role.length+1);
         if(isCompany&&activeCompanyId){
           await supabase.from("company_permissions").upsert({company_id:activeCompanyId,role,action,allowed,updated_at:new Date().toISOString()},{onConflict:"company_id,role,action"});
         } else {
