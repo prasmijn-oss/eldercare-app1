@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL||"https://kpwzeawgrqdsezflvjkm.supabase.co";
-const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY||"sb_publishable_L42di9Kp8Vq4jA390Uetsg_5kprskXX";
-const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY||"";
+const SUPABASE_URL = "https://kpwzeawgrqdsezflvjkm.supabase.co";
+const ANON_KEY = "sb_publishable_L42di9Kp8Vq4jA390Uetsg_5kprskXX";
+const SERVICE_KEY = "sb_secret_I5m0NrUMQwBXGGVzk9yO2Q_pA5zsYhG";
 
 const supabase = createClient(SUPABASE_URL, ANON_KEY);
 const supabaseAdmin = SERVICE_KEY
