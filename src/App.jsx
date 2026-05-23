@@ -2207,9 +2207,11 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
     try{
       for(const [key,allowed] of Object.entries(pendingChanges)){
         const isCompany=key.startsWith("c_");
-        const parts=key.split("_");
-        const role=parts[1];
-        const action=parts.slice(2).join("_");
+        const withoutPrefix=key.slice(2); // remove "g_" or "c_"
+        const ROLES=["superadmin","admin","power_user","user","inactive"];
+        const matchedRole=ROLES.find(r=>withoutPrefix.startsWith(r+"_"));
+        const role=matchedRole||withoutPrefix.split("_")[0];
+        const action=withoutPrefix.slice(role.length+1);
         if(isCompany&&activeCompanyId){
           await supabase.from("company_permissions").upsert({company_id:activeCompanyId,role,action,allowed,updated_at:new Date().toISOString()},{onConflict:"company_id,role,action"});
         } else {
