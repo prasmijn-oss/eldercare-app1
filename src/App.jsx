@@ -6,10 +6,9 @@ const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const SERVICE_KEY = import.meta.env.SUPABASE_SECRET_KEY||import.meta.env.VITE_SUPABASE_SERVICE_KEY||"";
 
 const supabase = createClient(SUPABASE_URL, ANON_KEY);
-const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false }
-});
-
+const supabaseAdmin = SERVICE_KEY
+  ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+  : supabase;
 const GCSS = [
   "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap');",
   "* { box-sizing: border-box; margin: 0; padding: 0; }",
