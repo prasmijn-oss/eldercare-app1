@@ -319,14 +319,52 @@ const uid=()=>crypto.randomUUID();
 const tod=()=>new Date().toISOString().slice(0,10);
 
 // RBAC permission helper
-const PERMS={
-  superadmin:["view","add","edit","delete","audit","users","company"],
+const DEFAULT_PERMS={
+  superadmin:["view","add","edit","delete","audit","users","company","permissions"],
   admin:     ["view","add","edit","delete","audit","company"],
   power_user:["view","add","edit"],
   user:      ["view"],
   inactive:  [],
 };
-function can(role,action){return(PERMS[role]||[]).includes(action);}
+
+// Global permissions cache - loaded from DB on login
+let LOADED_PERMS=null;
+
+function can(role,action){
+  if(LOADED_PERMS){
+    const rolePerms=LOADED_PERMS[role]||[];
+    return rolePerms.includes(action);
+  }
+  return(DEFAULT_PERMS[role]||[]).includes(action);
+}
+
+async function loadPermissions(companyId){
+  try{
+    // Load global permissions
+    const {data:global}=await supabase.from("permissions").select("role,action,allowed");
+    // Load company overrides if companyId provided
+    const {data:company}=companyId
+      ?await supabase.from("company_permissions").select("role,action,allowed").eq("company_id",companyId)
+      :{data:[]};
+
+    // Build permissions map
+    const perms={};
+    (global||[]).forEach(({role,action,allowed})=>{
+      if(!perms[role])perms[role]=[];
+      if(allowed&&!perms[role].includes(action))perms[role].push(action);
+    });
+    // Apply company overrides
+    (company||[]).forEach(({role,action,allowed})=>{
+      if(!perms[role])perms[role]=[];
+      if(allowed&&!perms[role].includes(action)){perms[role].push(action);}
+      else if(!allowed){perms[role]=perms[role].filter(a=>a!==action);}
+    });
+    LOADED_PERMS=perms;
+  }catch(e){
+    console.error("Failed to load permissions",e);
+    LOADED_PERMS=null;
+  }
+}
 
 function emptyClient(){return{
   id:uid(),name:"",date_of_birth:"",phone:"",room_or_address:"",
@@ -2102,6 +2140,256 @@ function CompanyPicker({onSelect,currentUser,t}){
   );
 }
 
+const ACTIONS=[
+  {key:"view",label:"View Clients",desc:"Can view client profiles"},
+  {key:"add",label:"Add Clients",desc:"Can create new clients"},
+  {key:"edit",label:"Edit Clients",desc:"Can edit client information"},
+  {key:"delete",label:"Delete Clients",desc:"Can permanently delete clients"},
+  {key:"audit",label:"Audit Trail",desc:"Can view audit logs"},
+  {key:"company",label:"Company Settings",desc:"Can edit company information"},
+  {key:"users",label:"User Management",desc:"Can manage users"},
+  {key:"permissions",label:"Permissions Panel",desc:"Can edit role permissions"},
+];
+const ROLES=["superadmin","admin","power_user","user"];
+const ROLE_LABELS={superadmin:"Super Admin",admin:"Admin",power_user:"Power User",user:"User"};
+const ROLE_COLORS={superadmin:"#f59e0b",admin:"#6366f1",power_user:"#06b6d4",user:"#10b981"};
+
+function PermissionsPanel({activeCompanyId,currentUser,t}){
+  const [globalPerms,setGlobalPerms]=useState([]);
+  const [companyPerms,setCompanyPerms]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [toast,setToast]=useState(null);
+  const [viewMode,setViewMode]=useState("grid"); // "grid" | "table"
+  const [tab,setTab]=useState("global"); // "global" | "company"
+  const [applyMode,setApplyMode]=useState("now"); // "now" | "next_login"
+  const [pendingChanges,setPendingChanges]=useState({});
+
+  const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
+
+  const loadPerms=async()=>{
+    setLoading(true);
+    const {data:gp}=await supabase.from("permissions").select("*").order("role").order("action");
+    setGlobalPerms(gp||[]);
+    if(activeCompanyId){
+      const {data:cp}=await supabase.from("company_permissions").select("*").eq("company_id",activeCompanyId).order("role").order("action");
+      setCompanyPerms(cp||[]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(()=>{loadPerms();},[activeCompanyId]);
+
+  const getPermValue=(role,action,isCompany=false)=>{
+    const key=`${isCompany?"c":"g"}_${role}_${action}`;
+    if(pendingChanges[key]!==undefined)return pendingChanges[key];
+    if(isCompany){
+      const override=companyPerms.find(p=>p.role===role&&p.action===action);
+      if(override)return override.allowed;
+      // Fall back to global
+      const global=globalPerms.find(p=>p.role===role&&p.action===action);
+      return global?.allowed??false;
+    }
+    const global=globalPerms.find(p=>p.role===role&&p.action===action);
+    return global?.allowed??false;
+  };
+
+  const togglePerm=(role,action,isCompany=false)=>{
+    const key=`${isCompany?"c":"g"}_${role}_${action}`;
+    const current=getPermValue(role,action,isCompany);
+    setPendingChanges(p=>({...p,[key]:!current}));
+  };
+
+  const saveChanges=async()=>{
+    if(Object.keys(pendingChanges).length===0){showToast("error","No changes to save");return;}
+    setSaving(true);
+    try{
+      for(const [key,allowed] of Object.entries(pendingChanges)){
+        const isCompany=key.startsWith("c_");
+        const parts=key.split("_");
+        const role=parts[1];
+        const action=parts.slice(2).join("_");
+        if(isCompany&&activeCompanyId){
+          await supabase.from("company_permissions").upsert({company_id:activeCompanyId,role,action,allowed,updated_at:new Date().toISOString()},{onConflict:"company_id,role,action"});
+        } else {
+          await supabase.from("permissions").update({allowed,updated_at:new Date().toISOString()}).eq("role",role).eq("action",action);
+        }
+      }
+      // Reload permissions cache
+      if(applyMode==="now")await loadPermissions(activeCompanyId);
+      setPendingChanges({});
+      await loadPerms();
+      showToast("success",applyMode==="now"?"Permissions saved and applied immediately!":"Permissions saved — will apply on next login");
+    }catch(err){
+      showToast("error","Failed to save: "+err.message);
+    }
+    setSaving(false);
+  };
+
+  const hasPending=Object.keys(pendingChanges).length>0;
+  const isCompanyTab=tab==="company";
+
+  return(
+    <div style={{maxWidth:900}}>
+      {toast&&(
+        <div style={{position:"fixed",top:24,right:24,zIndex:999,padding:"12px 20px",borderRadius:10,background:toast.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
+          {toast.type==="success"?"✓ ":"✗ "}{toast.msg}
+        </div>
+      )}
+
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
+        <div>
+          <div style={{fontFamily:"Playfair Display,serif",fontSize:26,fontWeight:700,color:"#f1f5f9"}}>🔐 Permissions</div>
+          <div style={{fontSize:13,color:"#64748b",marginTop:4}}>Control what each role can do</div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
+          {/* View toggle */}
+          <div style={{display:"flex",border:"1px solid #334155",borderRadius:8,overflow:"hidden"}}>
+            {[["grid","⊞ Grid"],["table","☰ Table"]].map(([id,label])=>(
+              <button key={id} onClick={()=>setViewMode(id)}
+                style={{padding:"7px 14px",border:"none",background:viewMode===id?"#6366f1":"transparent",color:viewMode===id?"#fff":"#64748b",fontWeight:600,fontSize:12}}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {/* Apply mode */}
+          <select value={applyMode} onChange={e=>setApplyMode(e.target.value)}
+            style={{...INP,marginBottom:0,fontSize:12,padding:"7px 12px",width:"auto"}}>
+            <option value="now">Apply immediately</option>
+            <option value="next_login">Apply on next login</option>
+          </select>
+          {/* Save */}
+          <button onClick={saveChanges} disabled={saving||!hasPending}
+            style={{padding:"8px 20px",borderRadius:8,border:"none",background:hasPending?"#10b981":"#334155",color:hasPending?"#fff":"#64748b",fontWeight:700,fontSize:13}}>
+            {saving?"Saving...":`Save${hasPending?` (${Object.keys(pendingChanges).length})`:""}` }
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:"flex",gap:2,borderBottom:"1px solid #334155",marginBottom:20}}>
+        {[["global","🌐 Global Defaults"],["company","🏢 Company Override"]].map(([id,label])=>(
+          <button key={id} onClick={()=>setTab(id)}
+            style={{padding:"9px 20px",border:"none",borderBottom:tab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:tab===id?"#6366f1":"#64748b",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab==="company"&&!activeCompanyId&&(
+        <div style={{padding:20,background:"#1e293b",borderRadius:12,color:"#64748b",textAlign:"center"}}>
+          Select a company first to manage company-specific overrides.
+        </div>
+      )}
+
+      {loading?<div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading permissions...</div>:(
+
+        <>
+          {/* Pending changes banner */}
+          {hasPending&&(
+            <div style={{background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:10,padding:"10px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:13,color:"#f59e0b",fontWeight:600}}>⚠️ {Object.keys(pendingChanges).length} unsaved change{Object.keys(pendingChanges).length!==1?"s":""}</span>
+              <button onClick={()=>setPendingChanges({})} style={{border:"none",background:"transparent",color:"#64748b",fontSize:12,fontWeight:600}}>Discard</button>
+            </div>
+          )}
+
+          {/* GRID VIEW */}
+          {viewMode==="grid"&&(
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",minWidth:600}}>
+                <thead>
+                  <tr>
+                    <th style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,background:"#1e293b",borderRadius:"8px 0 0 0"}}>ACTION</th>
+                    {ROLES.map(role=>(
+                      <th key={role} style={{padding:"12px 16px",textAlign:"center",fontSize:11,fontWeight:700,color:ROLE_COLORS[role],letterSpacing:0.5,background:"#1e293b"}}>
+                        {ROLE_LABELS[role].toUpperCase()}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ACTIONS.map((action,i)=>(
+                    <tr key={action.key} style={{background:i%2===0?"#0f172a":"#1e293b"}}>
+                      <td style={{padding:"14px 16px"}}>
+                        <div style={{fontWeight:600,color:"#f1f5f9",fontSize:13}}>{action.label}</div>
+                        <div style={{fontSize:11,color:"#475569",marginTop:2}}>{action.desc}</div>
+                      </td>
+                      {ROLES.map(role=>{
+                        const val=getPermValue(role,action.key,isCompanyTab&&!!activeCompanyId);
+                        const key=`${isCompanyTab?"c":"g"}_${role}_${action.key}`;
+                        const isPending=pendingChanges[key]!==undefined;
+                        const isLocked=role==="superadmin"&&action.key==="view";
+                        return(
+                          <td key={role} style={{padding:"14px 16px",textAlign:"center"}}>
+                            <button
+                              disabled={isLocked}
+                              onClick={()=>!isLocked&&togglePerm(role,action.key,isCompanyTab&&!!activeCompanyId)}
+                              style={{
+                                width:44,height:24,borderRadius:12,border:"none",
+                                background:val?"#10b981":"#334155",
+                                position:"relative",cursor:isLocked?"not-allowed":"pointer",
+                                transition:"background 0.2s",
+                                boxShadow:isPending?"0 0 0 2px #f59e0b":"none",
+                              }}>
+                              <span style={{
+                                position:"absolute",top:2,left:val?22:2,
+                                width:20,height:20,borderRadius:"50%",
+                                background:"#fff",transition:"left 0.2s",
+                                boxShadow:"0 1px 3px rgba(0,0,0,0.3)",
+                              }}/>
+                            </button>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* TABLE VIEW */}
+          {viewMode==="table"&&(
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {ROLES.map(role=>(
+                <div key={role} style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
+                  <div style={{padding:"12px 16px",borderBottom:"1px solid #334155",display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontWeight:700,color:ROLE_COLORS[role],fontSize:14}}>{ROLE_LABELS[role]}</span>
+                    <span style={{fontSize:11,color:"#475569"}}>
+                      {ACTIONS.filter(a=>getPermValue(role,a.key,isCompanyTab&&!!activeCompanyId)).length} of {ACTIONS.length} permissions enabled
+                    </span>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:0}}>
+                    {ACTIONS.map((action,i)=>{
+                      const val=getPermValue(role,action.key,isCompanyTab&&!!activeCompanyId);
+                      const key=`${isCompanyTab?"c":"g"}_${role}_${action.key}`;
+                      const isPending=pendingChanges[key]!==undefined;
+                      const isLocked=role==="superadmin"&&action.key==="view";
+                      return(
+                        <div key={action.key}
+                          style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 16px",borderBottom:i<ACTIONS.length-2?"1px solid #0f172a":"none",background:isPending?"rgba(245,158,11,0.05)":"transparent"}}>
+                          <div>
+                            <div style={{fontSize:13,fontWeight:600,color:val?"#f1f5f9":"#475569"}}>{action.label}</div>
+                            <div style={{fontSize:11,color:"#475569"}}>{action.desc}</div>
+                          </div>
+                          <input type="checkbox" checked={val} disabled={isLocked}
+                            onChange={()=>!isLocked&&togglePerm(role,action.key,isCompanyTab&&!!activeCompanyId)}
+                            style={{width:16,height:16,cursor:isLocked?"not-allowed":"pointer",accentColor:"#10b981"}}/>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function App(){
   const [lang,setLang]=useState(()=>localStorage.getItem("cm-lang")||null);
   const [currentUser,setCurrentUser]=useState(null);
@@ -2162,7 +2450,7 @@ export default function App(){
     if(data)setCompany(data);
   },[currentUser,selectedCompany]);
 
-  useEffect(()=>{if(currentUser){loadClients();loadCompany();}},[currentUser,selectedCompany,loadClients,loadCompany]);
+  useEffect(()=>{if(currentUser){loadClients();loadCompany();loadPermissions(activeCompanyId);}},[currentUser,selectedCompany,loadClients,loadCompany]);
 
   const activeCompanyId=selectedCompany||currentUser?.company_id;
 
@@ -2277,6 +2565,12 @@ export default function App(){
                 👥 User Management
               </button>
             )}
+            {can(currentUser.role,"permissions")&&(
+              <button onClick={()=>{setView("permissions");setSelected(null);setSidebarOpen(false);}}
+                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="permissions"?"rgba(99,102,241,0.15)":"transparent",color:view==="permissions"?"#6366f1":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+                🔐 Permissions
+              </button>
+            )}
           </div>
           <div style={{padding:"0 12px 8px"}}>
             <div style={{display:"flex",gap:4,marginBottom:6}}>
@@ -2352,8 +2646,11 @@ export default function App(){
           {!loading&&view==="company"&&currentUser.role==="superadmin"&&(
             <CompanyView company={company} onUpdate={updated=>{setCompany(updated);}} currentUser={currentUser} t={t}/>
           )}
-          {!loading&&view==="users"&&currentUser.role==="superadmin"&&(
+          {!loading&&view==="users"&&can(currentUser.role,"users")&&(
             <UserManagement currentUser={currentUser} onRoleChange={refreshCurrentUser} activeCompanyId={activeCompanyId} t={t}/>
+          )}
+          {!loading&&view==="permissions"&&can(currentUser.role,"permissions")&&(
+            <PermissionsPanel activeCompanyId={activeCompanyId} currentUser={currentUser} t={t}/>
           )}
           {!loading&&view!=="audit"&&searchMode==="notes"&&search.trim().length>1?(
             <div>
