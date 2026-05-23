@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
 
 const SUPABASE_URL = "https://kpwzeawgrqdsezflvjkm.supabase.co";
 const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwd3plYXdncnFkc2V6Zmx2amttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1Mzc1MzIsImV4cCI6MjA5NTExMzUzMn0.-fvmwgZqwyddWyq1IJ4vcHvsTVMpPmhI72p4hyCtC6E";
-const SERVICE_KEY = "sb_secret_I5m0NrUMQwBXGGVzk9yO2Q_pA5zsYhG";
+const SERVICE_KEY = "";
 
 const supabase = createClient(SUPABASE_URL, ANON_KEY);
 const supabaseAdmin = SERVICE_KEY
@@ -1728,22 +1728,24 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
     }
     setSaving(true);
     try{
-      // Create auth user via Admin API
-      const {data:newUser,error:createErr}=await supabaseAdmin.auth.admin.createUser({
-        email:userForm.email,
-        password:userForm.password,
-        email_confirm:true,
-        user_metadata:{display_name:userForm.name},
+      const {data:{session}}=await supabase.auth.getSession();
+      const res=await fetch(`${SUPABASE_URL}/functions/v1/create-user`,{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":`Bearer ${session.access_token}`,
+          "apikey":ANON_KEY,
+        },
+        body:JSON.stringify({
+          email:userForm.email,
+          password:userForm.password,
+          name:userForm.name,
+          role:userForm.role,
+          company_id:userForm.company_id,
+        }),
       });
-      if(createErr)throw new Error(createErr.message);
-      // Insert into user_roles
-      const {error:roleErr}=await supabaseAdmin.from("user_roles").insert({
-        user_id:newUser.user.id,
-        name:userForm.name,
-        role:userForm.role,
-        company_id:userForm.company_id,
-      });
-      if(roleErr)throw new Error(roleErr.message);
+      const result=await res.json();
+      if(!res.ok)throw new Error(result.error||"Failed to create user");
       showToast("success","User created successfully!");
       setUserForm({name:"",email:"",password:"",role:"user",company_id:activeCompanyId||""});
       setShowUserForm(false);
