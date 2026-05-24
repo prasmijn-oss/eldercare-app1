@@ -3,12 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://kpwzeawgrqdsezflvjkm.supabase.co";
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwd3plYXdncnFkc2V6Zmx2amttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1Mzc1MzIsImV4cCI6MjA5NTExMzUzMn0.-fvmwgZqwyddWyq1IJ4vcHvsTVMpPmhI72p4hyCtC6E";
-const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY || "";
-
 const supabase = createClient(SUPABASE_URL, ANON_KEY);
-const supabaseAdmin = SERVICE_KEY
-  ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
-  : supabase;
+// supabaseAdmin: auth.admin.createUser() requires a service role key, which must NOT be a VITE_ env var
+// (VITE_ vars are baked into the JS bundle and visible to anyone). Until an Edge Function is set up,
+// createUser falls back to supabase (anon key) and will receive a 401 from Supabase Auth Admin API.
+// TODO: move createUser to a Supabase Edge Function that holds the service key as a server secret.
+const supabaseAdmin = supabase;
 const GCSS = [
   "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap');",
   "* { box-sizing: border-box; margin: 0; padding: 0; }",
@@ -2608,11 +2608,12 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const updateRole=async(userId,newRole)=>{
     const target=users.find(x=>x.user_id===userId);
     const oldRole=target?.role||"unknown";
+    // Update all rows for this user so role is consistent across companies
     const {error}=await supabase.from("user_roles").update({role:newRole}).eq("user_id",userId);
     if(error){showToast("error","Failed to update role");return;}
     setUsers(u=>u.map(x=>x.user_id===userId?{...x,role:newRole}:x));
     showToast("success","Role updated");
-    await logAudit("Role changed",target?.name||target?.email||userId,{section:"User Management",details:`Role changed from "${oldRole.replace(/_/g," ")}" → "${newRole.replace(/_/g," ")}" for ${target?.name||target?.email||userId}`});
+    await logAudit("Role changed",target?.name||target?.email||userId,{section:"User Management",details:`Role changed from "${oldRole.replace(/_/g," ")}" → "${newRole.replace(/_/g," ")}" for ${target?.name||target?.email||userId} (all companies)`});
     if(userId===currentUser.id&&onRoleChange)await onRoleChange();
   };
 
@@ -2637,9 +2638,16 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   };
 
   const addToCompany=async(userId,companyId)=>{
-    const u=allUserRoles.find(r=>r.user_id===userId);
+    // Find the best existing row for this user to copy name/email/role from
+    const existingRows=allUserRoles.filter(r=>r.user_id===userId);
+    const u=existingRows.find(r=>r.email)||existingRows[0];
     const {error}=await supabase.from("user_roles").insert({
-      user_id:userId,name:u?.name||"",email:u?.email||"",role:u?.role||"user",company_id:companyId,
+      user_id:userId,
+      name:u?.name||"",
+      email:u?.email||"",
+      role:u?.role||"user",
+      company_id:companyId,
+      username:null, // username can only be on one row per UNIQUE(username) constraint
     });
     if(error){showToast("error","Failed: "+error.message);return;}
     showToast("success","Added to company");
@@ -2716,8 +2724,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   return(
     <div style={{maxWidth:1050}}>
       {toast&&(
-        <div style={{position:"fixed",top:24,right:24,zIndex:999,padding:"12px 20px",borderRadius:10,background:toast.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
-          {toast.type==="success"?"✓ ":"✗ "}{toast.msg}
+        <div style={{position:"fixed",top:24,right:24,zIndex:999,padding:"12px 20px",borderRadius:10,background:toast.type==="success"?"#059669":toast.type==="warning"?"#b45309":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
+          {toast.type==="success"?"✓ ":toast.type==="warning"?"⚠ ":"✗ "}{toast.msg}
         </div>
       )}
 
@@ -3369,12 +3377,13 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
   const saveChanges=async()=>{
     if(Object.keys(pendingChanges).length===0){showToast("error","No changes to save");return;}
     setSaving(true);
+    const changeCount=Object.keys(pendingChanges).length;
     try{
       for(const [key,allowed] of Object.entries(pendingChanges)){
         const isCompany=key.startsWith("c_");
         const withoutPrefix=key.slice(2);
-        const ROLES=["superadmin","admin","power_user","user","inactive"];
-        const matchedRole=ROLES.find(r=>withoutPrefix.startsWith(r+"_"));
+        const PARSE_ROLES=["superadmin","admin","power_user","user","inactive"];
+        const matchedRole=PARSE_ROLES.find(r=>withoutPrefix.startsWith(r+"_"));
         const role=matchedRole||withoutPrefix.split("_")[0];
         const action=withoutPrefix.slice(role.length+1);
         if(isCompany&&activeCompanyId){
@@ -3383,6 +3392,16 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
           await supabase.from("permissions").update({allowed,updated_at:new Date().toISOString()}).eq("role",role).eq("action",action);
         }
       }
+      // Audit log
+      await supabase.from("audit_log").insert({
+        action:"Permissions updated",client_name:"",
+        performed_by:currentUser?.displayName||currentUser?.email||"",
+        performed_role:currentUser?.role||"",
+        company_id:activeCompanyId||null,
+        section:"Permissions",
+        details:`Changed ${changeCount} permission${changeCount!==1?"s":""} (${tab==="company"?"company override":"global defaults"})`,
+        device:navigator.userAgent.slice(0,220),
+      }).then(()=>{});
       // Reload permissions cache
       if(applyMode==="now")await loadPermissions(activeCompanyId);
       setPendingChanges({});
@@ -3562,7 +3581,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
 function UserProfile({currentUser,onUpdate,onClose,t}){
   const [tab,setTab]=useState("profile"); // profile | password | history | sessions
   const [form,setForm]=useState({displayName:currentUser.displayName||"",username:currentUser.username||""});
-  const [pwForm,setPwForm]=useState({current:"",newPw:"",confirm:""});
+  const [pwForm,setPwForm]=useState({newPw:"",confirm:""});
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState(null);
   const [uploading,setUploading]=useState(false);
@@ -3572,7 +3591,8 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
   useEffect(()=>{loadHistory();},[]);
 
   const loadHistory=async()=>{
-    const {data}=await supabase.from("user_roles").select("login_history").eq("user_id",currentUser.id).eq("company_id",currentUser.company_id).single();
+    // Use maybeSingle + order to safely handle multi-company users (multiple rows)
+    const {data}=await supabase.from("user_roles").select("login_history").eq("user_id",currentUser.id).not("login_history","is",null).order("company_id").limit(1).maybeSingle();
     setLoginHistory(data?.login_history||[]);
   };
 
@@ -3587,7 +3607,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
     const {error}=await supabase.from("user_roles").update({
       name:form.displayName.trim(),
       username:form.username?form.username.toLowerCase().trim():null,
-    }).eq("user_id",currentUser.id).eq("company_id",currentUser.company_id);
+    }).eq("user_id",currentUser.id); // update all company rows so name is consistent
     if(error){setMsg({type:"error",text:error.message});}
     else{
       setMsg({type:"success",text:"Profile updated!"});
@@ -3622,7 +3642,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
     setSaving(true);setMsg(null);
     const {error}=await supabase.auth.updateUser({password:pwForm.newPw});
     if(error){setMsg({type:"error",text:error.message});}
-    else{setMsg({type:"success",text:"Password changed!"});setPwForm({current:"",newPw:"",confirm:""});}
+    else{setMsg({type:"success",text:"Password changed!"});setPwForm({newPw:"",confirm:""});}
     setSaving(false);
   };
 
@@ -3794,6 +3814,8 @@ export default function App(){
   const [recentClients,setRecentClients]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-recent")||"[]");}catch{return [];}});
   const [dashNote,setDashNote]=useState(()=>localStorage.getItem("cm-dash-note")||"");
   const [emailPrefs,setEmailPrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-email-prefs")||"{}") ;}catch{return {};}});
+  const [appMsg,setAppMsg]=useState(null); // {type:"success"|"error", text:string}
+  const showAppMsg=(type,text)=>{setAppMsg({type,text});setTimeout(()=>setAppMsg(null),3200);};
 
   const t=T[lang]||T["en"];
   const selectLang=code=>{localStorage.setItem("cm-lang",code);setLang(code);};
@@ -3827,23 +3849,27 @@ export default function App(){
     return()=>window.removeEventListener("keydown",handler);
   },[currentUser]);
 
+  const ROLE_PRIORITY={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+  const pickTopRole=(roles)=>(roles||[]).slice().sort((a,b)=>(ROLE_PRIORITY[a.role]||9)-(ROLE_PRIORITY[b.role]||9))[0];
+
   useEffect(()=>{
     supabase.auth.getSession().then(async({data:{session}})=>{
       if(session){
         const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",session.user.id);
-        const rd=roles?.[0];
+        const rd=pickTopRole(roles);
         setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
       }
       setAuthChecked(true);
     });
-    supabase.auth.onAuthStateChange(async(event,session)=>{if(!session)setCurrentUser(null);});
+    const {data:{subscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{if(!session)setCurrentUser(null);});
+    return()=>subscription.unsubscribe();
   },[]);
 
   const refreshCurrentUser=useCallback(async()=>{
     const {data:{session}}=await supabase.auth.getSession();
     if(session){
       const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",session.user.id);
-      const rd=roles?.[0];
+      const rd=pickTopRole(roles);
       setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
     }
   },[]);
@@ -3923,16 +3949,21 @@ export default function App(){
   const inlineUpdate=async(field,value)=>{
     if(!selected)return;
     const{error}=await supabase.from("clients").update({[field]:JSON.stringify(value)}).eq("id",selected.id);
-    if(!error){
-      setClients(cs=>cs.map(c=>c.id===selected.id?{...c,[field]:value}:c));
-      setSelected(s=>({...s,[field]:value}));
-    }
+    if(error){setError("Failed to save "+field+": "+error.message);return;}
+    setClients(cs=>cs.map(c=>c.id===selected.id?{...c,[field]:value}:c));
+    setSelected(s=>({...s,[field]:value}));
   };
 
+  const [bulkArchiveConfirm,setBulkArchiveConfirm]=useState(false);
   const bulkArchive=async()=>{
     const ids=[...bulkSelected];
-    await Promise.all(ids.map(id=>supabase.from("clients").update({archived:true}).eq("id",id)));
-    await loadClients();setBulkSelected(new Set());setBulkMode(false);
+    const results=await Promise.allSettled(ids.map(id=>supabase.from("clients").update({archived:true}).eq("id",id)));
+    const failed=results.filter(r=>r.status==="rejected"||r.value?.error);
+    const succeeded=ids.length-failed.length;
+    await logAudit("Bulk archived clients","",{section:"Client Profile",details:`${succeeded} client${succeeded!==1?"s":""} archived${failed.length>0?` (${failed.length} failed)`:""}`});
+    await loadClients();
+    setBulkSelected(new Set());setBulkMode(false);setBulkArchiveConfirm(false);
+    if(failed.length)setError(`${failed.length} client${failed.length!==1?"s":""} failed to archive — rest were archived successfully.`);
   };
 
   const bulkExportCSV=()=>{
@@ -3952,6 +3983,7 @@ export default function App(){
     await logAudit("Permanently deleted client",selected.name,{section:"Client Profile",details:"Client record permanently removed from system"});
     setClients(c=>c.filter(x=>x.id!==selected.id));
     setSelected(null);setView("dashboard");setDeleteConfirm(false);
+    showAppMsg("success","Client permanently deleted");
   };
 
   const exportCSV=()=>{
@@ -4018,22 +4050,25 @@ export default function App(){
 
   const handleLogout=async()=>{await supabase.auth.signOut();setCurrentUser(null);};
 
-  const filtered=clients.filter(c=>{
+  const notifications=useMemo(()=>buildNotifications(clients),[clients]);
+
+  const filtered=useMemo(()=>clients.filter(c=>{
     const q=search.toLowerCase();
     const ms=c.name.toLowerCase().includes(q)||(c.room_or_address||"").toLowerCase().includes(q)||(c.azv_number||"").toLowerCase().includes(q)||(searchAllCompanies&&(companiesMap[c.company_id]||"").toLowerCase().includes(q));
     if(statusFilter==="Archived")return ms&&c.archived===true;
     const mst=statusFilter==="All"||(c.status||"Active")===statusFilter;
     return ms&&mst&&!c.archived;
-  });
+  }),[clients,search,statusFilter,searchAllCompanies,companiesMap]);
 
-  const noteResults=search.trim().length>1&&searchMode==="notes"
+  const noteResults=useMemo(()=>search.trim().length>1&&searchMode==="notes"
     ?clients.flatMap(c=>(c.session_notes||[]).filter(n=>n.text&&n.text.toLowerCase().includes(search.toLowerCase())).map(n=>({...n,clientName:c.name,client:c}))).sort((a,b)=>b.date.localeCompare(a.date))
-    :[];
+    :[]
+  ,[clients,search,searchMode]);
 
   if(!authChecked)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#1c1f2e",color:"#6366f1",fontSize:18,fontFamily:"serif"}}>Loading...</div>;
   if(!currentUser)return lang?<Login onLogin={setCurrentUser} t={t}/>:<LangPicker onSelect={selectLang}/>;
   if(!lang)return <LangPicker onSelect={selectLang}/>;
-  if(currentUser.role==="superadmin"&&!selectedCompany||currentUser?.allRoles?.length>1&&!selectedCompany){
+  if((currentUser.role==="superadmin"||currentUser?.allRoles?.length>1)&&!selectedCompany){
     return <CompanyPicker currentUser={currentUser} onSelect={(cid,role)=>{
       setSelectedCompany(cid);
       setCurrentUser(u=>({...u,role:role||u.role}));
@@ -4043,6 +4078,11 @@ export default function App(){
   return(
     <div style={{minHeight:"100vh",background:"#1c1f2e",fontFamily:"Inter,Helvetica Neue,sans-serif"}}>
       <style dangerouslySetInnerHTML={{__html:GCSS}}/>
+      {appMsg&&(
+        <div style={{position:"fixed",top:20,right:24,zIndex:1200,padding:"12px 20px",borderRadius:10,background:appMsg.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)",animation:"slideIn 0.2s ease"}}>
+          {appMsg.type==="success"?"✓ ":"✗ "}{appMsg.text}
+        </div>
+      )}
       <div className="mob-hdr">
         <button onClick={()=>setSidebarOpen(o=>!o)} style={{background:"none",border:"none",color:"#94a3b8",fontSize:22}}>=</button>
         <span style={{fontFamily:"Playfair Display,serif",fontSize:16,fontWeight:700,color:"#f1f5f9"}}>CareManager</span>
@@ -4055,7 +4095,7 @@ export default function App(){
             <div style={{fontFamily:"Playfair Display,serif",fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:2}}>CareManager</div>
             <div style={{fontSize:11,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:12}}>Elder Care Platform</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div onClick={()=>{if(["admin","superadmin"].includes(currentUser.role)){setView("profile");setSelected(null);setSidebarOpen(false);}}} style={{cursor:["admin","superadmin"].includes(currentUser.role)?"pointer":"default",display:"flex",alignItems:"center",gap:8}}>
+              <div onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
                 {currentUser.avatar_url?<img src={currentUser.avatar_url} alt="avatar" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",border:"2px solid #6366f1"}}/>:<div style={{width:32,height:32,borderRadius:"50%",background:"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff"}}>{(currentUser.displayName||"?")[0].toUpperCase()}</div>}
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{currentUser.displayName}</div>
@@ -4063,7 +4103,7 @@ export default function App(){
                 </div>
               </div>
               <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                {(()=>{const notifs=buildNotifications(clients);const unread=notifs.filter(n=>!readNotifIds.has(n.id)).length;return(
+                {(()=>{const notifs=notifications;const unread=notifs.filter(n=>!readNotifIds.has(n.id)).length;return(
                   <button onClick={()=>setNotifOpen(o=>!o)} title="Notifications (b)" style={{position:"relative",background:"none",border:"1px solid #334155",borderRadius:7,padding:"4px 9px",color:"#64748b",fontSize:14}}>
                     🔔{unread>0&&<span style={{position:"absolute",top:-5,right:-5,background:"#ef4444",color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{unread>9?"9+":unread}</span>}
                   </button>
@@ -4204,7 +4244,7 @@ export default function App(){
                     ⬇ Export
                   </button>
                   {can(currentUser.role,"delete")&&statusFilter!=="Archived"&&(
-                    <button onClick={bulkArchive}
+                    <button onClick={()=>setBulkArchiveConfirm(true)}
                       style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid #f59e0b",background:"rgba(245,158,11,0.1)",color:"#f59e0b",fontSize:11,fontWeight:700}}>
                       📦 Archive
                     </button>
@@ -4247,11 +4287,11 @@ export default function App(){
         <div className="main-pad" style={{flex:1,overflowY:"auto",padding:"28px 32px"}}>
           {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#ef4444",fontSize:14}}>{error}</div>}
           {loading&&view==="dashboard"&&<div style={{color:"#475569",textAlign:"center",padding:"60px 0"}}>Loading...</div>}
-          {!loading&&view==="audit"&&currentUser.role==="superadmin"&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
-          {!loading&&view==="company"&&currentUser.role==="superadmin"&&(
+          {!loading&&view==="audit"&&can(currentUser.role,"audit")&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
+          {!loading&&view==="company"&&can(currentUser.role,"company")&&(
             <CompanyView company={company} onUpdate={updated=>{setCompany(updated);}} currentUser={currentUser} t={t}/>
           )}
-          {!loading&&view==="profile"&&["admin","superadmin"].includes(currentUser.role)&&(
+          {!loading&&view==="profile"&&(
             <UserProfile
               currentUser={currentUser}
               onUpdate={updated=>setCurrentUser(updated)}
@@ -4272,7 +4312,7 @@ export default function App(){
               {noteResults.length===0?<div style={{color:"#475569",fontSize:14,textAlign:"center",padding:"40px 0"}}>{t.noNoteResults} "{search}"</div>:(
                 <div style={{display:"flex",flexDirection:"column",gap:12}}>
                   {noteResults.map((n,i)=>(
-                    <div key={i} onClick={()=>{setSelected(n.client);setView("detail");setSearch("");setSearchMode("clients");setSidebarOpen(false);trackRecent(n.client);}}
+                    <div key={`${n.clientName}-${n.date}-${i}`} onClick={()=>{setSelected(n.client);setView("detail");setSearch("");setSearchMode("clients");setSidebarOpen(false);trackRecent(n.client);}}
                       style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,padding:"14px 18px",cursor:"pointer"}}>
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                         <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(n.clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(n.clientName)}</div>
@@ -4382,9 +4422,24 @@ export default function App(){
         </div>
       </div>
 
+      {/* ═══ BULK ARCHIVE CONFIRM ═══ */}
+      {bulkArchiveConfirm&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:32,maxWidth:400,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+            <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>📦</div>
+            <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#f1f5f9",textAlign:"center",marginBottom:10}}>Archive {bulkSelected.size} Client{bulkSelected.size!==1?"s":""}?</div>
+            <div style={{fontSize:13,color:"#94a3b8",textAlign:"center",lineHeight:1.7,marginBottom:28}}>They will be hidden from the active list. All data is preserved and can be restored from the Archived filter.</div>
+            <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+              <button onClick={()=>setBulkArchiveConfirm(false)} style={{padding:"10px 28px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:14}}>Cancel</button>
+              <button onClick={bulkArchive} style={{padding:"10px 28px",borderRadius:9,border:"none",background:"#f59e0b",color:"#fff",fontWeight:700,fontSize:14}}>📦 Archive All</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ NOTIFICATION PANEL ═══ */}
       {notifOpen&&(()=>{
-        const notifs=buildNotifications(clients);
+        const notifs=notifications;
         const markAllRead=()=>{
           const all=new Set([...readNotifIds,...notifs.map(n=>n.id)]);
           setReadNotifIds(all);
