@@ -2906,7 +2906,7 @@ export default function App(){
         <div className="main-pad" style={{flex:1,overflowY:"auto",padding:"28px 32px"}}>
           {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#ef4444",fontSize:14}}>{error}</div>}
           {loading&&view==="dashboard"&&<div style={{color:"#475569",textAlign:"center",padding:"60px 0"}}>Loading...</div>}
-          {!loading&&view==="audit"&&currentUser.role==="superadmin"&&<AuditTrail t={t} companyId={currentUser.company_id}/>}
+          {!loading&&view==="audit"&&currentUser.role==="superadmin"&&<AuditTrail t={t} companyId={activeCompanyId}/>}
           {!loading&&view==="company"&&currentUser.role==="superadmin"&&(
             <CompanyView company={company} onUpdate={updated=>{setCompany(updated);}} currentUser={currentUser} t={t}/>
           )}
