@@ -1689,6 +1689,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   const [toast,setToast]=useState(null);
   const [userTab,setUserTab]=useState("all");
   const [search,setSearch]=useState("");
+  const [expandedUser,setExpandedUser]=useState(null);
   const [userForm,setUserForm]=useState({name:"",email:"",password:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [existingForm,setExistingForm]=useState({user_id:"",name:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [companyForm,setCompanyForm]=useState({name:"",address:"",phone:"",email:"",website:"",mission_statement:""});
@@ -1830,15 +1831,39 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
     showToast("success","User deactivated");
   };
 
+  const removeFromCompany=async(userId,companyId)=>{
+    const userRows=allUserRoles.filter(r=>r.user_id===userId);
+    if(userRows.length<=1){showToast("error","Cannot remove — user must belong to at least one company");return;}
+    const {error}=await supabase.from("user_roles").delete().eq("user_id",userId).eq("company_id",companyId);
+    if(error){showToast("error","Failed: "+error.message);return;}
+    showToast("success","Removed from company");
+    await loadData();
+  };
+
+  const addToCompany=async(userId,companyId)=>{
+    const u=allUserRoles.find(r=>r.user_id===userId);
+    const {error}=await supabase.from("user_roles").insert({
+      user_id:userId,name:u?.name||"",email:u?.email||"",role:u?.role||"user",company_id:companyId,
+    });
+    if(error){showToast("error","Failed: "+error.message);return;}
+    showToast("success","Added to company");
+    setExpandedUser(null);
+    await loadData();
+  };
+
   const roleColor={superadmin:"#f59e0b",admin:"#6366f1",power_user:"#06b6d4",user:"#10b981",inactive:"#475569"};
   const roleBg={superadmin:"rgba(245,158,11,0.1)",admin:"rgba(99,102,241,0.1)",power_user:"rgba(6,182,212,0.1)",user:"rgba(16,185,129,0.1)",inactive:"rgba(71,85,105,0.1)"};
   const companyName=id=>companies.find(c=>c.id===id)?.name||"—";
   const userCountForCompany=id=>users.filter(u=>u.company_id===id).length;
 
+  const seenUserIds=new Set();
   const filteredUsers=users.filter(u=>{
     const matchTab=userTab==="all"||(userTab==="active"&&u.role!=="inactive")||(userTab==="inactive"&&u.role==="inactive");
     const matchSearch=!search||u.name?.toLowerCase().includes(search.toLowerCase())||u.email?.toLowerCase().includes(search.toLowerCase());
-    return matchTab&&matchSearch;
+    if(!matchTab||!matchSearch)return false;
+    if(seenUserIds.has(u.user_id))return false;
+    seenUserIds.add(u.user_id);
+    return true;
   });
 
   const INP2={...INP,marginBottom:0};
@@ -2002,7 +2027,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
                   <thead>
                     <tr style={{borderBottom:"1px solid #334155"}}>
-                      {["Name","Email","Role","Company","Actions"].map(h=>(
+                      {["Name","Email","Role","Companies","Actions"].map(h=>(
                         <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5}}>{h}</th>
                       ))}
                     </tr>
@@ -2022,7 +2047,39 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                             <option value="inactive">Inactive</option>
                           </select>
                         </td>
-                        <td style={{padding:"12px 16px",color:"#94a3b8",fontSize:13}}>{companyName(u.company_id)}</td>
+                        <td style={{padding:"12px 16px"}}>
+                          <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}>
+                            {allUserRoles.filter(r=>r.user_id===u.user_id).map(r=>(
+                              <span key={r.company_id} style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(99,102,241,0.12)",border:"1px solid rgba(99,102,241,0.25)",borderRadius:12,padding:"2px 8px",fontSize:11,color:"#a5b4fc",whiteSpace:"nowrap"}}>
+                                {companyName(r.company_id)}
+                                {u.user_id!==currentUser.id&&(
+                                  <span onClick={()=>removeFromCompany(u.user_id,r.company_id)}
+                                    style={{cursor:"pointer",color:"#64748b",fontWeight:700,fontSize:13,lineHeight:1,marginLeft:2}} title="Remove from company">×</span>
+                                )}
+                              </span>
+                            ))}
+                            {companies.filter(c=>!allUserRoles.find(r=>r.user_id===u.user_id&&r.company_id===c.id)).length>0&&(
+                              <div style={{position:"relative"}}>
+                                <span onClick={()=>setExpandedUser(expandedUser===u.user_id?null:u.user_id)}
+                                  style={{display:"inline-flex",alignItems:"center",background:"transparent",border:"1px dashed #475569",borderRadius:12,padding:"2px 8px",fontSize:11,color:"#475569",cursor:"pointer",whiteSpace:"nowrap"}}>
+                                  + add
+                                </span>
+                                {expandedUser===u.user_id&&(
+                                  <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:50,background:"#1e293b",border:"1px solid #334155",borderRadius:8,padding:6,minWidth:180,boxShadow:"0 8px 24px rgba(0,0,0,0.4)"}}>
+                                    {companies.filter(c=>!allUserRoles.find(r=>r.user_id===u.user_id&&r.company_id===c.id)).map(c=>(
+                                      <div key={c.id} onClick={()=>addToCompany(u.user_id,c.id)}
+                                        style={{padding:"7px 10px",fontSize:12,color:"#e2e8f0",cursor:"pointer",borderRadius:6,whiteSpace:"nowrap"}}
+                                        onMouseEnter={e=>e.currentTarget.style.background="#334155"}
+                                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                                        {c.name}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
                         <td style={{padding:"12px 16px"}}>
                           {u.role!=="inactive"&&u.user_id!==currentUser.id&&(
                             <button onClick={()=>deactivateUser(u.user_id)}
