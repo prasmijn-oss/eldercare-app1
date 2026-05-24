@@ -1367,8 +1367,12 @@ function AuditTrail({t,companyId}){
   const [fA,setFA]=useState("");
   const [fD,setFD]=useState("");
   useEffect(()=>{
+    console.log("Fetching audit for company:",companyId);
     const q=supabase.from("audit_log").select("*").order("performed_at",{ascending:false}).limit(500);
-    (companyId?q.eq("company_id",companyId):q).then(({data})=>{setLogs(data||[]);setLoading(false);});
+    (companyId?q.eq("company_id",companyId):q).then(({data,error})=>{
+      console.log("Audit result:",(data||[]).length,"rows",error?"error:"+error.message:"ok");
+      setLogs(data||[]);setLoading(false);
+    });
   },[companyId]);
   const sl=[...new Set(logs.map(l=>l.performed_by))].filter(Boolean);
   const al=[...new Set(logs.map(l=>l.action))].filter(Boolean);
@@ -1685,7 +1689,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   const [toast,setToast]=useState(null);
   const [userTab,setUserTab]=useState("all");
   const [search,setSearch]=useState("");
-  const [userForm,setUserForm]=useState({name:"",email:"",password:"",role:"user",company_id:activeCompanyId||""});
+  const [userForm,setUserForm]=useState({name:"",email:"",password:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [existingForm,setExistingForm]=useState({user_id:"",name:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [companyForm,setCompanyForm]=useState({name:"",address:"",phone:"",email:"",website:"",mission_statement:""});
 
@@ -1713,6 +1717,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   const onChangeUser=e=>setUserForm(p=>({...p,[e.target.name]:e.target.value}));
   const onChangeExisting=e=>setExistingForm(p=>({...p,[e.target.name]:e.target.value}));
   const onToggleCompany=id=>setExistingForm(p=>({...p,company_ids:p.company_ids.includes(id)?p.company_ids.filter(x=>x!==id):[...p.company_ids,id]}));
+  const onToggleUserCompany=id=>setUserForm(p=>({...p,company_ids:p.company_ids.includes(id)?p.company_ids.filter(x=>x!==id):[...p.company_ids,id]}));
   const onChangeCompany=e=>setCompanyForm(p=>({...p,[e.target.name]:e.target.value}));
 
   const addExistingUser=async e=>{
@@ -1744,12 +1749,13 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
 
   const createUser=async e=>{
     e.preventDefault();
-    if(!userForm.name||!userForm.email||!userForm.password||!userForm.role||!userForm.company_id){
-      showToast("error","All fields are required");return;
+    if(!userForm.name||!userForm.email||!userForm.password||!userForm.role||userForm.company_ids.length===0){
+      showToast("error","All fields are required — select at least one company");return;
     }
     setSaving(true);
     try{
       const {data:{session}}=await supabase.auth.getSession();
+      // Step 1: Create the auth user via edge function (pass first company so edge fn is happy)
       const res=await fetch(`${SUPABASE_URL}/functions/v1/create-user`,{
         method:"POST",
         headers:{
@@ -1762,13 +1768,27 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
           password:userForm.password,
           name:userForm.name,
           role:userForm.role,
-          company_id:userForm.company_id,
+          company_id:userForm.company_ids[0],
         }),
       });
       const result=await res.json();
       if(!res.ok)throw new Error(result.error||"Failed to create user");
+      const newUserId=result.user_id;
+      // Step 2: Wipe the single user_roles row the edge function inserted
+      await supabase.from("user_roles").delete().eq("user_id",newUserId);
+      // Step 3: Insert one row per selected company
+      for(const company_id of userForm.company_ids){
+        const {error:roleErr}=await supabase.from("user_roles").insert({
+          user_id:newUserId,
+          name:userForm.name,
+          email:userForm.email,
+          role:userForm.role,
+          company_id,
+        });
+        if(roleErr)console.error("Failed inserting role for company",company_id,":",roleErr.message);
+      }
       showToast("success","User created successfully!");
-      setUserForm({name:"",email:"",password:"",role:"user",company_id:activeCompanyId||""});
+      setUserForm({name:"",email:"",password:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
       setShowUserForm(false);
       await loadData();
     }catch(err){
@@ -1885,9 +1905,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                       <option value="">Select existing user...</option>
                       {allAuthUsers
                         .filter(u=>{
-                          const targetCo=activeCompanyId||existingForm.company_id;
-                          if(!targetCo)return true;
-                          return!allUserRoles.find(x=>x.user_id===u.user_id&&x.company_id===targetCo);
+                          if(!activeCompanyId)return true;
+                          return!allUserRoles.find(x=>x.user_id===u.user_id&&x.company_id===activeCompanyId);
                         })
                         .map(u=><option key={u.user_id} value={u.user_id}>{u.name||u.email||u.user_id}</option>)}
                     </select>
@@ -1938,15 +1957,16 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                       <option value="superadmin">Super Admin</option>
                     </select>
                   </div>
-                  <div style={{gridColumn:"1/-1"}}><label style={LBL}>Company *</label>
-                    {activeCompanyId?(
-                      <input style={{...INP2,opacity:0.7}} value={companies.find(c=>c.id===activeCompanyId)?.name||""} disabled/>
-                    ):(
-                      <select name="company_id" value={userForm.company_id} onChange={onChangeUser} style={{...INP2,cursor:"pointer"}}>
-                        <option value="">Select company...</option>
-                        {companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    )}
+                  <div style={{gridColumn:"1/-1"}}>
+                    <label style={LBL}>Companies * (select one or more)</label>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"#0f172a",borderRadius:8,padding:12,border:"1px solid #334155"}}>
+                      {companies.map(c=>(
+                        <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#e2e8f0",cursor:"pointer"}}>
+                          <input type="checkbox" checked={userForm.company_ids.includes(c.id)} onChange={()=>onToggleUserCompany(c.id)} style={{accentColor:"#6366f1",width:15,height:15}}/>
+                          {c.name}
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#f59e0b"}}>
@@ -2691,11 +2711,15 @@ export default function App(){
 
   const logAudit=async(action,clientName)=>{
     if(!currentUser)return;
-    await supabase.from("audit_log").insert({
-      action,client_name:clientName||"",
+    const payload={
+      action,
+      client_name:clientName||"",
       performed_by:currentUser.displayName||currentUser.email,
       company_id:activeCompanyId||null,
-    });
+    };
+    console.log("Writing Audit:",payload);
+    const {error}=await supabase.from("audit_log").insert(payload);
+    if(error)console.error("Audit insert failed:",error.message);
   };
 
   const saveClient=async data=>{
