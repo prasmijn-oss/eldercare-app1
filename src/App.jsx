@@ -1686,7 +1686,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   const [userTab,setUserTab]=useState("all");
   const [search,setSearch]=useState("");
   const [userForm,setUserForm]=useState({name:"",email:"",password:"",role:"user",company_id:activeCompanyId||""});
-  const [existingForm,setExistingForm]=useState({user_id:"",name:"",role:"user",company_id:activeCompanyId||""});
+  const [existingForm,setExistingForm]=useState({user_id:"",name:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [companyForm,setCompanyForm]=useState({name:"",address:"",phone:"",email:"",website:"",mission_statement:""});
 
   const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
@@ -1712,27 +1712,30 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
 
   const onChangeUser=e=>setUserForm(p=>({...p,[e.target.name]:e.target.value}));
   const onChangeExisting=e=>setExistingForm(p=>({...p,[e.target.name]:e.target.value}));
+  const onToggleCompany=id=>setExistingForm(p=>({...p,company_ids:p.company_ids.includes(id)?p.company_ids.filter(x=>x!==id):[...p.company_ids,id]}));
   const onChangeCompany=e=>setCompanyForm(p=>({...p,[e.target.name]:e.target.value}));
 
   const addExistingUser=async e=>{
     e.preventDefault();
-    if(!existingForm.user_id||!existingForm.role||!existingForm.company_id){
-      showToast("error","All fields are required");return;
+    if(!existingForm.user_id||!existingForm.role||existingForm.company_ids.length===0){
+      showToast("error","Select a user, role, and at least one company");return;
     }
     setSaving(true);
     const selectedUser=allAuthUsers.find(u=>u.user_id===existingForm.user_id);
-    const {error}=await supabase.from("user_roles").insert({
-      user_id:existingForm.user_id,
-      name:selectedUser?.name||existingForm.name,
-      role:existingForm.role,
-      company_id:existingForm.company_id,
-    });
-    if(error){
-      if(error.code==="23505"){showToast("error","This user is already in that company");}
-      else{showToast("error","Failed: "+error.message);}
-    } else {
-      showToast("success","User added to company successfully!");
-      setExistingForm({user_id:"",name:"",role:"user",company_id:activeCompanyId||""});
+    let failed=false;
+    for(const company_id of existingForm.company_ids){
+      if(allUserRoles.find(x=>x.user_id===existingForm.user_id&&x.company_id===company_id))continue;
+      const {error}=await supabase.from("user_roles").insert({
+        user_id:existingForm.user_id,
+        name:selectedUser?.name||existingForm.name,
+        role:existingForm.role,
+        company_id,
+      });
+      if(error&&error.code!=="23505"){failed=true;showToast("error","Failed: "+error.message);}
+    }
+    if(!failed){
+      showToast("success","User added to selected companies!");
+      setExistingForm({user_id:"",name:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
       setShowExistingForm(false);
       await loadData();
     }
@@ -1898,16 +1901,16 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                       <option value="superadmin">Super Admin</option>
                     </select>
                   </div>
-                  <div>
-                    <label style={LBL}>Company *</label>
-                    {activeCompanyId?(
-                      <input style={{...INP,marginBottom:0,opacity:0.7}} value={companies.find(c=>c.id===activeCompanyId)?.name||""} disabled/>
-                    ):(
-                      <select name="company_id" value={existingForm.company_id} onChange={onChangeExisting} style={{...INP,marginBottom:0,cursor:"pointer"}}>
-                        <option value="">Select company...</option>
-                        {companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    )}
+                  <div style={{gridColumn:"1/-1"}}>
+                    <label style={LBL}>Companies * (select one or more)</label>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"#0f172a",borderRadius:8,padding:12,border:"1px solid #334155"}}>
+                      {companies.map(c=>(
+                        <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#e2e8f0",cursor:"pointer"}}>
+                          <input type="checkbox" checked={existingForm.company_ids.includes(c.id)} onChange={()=>onToggleCompany(c.id)} style={{accentColor:"#6366f1",width:15,height:15}}/>
+                          {c.name}
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <button type="submit" disabled={saving}
