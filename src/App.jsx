@@ -1770,6 +1770,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
 
   const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
 
+  const [companyStats,setCompanyStats]=useState({});
+
   const loadData=async()=>{
     setLoading(true);
     const uq=supabase.from("user_roles").select("*").order("name");
@@ -1777,13 +1779,36 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
     setUsers(ud||[]);
     const {data:cd}=await supabase.from("companies").select("*").order("name");
     setCompanies(cd||[]);
-    // Load ALL users across all companies for existing user picker
+    // Load ALL users across all companies for existing user picker + stats
     const {data:au}=await supabase.from("user_roles").select("user_id,name,company_id").order("name");
-    // Keep full list for per-company membership checks, deduplicate for the picker dropdown
     setAllUserRoles(au||[]);
     const seen=new Set();
     const unique=(au||[]).filter(u=>{if(seen.has(u.user_id))return false;seen.add(u.user_id);return true;});
     setAllAuthUsers(unique);
+    // Load client counts per company
+    const {data:clientRows}=await supabase.from("clients").select("company_id,archived");
+    // Load last audit activity per company (most recent 1000 entries)
+    const {data:auditRows}=await supabase.from("audit_log").select("company_id,performed_at").order("performed_at",{ascending:false}).limit(1000);
+    // Build stats map
+    const stats={};
+    (cd||[]).forEach(c=>{stats[c.id]={clients:0,archivedClients:0,users:0,lastActivity:null};});
+    (clientRows||[]).forEach(r=>{
+      if(!stats[r.company_id])stats[r.company_id]={clients:0,archivedClients:0,users:0,lastActivity:null};
+      if(r.archived)stats[r.company_id].archivedClients++;
+      else stats[r.company_id].clients++;
+    });
+    // Unique users per company
+    const userSets={};
+    (au||[]).forEach(r=>{
+      if(!userSets[r.company_id])userSets[r.company_id]=new Set();
+      userSets[r.company_id].add(r.user_id);
+    });
+    Object.entries(userSets).forEach(([cid,s])=>{if(stats[cid])stats[cid].users=s.size;});
+    // Last activity (first entry per company since sorted desc)
+    (auditRows||[]).forEach(r=>{
+      if(stats[r.company_id]&&!stats[r.company_id].lastActivity)stats[r.company_id].lastActivity=r.performed_at;
+    });
+    setCompanyStats(stats);
     setLoading(false);
   };
 
@@ -1885,6 +1910,9 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
     e.preventDefault();
     if(!companyForm.name){showToast("error","Company name is required");return;}
     setSaving(true);
+    // Duplicate name check (case-insensitive)
+    const {data:existing}=await supabase.from("companies").select("id").ilike("name",companyForm.name.trim()).limit(1).maybeSingle();
+    if(existing){showToast("error","A company with this name already exists");setSaving(false);return;}
     const {data,error}=await supabase.from("companies").insert({
       ...companyForm,
       hours_of_operation:{monday:"8:00 AM - 5:00 PM",tuesday:"8:00 AM - 5:00 PM",wednesday:"8:00 AM - 5:00 PM",thursday:"8:00 AM - 5:00 PM",friday:"8:00 AM - 5:00 PM",saturday:"10:00 AM - 2:00 PM",sunday:"Closed"},
@@ -1986,7 +2014,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   const roleColor={superadmin:"#f59e0b",admin:"#6366f1",power_user:"#06b6d4",user:"#10b981",inactive:"#475569"};
   const roleBg={superadmin:"rgba(245,158,11,0.1)",admin:"rgba(99,102,241,0.1)",power_user:"rgba(6,182,212,0.1)",user:"rgba(16,185,129,0.1)",inactive:"rgba(71,85,105,0.1)"};
   const companyName=id=>companies.find(c=>c.id===id)?.name||"—";
-  const userCountForCompany=id=>users.filter(u=>u.company_id===id).length;
+
 
   const seenUserIds=new Set();
   const filteredUsers=users.filter(u=>{
@@ -2327,12 +2355,13 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               {companies.length===0?(
                 <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>No companies yet. Create your first one.</div>
-              ):companies.map((c,i)=>{
-                const uCount=userCountForCompany(c.id);
+              ):companies.map((c)=>{
+                const st=companyStats[c.id]||{clients:0,archivedClients:0,users:0,lastActivity:null};
+                const lastAct=st.lastActivity?new Date(st.lastActivity).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"No activity";
                 return(
                   <div key={c.id} style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                      <div style={{flex:1}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
+                      <div style={{flex:1,minWidth:200}}>
                         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
                           {c.logo_url&&(
                             <div style={{background:"#fff",borderRadius:8,padding:"4px 6px",flexShrink:0}}>
@@ -2351,10 +2380,20 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                           {c.website&&<span style={{fontSize:12,color:"#94a3b8"}}>🌐 {c.website}</span>}
                         </div>
                       </div>
-                      <div style={{display:"flex",gap:8,flexShrink:0,marginLeft:16}}>
-                        <div style={{textAlign:"center",background:"rgba(99,102,241,0.1)",borderRadius:10,padding:"8px 16px"}}>
-                          <div style={{fontSize:20,fontWeight:700,color:"#6366f1"}}>{uCount}</div>
+                      {/* Stats */}
+                      <div style={{display:"flex",gap:8,flexShrink:0,flexWrap:"wrap"}}>
+                        <div style={{textAlign:"center",background:"rgba(16,185,129,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
+                          <div style={{fontSize:22,fontWeight:700,color:"#10b981"}}>{st.clients}</div>
+                          <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>CLIENTS</div>
+                          {st.archivedClients>0&&<div style={{fontSize:9,color:"#475569",marginTop:2}}>{st.archivedClients} archived</div>}
+                        </div>
+                        <div style={{textAlign:"center",background:"rgba(99,102,241,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
+                          <div style={{fontSize:22,fontWeight:700,color:"#6366f1"}}>{st.users}</div>
                           <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>USERS</div>
+                        </div>
+                        <div style={{textAlign:"center",background:"rgba(71,85,105,0.2)",borderRadius:10,padding:"10px 16px",minWidth:80}}>
+                          <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",lineHeight:1.3}}>{lastAct}</div>
+                          <div style={{fontSize:10,color:"#64748b",fontWeight:600,marginTop:4}}>LAST ACTIVITY</div>
                         </div>
                       </div>
                     </div>
