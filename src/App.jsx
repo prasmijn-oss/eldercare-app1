@@ -2259,9 +2259,15 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   const [editingUser,setEditingUser]=useState(null);
   const [editForm,setEditForm]=useState({name:"",email:"",username:""});
   const [deleteConfirmUser,setDeleteConfirmUser]=useState(null);
+  const [pendingAction,setPendingAction]=useState(null);
   const [userForm,setUserForm]=useState({name:"",email:"",password:"",username:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [existingForm,setExistingForm]=useState({user_id:"",name:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [companyForm,setCompanyForm]=useState({name:"",address:"",phone:"",email:"",website:"",mission_statement:""});
+  const [activityData,setActivityData]=useState([]);
+  const [activityLoading,setActivityLoading]=useState(false);
+  const [activityDateFrom,setActivityDateFrom]=useState("");
+  const [activityDateTo,setActivityDateTo]=useState("");
+  const [expandedStaff,setExpandedStaff]=useState(null);
 
   const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
 
@@ -2308,6 +2314,29 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   };
 
   useEffect(()=>{loadData();},[activeCompanyId]);
+
+  const loadActivity=async(from,to)=>{
+    setActivityLoading(true);
+    let q=supabase.from("audit_log").select("performed_by,action,client_name,performed_at").order("performed_at",{ascending:false}).limit(3000);
+    if(activeCompanyId)q=q.eq("company_id",activeCompanyId);
+    if(from)q=q.gte("performed_at",from+"T00:00:00");
+    if(to)q=q.lte("performed_at",to+"T23:59:59");
+    const{data}=await q;
+    const map={};
+    (data||[]).forEach(row=>{
+      const key=row.performed_by||"Unknown";
+      if(!map[key])map[key]={name:key,count:0,lastAt:null,actions:{},recentClients:[]};
+      const st=map[key];
+      st.count++;
+      if(!st.lastAt||row.performed_at>st.lastAt)st.lastAt=row.performed_at;
+      st.actions[row.action]=(st.actions[row.action]||0)+1;
+      if(row.client_name&&st.recentClients.length<5&&!st.recentClients.includes(row.client_name))st.recentClients.push(row.client_name);
+    });
+    setActivityData(Object.values(map).sort((a,b)=>b.count-a.count));
+    setActivityLoading(false);
+  };
+
+  useEffect(()=>{if(mainTab==="activity")loadActivity(activityDateFrom,activityDateTo);},[mainTab,activeCompanyId]);
 
   const onChangeUser=e=>setUserForm(p=>({...p,[e.target.name]:e.target.value}));
   const onChangeExisting=e=>setExistingForm(p=>({...p,[e.target.name]:e.target.value}));
@@ -2561,7 +2590,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
 
       {/* Main Tabs */}
       <div style={{display:"flex",gap:2,borderBottom:"1px solid #334155",marginBottom:20}}>
-        {[["users","👥 Users"],["companies","🏢 Companies"]].map(([id,label])=>(
+        {[["users","👥 Users"],["companies","🏢 Companies"],["activity","📊 Activity"]].map(([id,label])=>(
           <button key={id} onClick={()=>{setMainTab(id);setShowUserForm(false);setShowCompanyForm(false);setSearch("");}}
             style={{padding:"9px 20px",border:"none",borderBottom:mainTab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:mainTab===id?"#6366f1":"#64748b",fontWeight:600,fontSize:14,cursor:"pointer",marginBottom:-1}}>
             {label}
@@ -2722,7 +2751,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                         </td>
                         {/* Role cell */}
                         <td style={{padding:"10px 16px"}}>
-                          <select value={u.role} onChange={e=>updateRole(u.user_id,e.target.value)}
+                          <select value={u.role} onChange={e=>{const nr=e.target.value;if(nr===u.role)return;setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});}}
                             style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"#64748b",border:"1px solid "+(roleColor[u.role]||"#334155"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
                             <option value="user">User</option>
                             <option value="power_user">Power User</option>
@@ -2738,7 +2767,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                               <span key={r.company_id} style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(99,102,241,0.12)",border:"1px solid rgba(99,102,241,0.25)",borderRadius:12,padding:"2px 8px",fontSize:11,color:"#a5b4fc",whiteSpace:"nowrap"}}>
                                 {companyName(r.company_id)}
                                 {!isMe&&(
-                                  <span onClick={()=>removeFromCompany(u.user_id,r.company_id)}
+                                  <span onClick={()=>setPendingAction({type:"remove_company",userId:u.user_id,userName:u.name||u.email,meta:{companyId:r.company_id,companyName:companyName(r.company_id)}})}
                                     style={{cursor:"pointer",color:"#64748b",fontWeight:700,fontSize:13,lineHeight:1,marginLeft:2}} title="Remove from company">×</span>
                                 )}
                               </span>
@@ -2796,7 +2825,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                                     🗑️
                                   </button>
                                   {u.role!=="inactive"&&(
-                                    <button onClick={()=>deactivateUser(u.user_id)}
+                                    <button onClick={()=>setPendingAction({type:"deactivate",userId:u.user_id,userName:u.name||u.email,meta:{}})}
                                       style={{padding:"4px 12px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
                                       Deactivate
                                     </button>
@@ -2816,6 +2845,112 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
             </div>
           )}
         </>
+      )}
+
+      {/* ═══════════════ ACTIVITY TAB ═══════════════ */}
+      {mainTab==="activity"&&(
+        <div>
+          <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:20,flexWrap:"wrap"}}>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <label style={{fontSize:12,color:"#64748b",fontWeight:600}}>From</label>
+              <input type="date" value={activityDateFrom} onChange={e=>setActivityDateFrom(e.target.value)}
+                style={{...INP2,width:150}}/>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <label style={{fontSize:12,color:"#64748b",fontWeight:600}}>To</label>
+              <input type="date" value={activityDateTo} onChange={e=>setActivityDateTo(e.target.value)}
+                style={{...INP2,width:150}}/>
+            </div>
+            <button onClick={()=>loadActivity(activityDateFrom,activityDateTo)}
+              style={{padding:"8px 18px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:700,fontSize:13}}>Apply</button>
+            {(activityDateFrom||activityDateTo)&&(
+              <button onClick={()=>{setActivityDateFrom("");setActivityDateTo("");loadActivity("","");}}
+                style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:13,fontWeight:600}}>Clear</button>
+            )}
+            <button onClick={()=>loadActivity(activityDateFrom,activityDateTo)}
+              style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#475569",fontSize:13}}>↻ Refresh</button>
+          </div>
+          {activityLoading?(
+            <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading activity...</div>
+          ):activityData.length===0?(
+            <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>No activity recorded in this period.</div>
+          ):(
+            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead>
+                  <tr style={{borderBottom:"1px solid #334155"}}>
+                    {[["Staff Member",200],["Total Actions",130],["Last Active",170],["Top Action",null]].map(([h,minW])=>(
+                      <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
+                    ))}
+                    <th style={{padding:"12px 16px",width:30}}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activityData.map((s,i)=>{
+                    const isExpanded=expandedStaff===s.name;
+                    const topAction=Object.entries(s.actions).sort((a,b)=>b[1]-a[1])[0];
+                    const lastDate=s.lastAt?new Date(s.lastAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"—";
+                    return(
+                      <React.Fragment key={s.name}>
+                        <tr style={{borderBottom:"1px solid #1e293b",background:isExpanded?"rgba(99,102,241,0.06)":i%2===0?"transparent":"rgba(255,255,255,0.02)",cursor:"pointer"}}
+                          onClick={()=>setExpandedStaff(isExpanded?null:s.name)}>
+                          <td style={{padding:"12px 16px",fontWeight:600,color:"#f1f5f9",fontSize:13}}>
+                            <div style={{display:"flex",alignItems:"center",gap:10}}>
+                              <div style={{width:34,height:34,borderRadius:"50%",background:"rgba(99,102,241,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#a5b4fc",flexShrink:0}}>
+                                {(s.name||"?").charAt(0).toUpperCase()}
+                              </div>
+                              <span>{s.name||"Unknown"}</span>
+                            </div>
+                          </td>
+                          <td style={{padding:"12px 16px"}}>
+                            <span style={{background:"rgba(99,102,241,0.15)",color:"#a5b4fc",border:"1px solid rgba(99,102,241,0.3)",borderRadius:20,padding:"3px 14px",fontSize:13,fontWeight:700}}>{s.count}</span>
+                          </td>
+                          <td style={{padding:"12px 16px",color:"#64748b",fontSize:12}}>{lastDate}</td>
+                          <td style={{padding:"12px 16px"}}>
+                            {topAction&&(
+                              <span style={{background:"rgba(16,185,129,0.1)",color:"#10b981",border:"1px solid rgba(16,185,129,0.25)",borderRadius:12,padding:"3px 10px",fontSize:11,fontWeight:600}}>
+                                {topAction[0]} · {topAction[1]}×
+                              </span>
+                            )}
+                          </td>
+                          <td style={{padding:"12px 16px",color:"#475569",fontSize:12,textAlign:"right"}}>{isExpanded?"▲":"▼"}</td>
+                        </tr>
+                        {isExpanded&&(
+                          <tr style={{background:"rgba(99,102,241,0.04)",borderBottom:"1px solid #334155"}}>
+                            <td colSpan={5} style={{padding:"12px 20px 16px"}}>
+                              <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>
+                                <div style={{flex:1,minWidth:200}}>
+                                  <div style={{fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,marginBottom:8}}>ACTION BREAKDOWN</div>
+                                  <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                                    {Object.entries(s.actions).sort((a,b)=>b[1]-a[1]).map(([action,count])=>(
+                                      <span key={action} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:8,padding:"4px 10px",fontSize:12,color:"#94a3b8"}}>
+                                        <span style={{color:"#f1f5f9",fontWeight:700}}>{count}×</span> {action}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                                {s.recentClients.length>0&&(
+                                  <div style={{minWidth:180}}>
+                                    <div style={{fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,marginBottom:8}}>RECENT CLIENTS</div>
+                                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                                      {s.recentClients.map(c=>(
+                                        <span key={c} style={{fontSize:12,color:"#94a3b8"}}>• {c}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
 
       {/* ═══════════════ COMPANIES TAB ═══════════════ */}
@@ -2898,6 +3033,43 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
             </div>
           )}
         </>
+      )}
+
+      {/* ═══════════════ CONFIRM ACTION MODAL ═══════════════ */}
+      {pendingAction&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+            <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>
+              {pendingAction.type==="deactivate"?"🔒":pendingAction.type==="role_change"?"🔄":"🏢"}
+            </div>
+            <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#f1f5f9",textAlign:"center",marginBottom:10}}>
+              {pendingAction.type==="deactivate"&&"Deactivate User"}
+              {pendingAction.type==="role_change"&&"Change Role"}
+              {pendingAction.type==="remove_company"&&"Remove from Company"}
+            </div>
+            <div style={{fontSize:13,color:"#94a3b8",textAlign:"center",lineHeight:1.7,marginBottom:28}}>
+              {pendingAction.type==="deactivate"&&<>Deactivate <strong style={{color:"#f1f5f9"}}>{pendingAction.userName}</strong>? They will be unable to log in. Their data and history are preserved.</>}
+              {pendingAction.type==="role_change"&&<>Change <strong style={{color:"#f1f5f9"}}>{pendingAction.userName}</strong>'s role from <span style={{color:roleColor[pendingAction.meta.oldRole]||"#94a3b8",fontWeight:700}}>{pendingAction.meta.oldRole.replace(/_/g," ")}</span> → <span style={{color:roleColor[pendingAction.meta.newRole]||"#94a3b8",fontWeight:700}}>{pendingAction.meta.newRole.replace(/_/g," ")}</span>. Access changes take effect immediately.</>}
+              {pendingAction.type==="remove_company"&&<>Remove <strong style={{color:"#f1f5f9"}}>{pendingAction.userName}</strong> from <strong style={{color:"#f1f5f9"}}>{pendingAction.meta.companyName}</strong>? They will lose access to all clients in that company.</>}
+            </div>
+            <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+              <button onClick={()=>setPendingAction(null)}
+                style={{padding:"10px 28px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                Cancel
+              </button>
+              <button disabled={saving} onClick={async()=>{
+                  const{type,userId,meta}=pendingAction;
+                  setPendingAction(null);
+                  if(type==="deactivate")await deactivateUser(userId);
+                  else if(type==="role_change")await updateRole(userId,meta.newRole);
+                  else if(type==="remove_company")await removeFromCompany(userId,meta.companyId);
+                }}
+                style={{padding:"10px 28px",borderRadius:9,border:"none",background:pendingAction.type==="role_change"?"#6366f1":"#dc2626",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity:saving?0.6:1}}>
+                {saving?"Working…":"Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
