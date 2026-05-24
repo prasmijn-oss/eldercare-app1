@@ -2078,60 +2078,62 @@ function AuditTrail({t,companyId,currentUser}){
         </div>
       )}
 
-      <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflowX:"auto"}}>
+      <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
         {loading
           ?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.loadingAudit}</div>
           :filtered.length===0
             ?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.noAudit}</div>
-            :<table style={{width:"100%",borderCollapse:"collapse",minWidth:700}}>
-              <thead>
-                <tr style={{borderBottom:"1px solid #334155"}}>
-                  {["Date & Time","Staff","Action & Details","Client","Company"].map(h=>(
-                    <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,whiteSpace:"nowrap"}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((l,i)=>{
-                  const isExpanded=expandedRow===l.id;
-                  const hasDevice=!!l.device;
-                  return(
-                    <Fragment key={l.id}>
-                      <tr style={{borderBottom:isExpanded?"none":"1px solid #1e293b",background:i%2===0?"transparent":"rgba(255,255,255,0.02)",cursor:hasDevice?"pointer":"default"}}
-                        onClick={()=>hasDevice&&setExpandedRow(isExpanded?null:l.id)}>
-                        <td style={{padding:"10px 16px",fontSize:12,color:"#64748b",whiteSpace:"nowrap",verticalAlign:"top"}}>
-                          {new Date(l.performed_at).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}
-                        </td>
-                        <td style={{padding:"10px 16px",verticalAlign:"top"}}>
-                          <div style={{fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{l.performed_by||"—"}</div>
-                          {l.performed_role&&<div style={{fontSize:11,color:roleColor[l.performed_role]||"#64748b",marginTop:2,fontWeight:600,textTransform:"capitalize"}}>{l.performed_role.replace(/_/g," ")}</div>}
-                        </td>
-                        <td style={{padding:"10px 16px",verticalAlign:"top",maxWidth:340}}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:l.details?4:0}}>
-                            <span style={{background:"rgba(99,102,241,0.12)",color:"#a5b4fc",borderRadius:6,padding:"2px 8px",fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>{l.action||"—"}</span>
-                            {l.section&&<span style={{background:"rgba(0,0,0,0.25)",color:secColor(l.section),border:"1px solid "+secColor(l.section)+"44",borderRadius:5,padding:"1px 7px",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>{l.section}</span>}
-                            {hasDevice&&<span style={{fontSize:10,color:"#334155",marginLeft:"auto"}}>▾</span>}
-                          </div>
-                          {l.details&&<div style={{fontSize:12,color:"#64748b",lineHeight:1.5,marginTop:2}}>{l.details}</div>}
-                        </td>
-                        <td style={{padding:"10px 16px",fontSize:13,color:"#94a3b8",verticalAlign:"top"}}>{l.client_name||"—"}</td>
-                        <td style={{padding:"10px 16px",fontSize:12,color:"#475569",verticalAlign:"top"}}>{coName(l.company_id)}</td>
-                      </tr>
-                      {isExpanded&&hasDevice&&(
-                        <tr style={{borderBottom:"1px solid #1e293b",background:"rgba(99,102,241,0.04)"}}>
-                          <td colSpan={5} style={{padding:"6px 16px 10px 48px"}}>
-                            <div style={{fontSize:11,color:"#475569",display:"flex",alignItems:"flex-start",gap:8}}>
-                              <span style={{color:"#334155",fontWeight:700,whiteSpace:"nowrap"}}>🖥 Device:</span>
-                              <span style={{wordBreak:"break-all",lineHeight:1.6}}>{l.device}</span>
-                            </div>
+            :<div style={{overflow:"auto",maxHeight:"65vh",WebkitOverflowScrolling:"touch"}}>
+              <table style={{borderCollapse:"collapse",minWidth:820,width:"100%"}}>
+                <thead style={{position:"sticky",top:0,zIndex:2}}>
+                  <tr style={{background:"#161927",borderBottom:"1px solid #334155"}}>
+                    {["Date & Time","Staff","Action & Details","Client","Company"].map(h=>(
+                      <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,whiteSpace:"nowrap"}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((l,i)=>{
+                    const isExpanded=expandedRow===l.id;
+                    const hasDevice=!!l.device;
+                    return(
+                      <Fragment key={l.id}>
+                        <tr style={{borderBottom:isExpanded?"none":"1px solid #1e293b",background:i%2===0?"transparent":"rgba(255,255,255,0.02)",cursor:hasDevice?"pointer":"default"}}
+                          onClick={()=>hasDevice&&setExpandedRow(isExpanded?null:l.id)}>
+                          <td style={{padding:"10px 16px",fontSize:12,color:"#64748b",whiteSpace:"nowrap",verticalAlign:"top"}}>
+                            {new Date(l.performed_at).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}
                           </td>
+                          <td style={{padding:"10px 16px",verticalAlign:"top",whiteSpace:"nowrap"}}>
+                            <div style={{fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{l.performed_by||"—"}</div>
+                            {l.performed_role&&<div style={{fontSize:11,color:roleColor[l.performed_role]||"#64748b",marginTop:2,fontWeight:600,textTransform:"capitalize"}}>{l.performed_role.replace(/_/g," ")}</div>}
+                          </td>
+                          <td style={{padding:"10px 16px",verticalAlign:"top",minWidth:260,maxWidth:360}}>
+                            <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:l.details?4:0}}>
+                              <span style={{background:"rgba(99,102,241,0.12)",color:"#a5b4fc",borderRadius:6,padding:"2px 8px",fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>{l.action||"—"}</span>
+                              {l.section&&<span style={{background:"rgba(0,0,0,0.25)",color:secColor(l.section),border:"1px solid "+secColor(l.section)+"44",borderRadius:5,padding:"1px 7px",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>{l.section}</span>}
+                              {hasDevice&&<span style={{fontSize:10,color:"#334155",marginLeft:"auto"}}>▾</span>}
+                            </div>
+                            {l.details&&<div style={{fontSize:12,color:"#64748b",lineHeight:1.5,marginTop:2}}>{l.details}</div>}
+                          </td>
+                          <td style={{padding:"10px 16px",fontSize:13,color:"#94a3b8",verticalAlign:"top",whiteSpace:"nowrap"}}>{l.client_name||"—"}</td>
+                          <td style={{padding:"10px 16px",fontSize:12,color:"#475569",verticalAlign:"top",whiteSpace:"nowrap"}}>{coName(l.company_id)}</td>
                         </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>}
+                        {isExpanded&&hasDevice&&(
+                          <tr style={{borderBottom:"1px solid #1e293b",background:"rgba(99,102,241,0.04)"}}>
+                            <td colSpan={5} style={{padding:"6px 16px 10px 48px"}}>
+                              <div style={{fontSize:11,color:"#475569",display:"flex",alignItems:"flex-start",gap:8}}>
+                                <span style={{color:"#334155",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>🖥 Device:</span>
+                                <span style={{wordBreak:"break-all",lineHeight:1.6}}>{l.device}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>}
       </div>
     </div>
   );
@@ -4284,7 +4286,7 @@ export default function App(){
             {clients.length} {t.clients} - {t.synced}
           </div>
         </div>
-        <div className="main-pad" style={{flex:1,overflowY:"auto",padding:"28px 32px"}}>
+        <div className="main-pad" style={{flex:1,minWidth:0,overflowY:"auto",padding:"28px 32px"}}>
           {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#ef4444",fontSize:14}}>{error}</div>}
           {loading&&view==="dashboard"&&<div style={{color:"#475569",textAlign:"center",padding:"60px 0"}}>Loading...</div>}
           {!loading&&view==="audit"&&can(currentUser.role,"audit")&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
