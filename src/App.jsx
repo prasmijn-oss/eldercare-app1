@@ -2891,8 +2891,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                     const topAction=Object.entries(s.actions).sort((a,b)=>b[1]-a[1])[0];
                     const lastDate=s.lastAt?new Date(s.lastAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"—";
                     return(
-                      <React.Fragment key={s.name}>
-                        <tr style={{borderBottom:"1px solid #1e293b",background:isExpanded?"rgba(99,102,241,0.06)":i%2===0?"transparent":"rgba(255,255,255,0.02)",cursor:"pointer"}}
+                      <>
+                        <tr key={s.name} style={{borderBottom:"1px solid #1e293b",background:isExpanded?"rgba(99,102,241,0.06)":i%2===0?"transparent":"rgba(255,255,255,0.02)",cursor:"pointer"}}
                           onClick={()=>setExpandedStaff(isExpanded?null:s.name)}>
                           <td style={{padding:"12px 16px",fontWeight:600,color:"#f1f5f9",fontSize:13}}>
                             <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -2916,7 +2916,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                           <td style={{padding:"12px 16px",color:"#475569",fontSize:12,textAlign:"right"}}>{isExpanded?"▲":"▼"}</td>
                         </tr>
                         {isExpanded&&(
-                          <tr style={{background:"rgba(99,102,241,0.04)",borderBottom:"1px solid #334155"}}>
+                          <tr key={s.name+"-exp"} style={{background:"rgba(99,102,241,0.04)",borderBottom:"1px solid #334155"}}>
                             <td colSpan={5} style={{padding:"12px 20px 16px"}}>
                               <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>
                                 <div style={{flex:1,minWidth:200}}>
@@ -2943,7 +2943,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                             </td>
                           </tr>
                         )}
-                      </React.Fragment>
+                      </>
                     );
                   })}
                 </tbody>
