@@ -2528,16 +2528,15 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     }
     setSaving(true);
     try{
-      // Duplicate email check
+      // Pre-flight duplicate checks (fast, before hitting the edge function)
       const {data:existingEmail}=await supabase.from("user_roles").select("user_id").eq("email",userForm.email.toLowerCase().trim()).limit(1).maybeSingle();
       if(existingEmail){showToast("error","A user with this email already exists");setSaving(false);return;}
-      // Duplicate username check (if provided)
       if(userForm.username.trim()){
         const {data:existingUsername}=await supabase.from("user_roles").select("user_id").eq("username",userForm.username.toLowerCase().trim()).limit(1).maybeSingle();
         if(existingUsername){showToast("error","This username is already taken");setSaving(false);return;}
       }
+      // Call the Edge Function — it creates the auth user AND inserts all user_roles rows
       const {data:{session}}=await supabase.auth.getSession();
-      // Step 1: Create the auth user via edge function (pass first company so edge fn is happy)
       const res=await fetch(`${SUPABASE_URL}/functions/v1/create-user`,{
         method:"POST",
         headers:{
@@ -2550,32 +2549,13 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           password:userForm.password,
           name:userForm.name,
           role:userForm.role,
-          company_id:userForm.company_ids[0],
+          username:userForm.username.trim()||null,
+          company_ids:userForm.company_ids,
         }),
       });
       const result=await res.json();
       if(!res.ok)throw new Error(result.error||"Failed to create user");
-      const newUserId=result.user_id;
-      // Step 2: Wipe the single user_roles row the edge function inserted
-      await supabase.from("user_roles").delete().eq("user_id",newUserId);
-      // Step 3: Insert one row per selected company.
-      // Username must only go on the FIRST row — user_roles has a UNIQUE(username) constraint
-      // so inserting the same username on rows 2+ would fail with a unique violation.
-      let firstRow=true;
-      let anyFailed=false;
-      for(const company_id of userForm.company_ids){
-        const {error:roleErr}=await supabase.from("user_roles").insert({
-          user_id:newUserId,
-          name:userForm.name,
-          email:userForm.email.toLowerCase().trim(),
-          username:firstRow?(userForm.username.toLowerCase().trim()||null):null,
-          role:userForm.role,
-          company_id,
-        });
-        if(roleErr){console.error("Failed inserting role for company",company_id,":",roleErr.message);anyFailed=true;}
-        firstRow=false;
-      }
-      if(anyFailed)showToast("warning","User created but some company assignments failed — check console");
+      if(result.anyFailed)showToast("warning","User created but some company assignments failed");
       else showToast("success","User created successfully!");
       setUserForm({name:"",email:"",password:"",username:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
       setShowUserForm(false);
