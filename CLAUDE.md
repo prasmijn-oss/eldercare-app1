@@ -56,6 +56,13 @@ git checkout main && git merge staging && git push origin main && git checkout s
 
 ## Completed Features
 
+### Visual / Theme
+- [x] Neumorphic dark theme — bg `#1c1f2e`, sidebar `#1a1d2b`, extruded + inset shadow system
+- [x] TiltCard — mouse-tracked 3D rotation on 4 dashboard stat cards (useRef + useEffect)
+- [x] FlipCard row — 3 cards (Medications, Intake Progress, Incidents) hover-to-flip with gradient back face
+- [x] Lift-on-hover — `.client-row` CSS class on sidebar list + recent clients strip (translateX + shadow)
+- [x] Sidebar nav active state — inset shadow + `#7dd3fc` accent
+
 ### Core / Auth
 - [x] Multi-language UI (EN, Papiamento, NL, ES)
 - [x] Username login (user_roles.username; accepts email or username)
@@ -102,7 +109,15 @@ git checkout main && git merge staging && git push origin main && git checkout s
 ## Migration Scripts
 - `migrateClient.js` — migrates a single client + their company between Supabase projects. Searches source DB by client name, fetches company record, prompts for approval, then upserts company + client into target DB.
 
+## Staging Notes
+- Staging Vercel project (`eldercare-app1-staging`) has **no env vars set** — falls back to hardcoded staging Supabase (`kpwzeawgrqdsezflvjkm`) in code
+- Staging Supabase has test companies ("Test Company", "Test 2") and test clients (test3–test9)
+- `p.rasmijn@gmail.com` is `superadmin` on "Test Company" in staging — logs straight to dashboard (single company)
+- Staging RLS gotcha: `get_my_role()` uses `LIMIT 1` on user_roles — if a user has multiple rows, the first one's role is used. Keep superadmin row as the only/first row for that user to avoid RLS blocking company reads.
+- Neumorphic theme is on `staging` branch — **not yet merged to `main`**
+
 ## Pending Features
+
 ### Security & Auth
 - [ ] Password strength indicator on create/edit user
 - [ ] Session timeout warning
@@ -127,3 +142,40 @@ git checkout main && git merge staging && git push origin main && git checkout s
 
 ### Notifications (backend)
 - [ ] Actual email delivery (requires edge function + email provider)
+
+### Clinical Assessments
+- [ ] ADL tracking (bathing, dressing, toileting, eating — daily checklist with trends)
+- [ ] Pain assessment (numeric/FACES scale, frequency + effectiveness log)
+- [ ] Wound & skin assessment (photo-based, measurements, healing timeline)
+- [ ] Pressure ulcer risk — Braden Scale (auto-score + turning schedule)
+- [ ] Cognitive screening (MMSE/MoCA with periodic re-assessment alerts)
+- [ ] Continence monitoring (incontinence log, patterns, product tracking)
+- [ ] Nutritional risk screening (appetite changes, swallowing flags, dietary alerts)
+
+### Medication Safety
+- [ ] PRN (as-needed) medication justification log
+- [ ] Drug interaction checker (flag conflicts when adding new meds)
+- [ ] Controlled substance audit trail (witness signatures)
+
+### Communication
+- [ ] Secure internal messaging between staff (tied to client records)
+- [ ] Family portal — read-only view for family members per client
+- [ ] Shift handover notes (structured template, sign-off verification)
+- [ ] Care team push alerts for critical events (falls, vital anomalies)
+
+### Analytics
+- [ ] Readmission / hospitalization risk dashboard
+- [ ] Preventive care compliance (vaccines, screenings — scheduled vs. completed)
+- [ ] Staff productivity metrics (note timeliness, task completion rates)
+- [ ] Incident trend analysis (fall rates, medication errors by shift/season)
+
+### Operations
+- [ ] Bed & room management (assignments, isolation flags, clean schedules)
+- [ ] Supply inventory forecasting (demand prediction from census + ADL data)
+- [ ] Electronic Visit Verification / EVV (GPS check-in for home health visits)
+- [ ] Training & certification tracker for staff (CPR, HIPAA — expiry alerts)
+
+### Quality & Compliance
+- [ ] Root cause analysis workflow on incidents (corrective action tracking)
+- [ ] Care plan review signatures (patient/family sign-off, reassessment scheduling)
+- [ ] Regulatory inspection checklist generator

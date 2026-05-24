@@ -4,6 +4,24 @@
 
 ### Recently Completed (this session)
 
+**Neumorphic Theme (staging only — not yet on main)**
+- Global bg `#1c1f2e`, sidebar `#1a1d2b` with right-side depth shadow
+- All border-based cards replaced with extruded neumorphic shadows (`6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)`)
+- Inner row elements use inset shadow (`inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)`)
+- `TiltCard` component — mouse-tracked 3D rotation via `useRef` + `useEffect`, gloss overlay, 4 dashboard stat cards
+- `FlipCard` component — hover-to-flip with CSS `backface-visibility: hidden` + `preserve-3d`, 3 cards: Medications, Intake Progress, Incidents
+- `.client-row` / `.dash-row` CSS classes injected via GCSS — `translateX` lift on hover
+- Sidebar nav active state: inset shadow + `#7dd3fc` accent color
+- Recent clients strip: neumorphic pill buttons + `client-row` lift
+
+**Staging Environment Fixes**
+- Diagnosed staging Supabase RLS issue: `get_my_role()` uses `LIMIT 1` on `user_roles`, so multi-company users get wrong role if their first row is not superadmin
+- Removed production companies/clients that were accidentally inserted into staging DB (House of Grace Foundation, Stichting Cas Cristelle, Jacobo Hill)
+- Set `p.rasmijn@gmail.com` as `superadmin` on "Test Company" with only that single row — avoids RLS LIMIT 1 bug
+- Confirmed staging pulls from staging Supabase (`kpwzeawgrqdsezflvjkm`) via hardcoded fallback (Vercel env vars are empty)
+
+### Previously Completed
+
 **Client Management**
 - **Bulk actions** ✅ — Checkbox mode in sidebar (`bulkMode` state + `Set` for selection). Bulk archive and CSV export. Fall risk badge (e.g. "HFR") shown on each sidebar card.
 - **Family contacts** ✅ — `FamilyContacts` component; multiple contacts per client with RELATIONSHIPS dropdown, set-primary, collapsible cards. Stored in `clients.family_contacts` (TEXT/JSON).
@@ -25,7 +43,7 @@
 - **Keyboard shortcuts** ✅ — Global `keydown` listener in App `useEffect`. Inactive when `INPUT/TEXTAREA/SELECT` focused. Keys: `d`=dashboard, `n`=new client, `k`=focus `#cm-search`, `b`=notifications, `?`=shortcuts modal, `Esc`=close panels.
 - **PWA** ✅ — `public/manifest.json` (name, theme_color, icon, standalone), `public/sw.js` (cache-first, skips supabase/esm.sh hostnames), registered in `index.html` via inline script. Apple mobile meta tags added.
 
-### DB Columns Added This Session
+### DB Columns Added
 All on `clients` table, both staging (`kpwzeawgrqdsezflvjkm`) and production (`arwvosghwecyzpqartrh`):
 ```sql
 ALTER TABLE clients ADD COLUMN family_contacts TEXT;
@@ -47,9 +65,20 @@ ALTER TABLE clients ADD COLUMN intake_checklist TEXT;
 - `SERVICE_KEY` is empty — privileged user creation goes through edge function `create-user`
 - Email alert preferences are UI-only; no actual delivery wired up
 - Light mode uses CSS filter (functional but color-shifts brand palette) — full theme refactor would require replacing all inline hex colors with CSS variables
+- Staging RLS `LIMIT 1` bug in `get_my_role()` — keep superadmin as only/first user_role row per user to avoid company read failures
+
+## Staging Environment
+| Item | Value |
+|---|---|
+| URL | `https://eldercare-app1-staging.vercel.app` |
+| Supabase | `kpwzeawgrqdsezflvjkm` (staging, hardcoded fallback) |
+| Vercel env vars | All empty — falls back to code defaults |
+| Test login | `p.rasmijn@gmail.com`, superadmin on "Test Company" |
+| Test clients | test3, test4, test6, test7, test8, test9 (in Test Company) |
+| Pending merge | Neumorphic theme (`staging` branch) not yet on `main` |
 
 ## Architecture Notes
-- Single-file frontend: all components in `src/App.jsx` (~4341 lines)
+- Single-file frontend: all components in `src/App.jsx` (~4400 lines)
 - No React Router — view state managed via `useState("dashboard")`
 - React import: named hooks only — `import { useState, useEffect, useCallback, useRef, Fragment } from "react"`. Never use `React.*`.
 - `Fragment` (not `<>`) required when a `key` prop is needed inside `.map()` in JSX
@@ -59,3 +88,7 @@ ALTER TABLE clients ADD COLUMN intake_checklist TEXT;
 - `inlineUpdate(field, value)` — saves one field to DB + updates `clients` state + `selected` state without full reload; used by IntakeChecklist in ClientDetail
 - `buildNotifications(clients)` — pure function, no DB query, generates alerts from existing client data
 - Dark/light: `html.cm-light` class on `document.documentElement`; images get `filter: invert(1) hue-rotate(180deg)` to cancel out the parent filter
+- Neumorphic shadow system:
+  - Extruded: `"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)"`
+  - Inset: `"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)"`
+  - Hover: `"10px 10px 20px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05)"`
