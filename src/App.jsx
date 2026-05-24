@@ -2418,6 +2418,10 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const [activityDateFrom,setActivityDateFrom]=useState("");
   const [activityDateTo,setActivityDateTo]=useState("");
   const [expandedStaff,setExpandedStaff]=useState(null);
+  const [showArchived,setShowArchived]=useState(false);
+  const [archiveConfirmCompany,setArchiveConfirmCompany]=useState(null);
+  const [deleteConfirmCompany,setDeleteConfirmCompany]=useState(null);
+  const [deleteCompanyInput,setDeleteCompanyInput]=useState("");
 
   const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
 
@@ -2587,6 +2591,41 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     setSaving(false);
   };
 
+  const archiveCompany=async(company)=>{
+    setSaving(true);
+    const {error}=await supabase.from("companies").update({archived_at:new Date().toISOString()}).eq("id",company.id);
+    if(error){showToast("error","Failed to archive: "+error.message);setSaving(false);return;}
+    setArchiveConfirmCompany(null);
+    showToast("success",`"${company.name}" archived`);
+    await logAudit("Company archived",company.name,{section:"User Management",details:`Company "${company.name}" archived`});
+    await loadData();
+    setSaving(false);
+  };
+
+  const unarchiveCompany=async(company)=>{
+    setSaving(true);
+    const {error}=await supabase.from("companies").update({archived_at:null}).eq("id",company.id);
+    if(error){showToast("error","Failed to restore: "+error.message);setSaving(false);return;}
+    showToast("success",`"${company.name}" restored`);
+    await loadData();
+    setSaving(false);
+  };
+
+  const deleteCompany=async(company)=>{
+    const st=companyStats[company.id]||{clients:0,archivedClients:0,users:0};
+    if((st.clients+st.archivedClients)>0||st.users>0){
+      showToast("error","Remove all clients and users before deleting");setSaving(false);return;
+    }
+    setSaving(true);
+    const {error}=await supabase.from("companies").delete().eq("id",company.id);
+    if(error){showToast("error","Failed to delete: "+error.message);setSaving(false);return;}
+    setDeleteConfirmCompany(null);setDeleteCompanyInput("");
+    showToast("success",`"${company.name}" permanently deleted`);
+    await logAudit("Company deleted",company.name,{section:"User Management",details:`Company "${company.name}" permanently deleted`});
+    await loadData();
+    setSaving(false);
+  };
+
   const updateRole=async(userId,newRole)=>{
     const target=users.find(x=>x.user_id===userId);
     const oldRole=target?.role||"unknown";
@@ -2733,10 +2772,18 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
             </>
           )}
           {mainTab==="companies"&&(
-            <button onClick={()=>{setShowCompanyForm(s=>!s);setShowUserForm(false);setShowExistingForm(false);}}
-              style={{padding:"10px 20px",borderRadius:10,border:"none",background:"#10b981",color:"#fff",fontWeight:700,fontSize:14}}>
-              {showCompanyForm?"Cancel":"+ New Company"}
-            </button>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <button onClick={()=>setShowArchived(s=>!s)}
+                style={{padding:"10px 16px",borderRadius:10,border:"1px solid "+(showArchived?"#f59e0b":"#334155"),background:showArchived?"rgba(245,158,11,0.12)":"transparent",color:showArchived?"#f59e0b":"#64748b",fontWeight:600,fontSize:13}}>
+                {showArchived?"Hide Archived":"Show Archived"}
+              </button>
+              {currentUser?.role==="superadmin"&&(
+                <button onClick={()=>{setShowCompanyForm(s=>!s);setShowUserForm(false);setShowExistingForm(false);}}
+                  style={{padding:"10px 20px",borderRadius:10,border:"none",background:"#10b981",color:"#fff",fontWeight:700,fontSize:14}}>
+                  {showCompanyForm?"Cancel":"+ New Company"}
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -3134,57 +3181,158 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           )}
 
           {/* Company List */}
-          {loading?<div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              {companies.length===0?(
-                <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>No companies yet. Create your first one.</div>
-              ):companies.map((c)=>{
-                const st=companyStats[c.id]||{clients:0,archivedClients:0,users:0,lastActivity:null};
-                const lastAct=st.lastActivity?new Date(st.lastActivity).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"No activity";
-                return(
-                  <div key={c.id} style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
-                      <div style={{flex:1,minWidth:200}}>
-                        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
-                          {c.logo_url&&(
-                            <div style={{background:"#fff",borderRadius:8,padding:"4px 6px",flexShrink:0}}>
-                              <img src={c.logo_url} alt={c.name} style={{height:32,maxWidth:80,objectFit:"contain",display:"block"}}/>
+          {loading?<div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(()=>{
+            const visibleCompanies=companies.filter(c=>showArchived?true:!c.archived_at);
+            return(
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                {visibleCompanies.length===0?(
+                  <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>
+                    {showArchived?"No archived companies.":" No companies yet. Create your first one."}
+                  </div>
+                ):visibleCompanies.map((c)=>{
+                  const st=companyStats[c.id]||{clients:0,archivedClients:0,users:0,lastActivity:null};
+                  const lastAct=st.lastActivity?new Date(st.lastActivity).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"No activity";
+                  const isArchived=!!c.archived_at;
+                  const isSuperAdmin=currentUser?.role==="superadmin";
+                  const totalClients=(st.clients||0)+(st.archivedClients||0);
+                  return(
+                    <div key={c.id} style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,opacity:isArchived?0.72:1,border:isArchived?"1px solid rgba(245,158,11,0.25)":"1px solid transparent"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
+                        <div style={{flex:1,minWidth:200}}>
+                          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
+                            {c.logo_url&&(
+                              <div style={{background:"#fff",borderRadius:8,padding:"4px 6px",flexShrink:0}}>
+                                <img src={c.logo_url} alt={c.name} style={{height:32,maxWidth:80,objectFit:"contain",display:"block"}}/>
+                              </div>
+                            )}
+                            <div>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <div style={{fontFamily:"Playfair Display,serif",fontSize:17,fontWeight:700,color:isArchived?"#94a3b8":"#f1f5f9"}}>{c.name}</div>
+                                {isArchived&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>ARCHIVED</span>}
+                              </div>
+                              {c.mission_statement&&<div style={{fontSize:11,color:"#64748b",fontStyle:"italic",marginTop:2}}>"{c.mission_statement}"</div>}
+                            </div>
+                          </div>
+                          <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8}}>
+                            {c.address&&<span style={{fontSize:12,color:"#94a3b8"}}>📍 {c.address}</span>}
+                            {c.phone&&<span style={{fontSize:12,color:"#94a3b8"}}>📞 {c.phone}</span>}
+                            {c.email&&<span style={{fontSize:12,color:"#94a3b8"}}>✉️ {c.email}</span>}
+                            {c.website&&<span style={{fontSize:12,color:"#94a3b8"}}>🌐 {c.website}</span>}
+                          </div>
+                          {/* Superadmin action buttons */}
+                          {isSuperAdmin&&(
+                            <div style={{display:"flex",gap:8,marginTop:14,flexWrap:"wrap"}}>
+                              {isArchived?(
+                                <>
+                                  <button onClick={()=>unarchiveCompany(c)} disabled={saving}
+                                    style={{padding:"5px 14px",borderRadius:8,border:"1px solid #10b981",background:"rgba(16,185,129,0.1)",color:"#10b981",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                                    ↩ Restore
+                                  </button>
+                                  <button onClick={()=>{setDeleteConfirmCompany(c);setDeleteCompanyInput("");}}
+                                    style={{padding:"5px 14px",borderRadius:8,border:"1px solid rgba(239,68,68,0.4)",background:"rgba(239,68,68,0.08)",color:"#f87171",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                                    🗑 Delete Permanently
+                                  </button>
+                                </>
+                              ):(
+                                <button onClick={()=>setArchiveConfirmCompany(c)}
+                                  style={{padding:"5px 14px",borderRadius:8,border:"1px solid rgba(245,158,11,0.4)",background:"rgba(245,158,11,0.08)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                                  📦 Archive
+                                </button>
+                              )}
                             </div>
                           )}
-                          <div>
-                            <div style={{fontFamily:"Playfair Display,serif",fontSize:17,fontWeight:700,color:"#f1f5f9"}}>{c.name}</div>
-                            {c.mission_statement&&<div style={{fontSize:11,color:"#64748b",fontStyle:"italic",marginTop:2}}>"{c.mission_statement}"</div>}
+                        </div>
+                        {/* Stats */}
+                        <div style={{display:"flex",gap:8,flexShrink:0,flexWrap:"wrap"}}>
+                          <div style={{textAlign:"center",background:"rgba(16,185,129,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
+                            <div style={{fontSize:22,fontWeight:700,color:"#10b981"}}>{st.clients}</div>
+                            <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>CLIENTS</div>
+                            {st.archivedClients>0&&<div style={{fontSize:9,color:"#475569",marginTop:2}}>{st.archivedClients} archived</div>}
                           </div>
-                        </div>
-                        <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8}}>
-                          {c.address&&<span style={{fontSize:12,color:"#94a3b8"}}>📍 {c.address}</span>}
-                          {c.phone&&<span style={{fontSize:12,color:"#94a3b8"}}>📞 {c.phone}</span>}
-                          {c.email&&<span style={{fontSize:12,color:"#94a3b8"}}>✉️ {c.email}</span>}
-                          {c.website&&<span style={{fontSize:12,color:"#94a3b8"}}>🌐 {c.website}</span>}
-                        </div>
-                      </div>
-                      {/* Stats */}
-                      <div style={{display:"flex",gap:8,flexShrink:0,flexWrap:"wrap"}}>
-                        <div style={{textAlign:"center",background:"rgba(16,185,129,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
-                          <div style={{fontSize:22,fontWeight:700,color:"#10b981"}}>{st.clients}</div>
-                          <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>CLIENTS</div>
-                          {st.archivedClients>0&&<div style={{fontSize:9,color:"#475569",marginTop:2}}>{st.archivedClients} archived</div>}
-                        </div>
-                        <div style={{textAlign:"center",background:"rgba(99,102,241,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
-                          <div style={{fontSize:22,fontWeight:700,color:"#6366f1"}}>{st.users}</div>
-                          <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>USERS</div>
-                        </div>
-                        <div style={{textAlign:"center",background:"rgba(71,85,105,0.2)",borderRadius:10,padding:"10px 16px",minWidth:80}}>
-                          <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",lineHeight:1.3}}>{lastAct}</div>
-                          <div style={{fontSize:10,color:"#64748b",fontWeight:600,marginTop:4}}>LAST ACTIVITY</div>
+                          <div style={{textAlign:"center",background:"rgba(99,102,241,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
+                            <div style={{fontSize:22,fontWeight:700,color:"#6366f1"}}>{st.users}</div>
+                            <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>USERS</div>
+                          </div>
+                          <div style={{textAlign:"center",background:"rgba(71,85,105,0.2)",borderRadius:10,padding:"10px 16px",minWidth:80}}>
+                            <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",lineHeight:1.3}}>{lastAct}</div>
+                            <div style={{fontSize:10,color:"#64748b",fontWeight:600,marginTop:4}}>LAST ACTIVITY</div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* ── Archive Company Confirmation ── */}
+          {archiveConfirmCompany&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+              <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+                <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>📦</div>
+                <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#f1f5f9",textAlign:"center",marginBottom:10}}>Archive Company</div>
+                <div style={{fontSize:13,color:"#94a3b8",textAlign:"center",lineHeight:1.7,marginBottom:28}}>
+                  Archive <strong style={{color:"#f1f5f9"}}>{archiveConfirmCompany.name}</strong>? It will be hidden from the company picker and all active lists. No data is deleted. You can restore it at any time.
+                </div>
+                <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                  <button onClick={()=>setArchiveConfirmCompany(null)}
+                    style={{padding:"10px 28px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                    Cancel
+                  </button>
+                  <button disabled={saving} onClick={()=>archiveCompany(archiveConfirmCompany)}
+                    style={{padding:"10px 28px",borderRadius:9,border:"none",background:"#f59e0b",color:"#000",fontWeight:700,fontSize:14,cursor:"pointer",opacity:saving?0.6:1}}>
+                    {saving?"Archiving…":"Archive"}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
+
+          {/* ── Delete Company Confirmation (type to confirm) ── */}
+          {deleteConfirmCompany&&(()=>{
+            const st=companyStats[deleteConfirmCompany.id]||{clients:0,archivedClients:0,users:0};
+            const totalClients=(st.clients||0)+(st.archivedClients||0);
+            const hasData=totalClients>0||st.users>0;
+            const confirmWord=deleteConfirmCompany.name;
+            const canConfirm=!hasData&&deleteCompanyInput===confirmWord;
+            return(
+              <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.80)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+                <div style={{background:"#1c1f2e",border:"1px solid #ef4444",borderRadius:16,padding:36,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+                  <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>🗑</div>
+                  <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#ef4444",textAlign:"center",marginBottom:10}}>Delete Company Permanently</div>
+                  {hasData?(
+                    <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"14px 16px",marginBottom:20,fontSize:13,color:"#fca5a5",textAlign:"center",lineHeight:1.6}}>
+                      ⛔ Cannot delete — <strong>{deleteConfirmCompany.name}</strong> still has{totalClients>0?` ${totalClients} client${totalClients!==1?"s":""}`:""}{totalClients>0&&st.users>0?" and":""}{st.users>0?` ${st.users} user${st.users!==1?"s":""}`:""} assigned. Remove them first.
+                    </div>
+                  ):(
+                    <div style={{fontSize:13,color:"#94a3b8",textAlign:"center",lineHeight:1.7,marginBottom:20}}>
+                      This action <strong style={{color:"#f1f5f9"}}>cannot be undone</strong>. All company settings and history will be permanently removed.<br/><br/>
+                      Type <strong style={{color:"#f1f5f9",fontFamily:"monospace"}}>{confirmWord}</strong> to confirm:
+                    </div>
+                  )}
+                  {!hasData&&(
+                    <input
+                      value={deleteCompanyInput}
+                      onChange={e=>setDeleteCompanyInput(e.target.value)}
+                      placeholder={`Type "${confirmWord}" to confirm`}
+                      style={{width:"100%",padding:"10px 14px",borderRadius:9,border:"1px solid "+(canConfirm?"#ef4444":"#334155"),background:"#161927",color:"#f1f5f9",fontSize:14,marginBottom:20,outline:"none"}}
+                    />
+                  )}
+                  <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                    <button onClick={()=>{setDeleteConfirmCompany(null);setDeleteCompanyInput("");}}
+                      style={{padding:"10px 28px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                      Cancel
+                    </button>
+                    <button disabled={saving||!canConfirm} onClick={()=>deleteCompany(deleteConfirmCompany)}
+                      style={{padding:"10px 28px",borderRadius:9,border:"none",background:canConfirm?"#dc2626":"#334155",color:canConfirm?"#fff":"#475569",fontWeight:700,fontSize:14,cursor:canConfirm?"pointer":"not-allowed",opacity:saving?0.6:1}}>
+                      {saving?"Deleting…":"Delete Permanently"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
 
@@ -3236,13 +3384,13 @@ function CompanyPicker({onSelect,currentUser,t}){
     // For superadmin load all companies, for others load only their assigned companies
     const isSuperAdmin=currentUser?.allRoles?.some(r=>r.role==="superadmin");
     if(isSuperAdmin){
-      supabase.from("companies").select("*").order("name")
+      supabase.from("companies").select("*").is("archived_at",null).order("name")
         .then(({data})=>{setCompanies(data||[]);setLoading(false);});
     } else {
-      // Load only companies this user belongs to
+      // Load only companies this user belongs to (non-archived)
       const companyIds=(currentUser?.allRoles||[]).map(r=>r.company_id).filter(Boolean);
       if(companyIds.length===0){setLoading(false);return;}
-      supabase.from("companies").select("*").in("id",companyIds).order("name")
+      supabase.from("companies").select("*").in("id",companyIds).is("archived_at",null).order("name")
         .then(({data})=>{setCompanies(data||[]);setLoading(false);});
     }
   },[currentUser]);
