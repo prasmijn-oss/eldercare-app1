@@ -307,6 +307,47 @@ function calcAge(dob){if(!dob)return null;return Math.floor((Date.now()-new Date
 function initials(n){if(!n)return "?";return n.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();}
 function avatarColor(n){if(!n)return COLORS[0];let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))%COLORS.length;return COLORS[h];}
 function daysUntil(d){if(!d)return null;return Math.ceil((new Date(d)-new Date())/(1000*60*60*24));}
+function daysSince(d){if(!d)return Infinity;return Math.floor((Date.now()-new Date(d+"T00:00:00").getTime())/(1000*60*60*24));}
+function daysUntilBirthday(dob){
+  if(!dob)return null;
+  const today=new Date();today.setHours(0,0,0,0);
+  const[,m,day]=dob.split("-").map(Number);
+  let next=new Date(today.getFullYear(),m-1,day);
+  if(next<today)next=new Date(today.getFullYear()+1,m-1,day);
+  return Math.ceil((next-today)/(1000*60*60*24));
+}
+function checkAbnormalVitals(v){
+  const flags=[];
+  const sys=parseFloat(v.bp_systolic),dia=parseFloat(v.bp_diastolic);
+  const hr=parseFloat(v.heart_rate),glucose=parseFloat(v.blood_sugar);
+  const o2=parseFloat(v.oxygen_sat),temp=parseFloat(v.temperature);
+  if(!isNaN(sys)){
+    if(sys>160)flags.push({label:`BP ${sys}/${isNaN(dia)?'?':dia} mmHg`,note:"Hypertension",sev:"high"});
+    else if(sys<90)flags.push({label:`BP ${sys}/${isNaN(dia)?'?':dia} mmHg`,note:"Hypotension",sev:"low"});
+  }
+  if(!isNaN(hr)){
+    if(hr>100)flags.push({label:`HR ${hr} bpm`,note:"Tachycardia",sev:"high"});
+    else if(hr<50)flags.push({label:`HR ${hr} bpm`,note:"Bradycardia",sev:"low"});
+  }
+  if(!isNaN(glucose)){
+    if(glucose>180)flags.push({label:`Glucose ${glucose}`,note:"Hyperglycemia",sev:"high"});
+    else if(glucose<70)flags.push({label:`Glucose ${glucose}`,note:"Hypoglycemia",sev:"low"});
+  }
+  if(!isNaN(o2)&&o2<92)flags.push({label:`O₂ ${o2}%`,note:"Low oxygen sat.",sev:"low"});
+  if(!isNaN(temp)){
+    if(temp>38.5)flags.push({label:`Temp ${temp}°C`,note:"Fever",sev:"high"});
+    else if(temp<36.0)flags.push({label:`Temp ${temp}°C`,note:"Hypothermia",sev:"low"});
+  }
+  return flags;
+}
+function allergyMedConflicts(c){
+  const allergies=(c.allergies||[]).filter(a=>a.value&&a.value.trim()).map(a=>a.value.toLowerCase().trim());
+  const meds=(c.medications||[]).filter(m=>m.name&&m.name.trim());
+  return meds.filter(m=>{
+    const mn=m.name.toLowerCase().trim();
+    return allergies.some(a=>mn.includes(a)||a.includes(mn));
+  });
+}
 function expiryBadge(d){
   if(d===null)return null;
   if(d<0)return{label:"EXPIRED",color:"#ef4444",bg:"rgba(239,68,68,0.1)"};
@@ -1272,7 +1313,31 @@ function Dashboard({clients,onSelect,t,currentUser}){
   const totalDiag=clients.reduce((s,c)=>s+(c.diagnoses||[]).filter(d=>d.value&&d.value.trim()).length,0);
   const allergyClients=clients.filter(c=>(c.allergies||[]).some(a=>a.value&&a.value.trim()));
   const flagged=clients.filter(c=>{const f=getMedFlags(c);return f.polypharmacy||f.highRisk.length>0;});
-  const expiring=clients.flatMap(c=>(c.documents||[]).filter(d=>d.expiry&&daysUntil(d.expiry)!==null&&daysUntil(d.expiry)<=60).map(d=>({...d,clientName:c.name,days:daysUntil(d.expiry),client:c})));
+  // Doc expiry — expanded to 90 days
+  const expiring=clients.flatMap(c=>(c.documents||[]).filter(d=>d.expiry&&daysUntil(d.expiry)!==null&&daysUntil(d.expiry)<=90).map(d=>({...d,clientName:c.name,days:daysUntil(d.expiry),client:c}))).sort((a,b)=>a.days-b.days);
+  // Birthdays in next 30 days
+  const birthdays=clients.filter(c=>c.date_of_birth).map(c=>({...c,bDays:daysUntilBirthday(c.date_of_birth)})).filter(c=>c.bDays!==null&&c.bDays<=30).sort((a,b)=>a.bDays-b.bDays);
+  // Abnormal vitals — most recent vital per client
+  const abnormalVitals=clients.flatMap(c=>{
+    const sorted=[...(c.vitals||[])].sort((a,b)=>b.date.localeCompare(a.date));
+    const latest=sorted[0];
+    if(!latest)return[];
+    const flags=checkAbnormalVitals(latest);
+    return flags.length>0?[{client:c,clientName:c.name,date:latest.date,flags}]:[];
+  });
+  // Allergy ↔ medication conflicts
+  const allergyMedAlerts=clients.map(c=>({client:c,clientName:c.name,conflicts:allergyMedConflicts(c)})).filter(x=>x.conflicts.length>0);
+  // Care plan staleness — items not reviewed in 90+ days
+  const STALE_DAYS=90;
+  const stalePlans=clients.filter(c=>{
+    const plans=(c.care_plan||[]).filter(p=>p.goal||p.plan);
+    if(plans.length===0)return false;
+    return plans.some(p=>daysSince(p.reviewed||p.created)>STALE_DAYS);
+  }).map(c=>{
+    const plans=(c.care_plan||[]).filter(p=>p.goal||p.plan);
+    const stalest=plans.reduce((max,p)=>Math.max(max,daysSince(p.reviewed||p.created)),0);
+    return{...c,stalestDays:stalest};
+  });
   const rn=clients.flatMap(c=>(c.session_notes||[]).filter(n=>n.text&&n.text.trim()).map(n=>({...n,clientName:c.name,client:c}))).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
   const ag={"60-69":0,"70-79":0,"80-89":0,"90+":0,"Unknown":0};
   clients.forEach(c=>{const a=c.date_of_birth?calcAge(c.date_of_birth):null;if(a===null)ag["Unknown"]++;else if(a<70)ag["60-69"]++;else if(a<80)ag["70-79"]++;else if(a<90)ag["80-89"]++;else ag["90+"]++;});
@@ -1350,6 +1415,90 @@ function Dashboard({clients,onSelect,t,currentUser}){
           );})}
         </div>
       )}
+      {/* ── Birthdays ── */}
+      {birthdays.length>0&&(
+        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+          <div style={{fontWeight:700,color:"#ec4899",fontSize:13,marginBottom:14}}>🎂 UPCOMING BIRTHDAYS</div>
+          {birthdays.map(c=>{
+            const thisWeek=c.bDays<=7;
+            const age=calcAge(c.date_of_birth);
+            return(
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
+                <div style={{flex:1}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{c.name}</span>
+                  <span style={{fontSize:12,color:"#64748b",marginLeft:8}}>turns {age!==null?age+1:""}</span>
+                </div>
+                <span style={{fontSize:11,fontWeight:700,padding:"2px 10px",borderRadius:20,background:thisWeek?"rgba(236,72,153,0.2)":"rgba(236,72,153,0.08)",color:"#ec4899",whiteSpace:"nowrap"}}>
+                  {c.bDays===0?"Today 🎉":c.bDays===1?"Tomorrow":thisWeek?"in "+c.bDays+" days":"in "+c.bDays+" days"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Abnormal Vitals ── */}
+      {abnormalVitals.length>0&&(
+        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+          <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:14}}>🩺 ABNORMAL VITALS</div>
+          {abnormalVitals.map(({client:c,clientName,date,flags})=>(
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+              <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(clientName)}</div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{clientName} <span style={{fontSize:11,color:"#475569",fontWeight:400"}}>— recorded {new Date(date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {flags.map((f,i)=>(
+                    <span key={i} style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:f.sev==="high"?"rgba(239,68,68,0.15)":"rgba(245,158,11,0.15)",color:f.sev==="high"?"#f87171":"#fbbf24",border:"1px solid "+(f.sev==="high"?"rgba(239,68,68,0.3)":"rgba(245,158,11,0.3)")}}>
+                      {f.sev==="high"?"↑":"↓"} {f.label} — {f.note}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Allergy ↔ Med Conflicts ── */}
+      {allergyMedAlerts.length>0&&(
+        <div style={{background:"#1e293b",border:"1px solid #ef4444",borderRadius:12,padding:20,marginBottom:16}}>
+          <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:4}}>⚠️ ALLERGY — MEDICATION CONFLICTS</div>
+          <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>A prescribed medication matches a known allergy. Review immediately.</div>
+          {allergyMedAlerts.map(({client:c,clientName,conflicts})=>(
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 14px",background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+              <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(clientName)}</div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:6}}>{clientName}</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {conflicts.map((m,i)=>(
+                    <span key={i} style={{fontSize:11,fontWeight:700,padding:"2px 10px",borderRadius:20,background:"rgba(239,68,68,0.15)",color:"#f87171",border:"1px solid rgba(239,68,68,0.3)"}}>
+                      💊 {m.name}{m.dosage?" "+m.dosage:""}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <span style={{fontSize:10,fontWeight:800,padding:"4px 10px",borderRadius:20,background:"#ef4444",color:"#fff",flexShrink:0}}>CONFLICT</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Care Plan Staleness ── */}
+      {stalePlans.length>0&&(
+        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+          <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:4}}>📋 CARE PLAN REVIEW OVERDUE</div>
+          <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Care plan items not reviewed in 90+ days.</div>
+          {stalePlans.map(c=>(
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+              <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
+              <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{c.name}</div></div>
+              <span style={{fontSize:11,fontWeight:700,padding:"2px 10px",borderRadius:20,background:"rgba(139,92,246,0.15)",color:"#a78bfa",whiteSpace:"nowrap"}}>{c.stalestDays}d since review</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
         <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:14}}>RECENT SESSION NOTES</div>
         {rn.length===0?<div style={{color:"#475569",fontSize:13}}>{t.noNotes}</div>:rn.map((n,i)=>(
