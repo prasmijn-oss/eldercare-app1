@@ -1370,41 +1370,71 @@ function Dashboard({clients,onSelect,t,currentUser}){
   );
 }
 
-function AuditTrail({t,companyId}){
+function AuditTrail({t,companyId,currentUser}){
   const [logs,setLogs]=useState([]);
+  const [companies,setCompanies]=useState([]);
   const [loading,setLoading]=useState(true);
   const [fS,setFS]=useState("");
   const [fA,setFA]=useState("");
-  const [fD,setFD]=useState("");
+  const [fCo,setFCo]=useState("");
+  const [fFrom,setFFrom]=useState("");
+  const [fTo,setFTo]=useState("");
+
   useEffect(()=>{
-    console.log("Fetching audit for company:",companyId);
-    const q=supabase.from("audit_log").select("*").order("performed_at",{ascending:false}).limit(500);
-    (companyId?q.eq("company_id",companyId):q).then(({data,error})=>{
-      console.log("Audit result:",(data||[]).length,"rows",error?"error:"+error.message:"ok");
+    setLoading(true);
+    // Superadmin sees all companies; others scoped to their company
+    const isSA=currentUser?.role==="superadmin";
+    const q=supabase.from("audit_log").select("*").order("performed_at",{ascending:false}).limit(1000);
+    ((!isSA)&&companyId?q.eq("company_id",companyId):q).then(({data})=>{
       setLogs(data||[]);setLoading(false);
     });
-  },[companyId]);
-  const sl=[...new Set(logs.map(l=>l.performed_by))].filter(Boolean);
-  const al=[...new Set(logs.map(l=>l.action))].filter(Boolean);
-  const filtered=logs.filter(l=>(!fS||l.performed_by===fS)&&(!fA||l.action===fA)&&(!fD||(l.performed_at&&l.performed_at.startsWith(fD))));
+    supabase.from("companies").select("id,name").order("name").then(({data})=>setCompanies(data||[]));
+  },[companyId,currentUser]);
+
+  const coName=id=>companies.find(c=>c.id===id)?.name||"—";
+  const sl=[...new Set(logs.map(l=>l.performed_by))].filter(Boolean).sort();
+  const al=[...new Set(logs.map(l=>l.action))].filter(Boolean).sort();
+  // Only show companies that actually appear in the log
+  const coIds=[...new Set(logs.map(l=>l.company_id))].filter(Boolean);
+  const filterCos=companies.filter(c=>coIds.includes(c.id));
+
+  const filtered=logs.filter(l=>{
+    if(fS&&l.performed_by!==fS)return false;
+    if(fA&&l.action!==fA)return false;
+    if(fCo&&l.company_id!==fCo)return false;
+    const d=l.performed_at?l.performed_at.slice(0,10):"";
+    if(fFrom&&d<fFrom)return false;
+    if(fTo&&d>fTo)return false;
+    return true;
+  });
+
+  const hasFilter=fS||fA||fCo||fFrom||fTo;
+  const clearFilters=()=>{setFS("");setFA("");setFCo("");setFFrom("");setFTo("");};
+
   const doExport=()=>{
-    const rows=filtered.map(l=>"<tr><td>"+new Date(l.performed_at).toLocaleString("en-US")+"</td><td>"+(l.performed_by||"-")+"</td><td>"+(l.action||"-")+"</td><td>"+(l.client_name||"-")+"</td></tr>").join("");
+    const rows=filtered.map(l=>"<tr><td>"+new Date(l.performed_at).toLocaleString("en-US")+"</td><td>"+(l.performed_by||"-")+"</td><td>"+(l.action||"-")+"</td><td>"+(l.client_name||"-")+"</td><td>"+coName(l.company_id)+"</td></tr>").join("");
     const style="body{font-family:Arial,sans-serif;padding:24px}h1{font-size:20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f8f9fa;padding:8px;text-align:left;border-bottom:2px solid #dee2e6}td{padding:7px 8px;border-bottom:1px solid #f0f0f0}";
-    const html="<!DOCTYPE html><html><head><title>Audit Trail</title><style>"+style+"</style></head><body><h1>Audit Trail</h1><p style='color:#6c757d;font-size:12px'>Exported "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})+" - "+filtered.length+" records</p><table><thead><tr><th>Date and Time</th><th>Staff</th><th>Action</th><th>Client</th></tr></thead><tbody>"+rows+"</tbody></table></body></html>";
+    const html="<!DOCTYPE html><html><head><title>Audit Trail</title><style>"+style+"</style></head><body><h1>Audit Trail</h1><p style='color:#6c757d;font-size:12px'>Exported "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})+" — "+filtered.length+" records"+(fFrom||fTo?" — "+( fFrom||"start")+" → "+(fTo||"now"):"")+"</p><table><thead><tr><th>Date & Time</th><th>Staff</th><th>Action</th><th>Client</th><th>Company</th></tr></thead><tbody>"+rows+"</tbody></table></body></html>";
     const blob=new Blob([html],{type:"text/html"});
     const url=URL.createObjectURL(blob);
     const w=window.open(url,"_blank");
     if(w){w.onload=()=>{setTimeout(()=>w.print(),500);};}
     setTimeout(()=>URL.revokeObjectURL(url),10000);
   };
+
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
         <div style={{fontFamily:"Playfair Display,serif",fontSize:26,fontWeight:700,color:"#f1f5f9"}}>{t.auditTrail}</div>
         <button onClick={doExport} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:600,fontSize:13}}>{t.exportAudit}</button>
       </div>
-      <div style={{color:"#64748b",fontSize:13,marginBottom:20}}>{filtered.length} {t.records}</div>
-      <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:20}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+        <div style={{color:"#64748b",fontSize:13}}>{filtered.length} {t.records}</div>
+        {hasFilter&&<button onClick={clearFilters} style={{padding:"3px 10px",borderRadius:6,border:"1px solid #334155",background:"transparent",color:"#f59e0b",fontSize:11,fontWeight:700}}>✕ Clear filters</button>}
+      </div>
+
+      {/* Filters — row 1: staff / action / company */}
+      <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:10}}>
         <div><label style={LBL}>{t.filterStaff}</label>
           <select style={{...INP,cursor:"pointer"}} value={fS} onChange={e=>setFS(e.target.value)}>
             <option value="">{t.allStaff}</option>
@@ -1417,24 +1447,55 @@ function AuditTrail({t,companyId}){
             {al.map(a=><option key={a} value={a}>{a}</option>)}
           </select>
         </div>
-        <div><label style={LBL}>{t.filterDate}</label><input type="date" style={INP} value={fD} onChange={e=>setFD(e.target.value)}/></div>
+        <div><label style={LBL}>Company</label>
+          <select style={{...INP,cursor:"pointer"}} value={fCo} onChange={e=>setFCo(e.target.value)}>
+            <option value="">All Companies</option>
+            {filterCos.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
       </div>
-      <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
-        {loading?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.loadingAudit}</div>
-          :filtered.length===0?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.noAudit}</div>
-            :<table style={{width:"100%",borderCollapse:"collapse"}}>
+
+      {/* Filters — row 2: date range */}
+      <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
+        <div><label style={LBL}>From Date</label>
+          <input type="date" style={INP} value={fFrom} onChange={e=>setFFrom(e.target.value)}/>
+        </div>
+        <div><label style={LBL}>To Date</label>
+          <input type="date" style={INP} value={fTo} onChange={e=>setFTo(e.target.value)}/>
+        </div>
+      </div>
+
+      {/* Active date range badge */}
+      {(fFrom||fTo)&&(
+        <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.25)",borderRadius:8,padding:"6px 12px",marginBottom:16,fontSize:12,color:"#a5b4fc"}}>
+          📅 {fFrom||"start"} → {fTo||"today"}
+          <span style={{color:"#6366f1",cursor:"pointer",fontWeight:700}} onClick={()=>{setFFrom("");setFTo("");}}>×</span>
+        </div>
+      )}
+
+      <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflowX:"auto"}}>
+        {loading
+          ?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.loadingAudit}</div>
+          :filtered.length===0
+            ?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.noAudit}</div>
+            :<table style={{width:"100%",borderCollapse:"collapse",minWidth:650}}>
               <thead>
                 <tr style={{borderBottom:"1px solid #334155"}}>
-                  {["Date","Staff","Action","Client"].map(h=><th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5}}>{h}</th>)}
+                  {["Date & Time","Staff","Action","Client","Company"].map(h=>(
+                    <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,whiteSpace:"nowrap"}}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((l,i)=>(
                   <tr key={l.id} style={{borderBottom:"1px solid #1e293b",background:i%2===0?"transparent":"rgba(255,255,255,0.02)"}}>
                     <td style={{padding:"10px 16px",fontSize:12,color:"#64748b",whiteSpace:"nowrap"}}>{new Date(l.performed_at).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}</td>
-                    <td style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{l.performed_by||"-"}</td>
-                    <td style={{padding:"10px 16px",fontSize:13,color:"#6366f1"}}>{l.action||"-"}</td>
-                    <td style={{padding:"10px 16px",fontSize:13,color:"#94a3b8"}}>{l.client_name||"-"}</td>
+                    <td style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{l.performed_by||"—"}</td>
+                    <td style={{padding:"10px 16px",fontSize:13}}>
+                      <span style={{background:"rgba(99,102,241,0.1)",color:"#a5b4fc",borderRadius:6,padding:"2px 8px",fontSize:12,fontWeight:600}}>{l.action||"—"}</span>
+                    </td>
+                    <td style={{padding:"10px 16px",fontSize:13,color:"#94a3b8"}}>{l.client_name||"—"}</td>
+                    <td style={{padding:"10px 16px",fontSize:12,color:"#475569"}}>{coName(l.company_id)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -3206,7 +3267,7 @@ export default function App(){
         <div className="main-pad" style={{flex:1,overflowY:"auto",padding:"28px 32px"}}>
           {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#ef4444",fontSize:14}}>{error}</div>}
           {loading&&view==="dashboard"&&<div style={{color:"#475569",textAlign:"center",padding:"60px 0"}}>Loading...</div>}
-          {!loading&&view==="audit"&&currentUser.role==="superadmin"&&<AuditTrail t={t} companyId={activeCompanyId}/>}
+          {!loading&&view==="audit"&&currentUser.role==="superadmin"&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
           {!loading&&view==="company"&&currentUser.role==="superadmin"&&(
             <CompanyView company={company} onUpdate={updated=>{setCompany(updated);}} currentUser={currentUser} t={t}/>
           )}
