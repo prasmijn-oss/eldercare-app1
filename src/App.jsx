@@ -2431,7 +2431,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     const {data:cd}=await supabase.from("companies").select("*").order("name");
     setCompanies(cd||[]);
     // Load ALL users across all companies for existing user picker + stats
-    const {data:au}=await supabase.from("user_roles").select("user_id,name,company_id").order("name");
+    const {data:au}=await supabase.from("user_roles").select("user_id,name,company_id,role,email").order("name");
     setAllUserRoles(au||[]);
     const seen=new Set();
     const unique=(au||[]).filter(u=>{if(seen.has(u.user_id))return false;seen.add(u.user_id);return true;});
@@ -2620,16 +2620,18 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   };
 
   const addToCompany=async(userId,companyId)=>{
-    // Find the best existing row for this user to copy name/email/role from
     const existingRows=allUserRoles.filter(r=>r.user_id===userId);
-    const u=existingRows.find(r=>r.email)||existingRows[0];
+    // Use top role so the new company row matches the user's global role
+    const RORDER={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+    const topRow=existingRows.slice().sort((a,b)=>(RORDER[a.role]??9)-(RORDER[b.role]??9))[0];
+    const emailRow=existingRows.find(r=>r.email)||topRow;
     const {error}=await supabase.from("user_roles").insert({
       user_id:userId,
-      name:u?.name||"",
-      email:u?.email||"",
-      role:u?.role||"user",
+      name:topRow?.name||"",
+      email:emailRow?.email||"",
+      role:topRow?.role||"user",
       company_id:companyId,
-      username:null, // username can only be on one row per UNIQUE(username) constraint
+      username:null,
     });
     if(error){showToast("error","Failed: "+error.message);return;}
     showToast("success","Added to company");
