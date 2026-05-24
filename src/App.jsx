@@ -1469,12 +1469,14 @@ function Login({onLogin,t}){
     if(err){setError(err.message);setLoading(false);return;}
     const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",data.user.id);
     const rd=roles?.[0];
-    // Log login history (keep last 10)
+    // Log login history (keep last 10) — non-blocking
     if(rd){
-      const prev=rd.login_history||[];
-      const entry={at:new Date().toISOString(),ip:"unknown",device:navigator.userAgent.slice(0,80)};
-      const updated=[entry,...prev].slice(0,10);
-      await supabase.from("user_roles").update({login_history:updated}).eq("user_id",data.user.id).eq("company_id",rd.company_id);
+      try{
+        const prev=rd.login_history||[];
+        const entry={at:new Date().toISOString(),ip:"unknown",device:navigator.userAgent.slice(0,80)};
+        const updated=[entry,...prev].slice(0,10);
+        supabase.from("user_roles").update({login_history:updated}).eq("user_id",data.user.id).eq("company_id",rd.company_id).then(()=>{});
+      }catch(_){}
     }
     onLogin({...data.user,role:rd?.role||"staff",displayName:rd?.name||loginEmail.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
     setLoading(false);
