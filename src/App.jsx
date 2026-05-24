@@ -2089,8 +2089,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
                   <thead>
                     <tr style={{borderBottom:"1px solid #334155"}}>
-                      {["Name","Email","Role","Companies","Actions"].map(h=>(
-                        <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5}}>{h}</th>
+                      {[["Name",160],["Email",160],["Role",110],["Companies",null],["Actions",180]].map(([h,minW])=>(
+                        <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -2165,7 +2165,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                           </div>
                         </td>
                         {/* Actions cell */}
-                        <td style={{padding:"10px 16px"}}>
+                        <td style={{padding:"10px 16px",whiteSpace:"nowrap"}}>
                           {isEditing?(
                             <div style={{display:"flex",gap:6}}>
                               <button onClick={()=>saveUserEdit(u.user_id)} disabled={saving}
