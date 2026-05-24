@@ -1675,6 +1675,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   const [users,setUsers]=useState([]);
   const [companies,setCompanies]=useState([]);
   const [allAuthUsers,setAllAuthUsers]=useState([]);
+  const [allUserRoles,setAllUserRoles]=useState([]);
   const [loading,setLoading]=useState(true);
   const [mainTab,setMainTab]=useState("users");
   const [showUserForm,setShowUserForm]=useState(false);
@@ -1698,8 +1699,9 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
     const {data:cd}=await supabase.from("companies").select("*").order("name");
     setCompanies(cd||[]);
     // Load ALL users across all companies for existing user picker
-    const {data:au}=await supabase.from("user_roles").select("user_id,name").order("name");
-    // Deduplicate by user_id
+    const {data:au}=await supabase.from("user_roles").select("user_id,name,company_id").order("name");
+    // Keep full list for per-company membership checks, deduplicate for the picker dropdown
+    setAllUserRoles(au||[]);
     const seen=new Set();
     const unique=(au||[]).filter(u=>{if(seen.has(u.user_id))return false;seen.add(u.user_id);return true;});
     setAllAuthUsers(unique);
@@ -1879,7 +1881,11 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                     <select name="user_id" value={existingForm.user_id} onChange={onChangeExisting} style={{...INP,marginBottom:0,cursor:"pointer"}}>
                       <option value="">Select existing user...</option>
                       {allAuthUsers
-                        .filter(u=>!users.find(x=>x.user_id===u.user_id))
+                        .filter(u=>{
+                          const targetCo=activeCompanyId||existingForm.company_id;
+                          if(!targetCo)return true;
+                          return!allUserRoles.find(x=>x.user_id===u.user_id&&x.company_id===targetCo);
+                        })
                         .map(u=><option key={u.user_id} value={u.user_id}>{u.name||u.email||u.user_id}</option>)}
                     </select>
                   </div>
@@ -2763,12 +2769,14 @@ export default function App(){
               </div>
               {company.name&&<div style={{fontSize:11,color:"#64748b",marginTop:8,fontWeight:600,letterSpacing:0.3}}>{company.name}</div>}
               {company.mission_statement&&<div style={{fontSize:10,color:"#475569",marginTop:2,fontStyle:"italic",lineHeight:1.4,padding:"0 4px"}}>"{company.mission_statement}"</div>}
-              {(currentUser?.allRoles||[]).length>1&&(
-                <button onClick={()=>{setSelectedCompany(null);setCompany(null);setClients([]);setSelected(null);setView("dashboard");}}
-                  style={{marginTop:8,padding:"4px 12px",borderRadius:20,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
-                  Switch Company
-                </button>
-              )}
+            </div>
+          )}
+          {(currentUser?.allRoles||[]).length>1&&(
+            <div style={{padding:"8px 20px",borderBottom:"1px solid #334155",textAlign:"center"}}>
+              <button onClick={()=>{setSelectedCompany(null);setCompany(null);setClients([]);setSelected(null);setView("dashboard");}}
+                style={{padding:"5px 0",borderRadius:20,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600,width:"100%"}}>
+                🔄 Switch Company
+              </button>
             </div>
           )}
           <div style={{padding:"12px 12px 6px"}}>
