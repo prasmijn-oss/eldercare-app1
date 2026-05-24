@@ -1690,6 +1690,9 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   const [userTab,setUserTab]=useState("all");
   const [search,setSearch]=useState("");
   const [expandedUser,setExpandedUser]=useState(null);
+  const [editingUser,setEditingUser]=useState(null);
+  const [editForm,setEditForm]=useState({name:"",email:"",username:""});
+  const [deleteConfirmUser,setDeleteConfirmUser]=useState(null);
   const [userForm,setUserForm]=useState({name:"",email:"",password:"",username:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [existingForm,setExistingForm]=useState({user_id:"",name:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [companyForm,setCompanyForm]=useState({name:"",address:"",phone:"",email:"",website:"",mission_statement:""});
@@ -1858,6 +1861,55 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
     showToast("success","Added to company");
     setExpandedUser(null);
     await loadData();
+  };
+
+  const startEditUser=(u)=>{
+    setEditingUser(u.user_id);
+    setEditForm({name:u.name||"",email:u.email||"",username:u.username||""});
+    setDeleteConfirmUser(null);
+    setExpandedUser(null);
+  };
+
+  const saveUserEdit=async(userId)=>{
+    if(!editForm.name.trim()||!editForm.email.trim()){showToast("error","Name and email are required");return;}
+    setSaving(true);
+    // Duplicate email check (exclude current user)
+    const {data:existingEmail}=await supabase.from("user_roles").select("user_id").eq("email",editForm.email.toLowerCase().trim()).neq("user_id",userId).limit(1).maybeSingle();
+    if(existingEmail){showToast("error","Email already in use by another user");setSaving(false);return;}
+    // Duplicate username check (if provided, exclude current user)
+    if(editForm.username.trim()){
+      const {data:existingUsername}=await supabase.from("user_roles").select("user_id").eq("username",editForm.username.toLowerCase().trim()).neq("user_id",userId).limit(1).maybeSingle();
+      if(existingUsername){showToast("error","Username already taken");setSaving(false);return;}
+    }
+    const {error}=await supabase.from("user_roles").update({
+      name:editForm.name.trim(),
+      email:editForm.email.toLowerCase().trim(),
+      username:editForm.username.toLowerCase().trim()||null,
+    }).eq("user_id",userId);
+    if(error){showToast("error","Failed to save: "+error.message);setSaving(false);return;}
+    showToast("success","User updated");
+    setEditingUser(null);
+    await loadData();
+    setSaving(false);
+  };
+
+  const deleteUser=async(userId)=>{
+    setSaving(true);
+    const {error}=await supabase.from("user_roles").delete().eq("user_id",userId);
+    if(error){showToast("error","Failed to delete: "+error.message);setSaving(false);return;}
+    showToast("success","User removed from all companies");
+    setDeleteConfirmUser(null);
+    await loadData();
+    setSaving(false);
+  };
+
+  const fmtLastLogin=(loginHistory)=>{
+    try{
+      const arr=typeof loginHistory==="string"?JSON.parse(loginHistory):loginHistory;
+      if(!arr||!arr.length)return"—";
+      const d=new Date(arr[0].at);
+      return d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+    }catch{return"—";}
   };
 
   const roleColor={superadmin:"#f59e0b",admin:"#6366f1",power_user:"#06b6d4",user:"#10b981",inactive:"#475569"};
@@ -2037,17 +2089,44 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
                   <thead>
                     <tr style={{borderBottom:"1px solid #334155"}}>
-                      {["Name","Email","Role","Companies","Actions"].map(h=>(
+                      {["Name / Username","Email","Role","Companies","Last Login","Actions"].map(h=>(
                         <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5}}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map((u,i)=>(
-                      <tr key={u.user_id} style={{borderBottom:"1px solid #1e293b",background:i%2===0?"transparent":"rgba(255,255,255,0.02)"}}>
-                        <td style={{padding:"12px 16px",fontWeight:600,color:"#f1f5f9",fontSize:13}}>{u.name||"—"}</td>
-                        <td style={{padding:"12px 16px",color:"#64748b",fontSize:13}}>{u.email||"—"}</td>
-                        <td style={{padding:"12px 16px"}}>
+                    {filteredUsers.map((u,i)=>{
+                      const isEditing=editingUser===u.user_id;
+                      const isDeleteConfirm=deleteConfirmUser===u.user_id;
+                      const isMe=u.user_id===currentUser.id;
+                      const rowBg=isEditing?"rgba(99,102,241,0.06)":isDeleteConfirm?"rgba(220,38,38,0.06)":i%2===0?"transparent":"rgba(255,255,255,0.02)";
+                      return(
+                      <tr key={u.user_id} style={{borderBottom:"1px solid #1e293b",background:rowBg}}>
+                        {/* Name / Username cell */}
+                        <td style={{padding:"10px 16px",fontWeight:600,color:"#f1f5f9",fontSize:13}}>
+                          {isEditing?(
+                            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                              <input value={editForm.name} onChange={e=>setEditForm(p=>({...p,name:e.target.value}))}
+                                placeholder="Full name" style={{background:"#0f172a",border:"1px solid #6366f1",borderRadius:6,padding:"4px 8px",color:"#f1f5f9",fontSize:12,width:140}}/>
+                              <input value={editForm.username} onChange={e=>setEditForm(p=>({...p,username:e.target.value}))}
+                                placeholder="username (optional)" style={{background:"#0f172a",border:"1px solid #334155",borderRadius:6,padding:"4px 8px",color:"#94a3b8",fontSize:11,width:140}}/>
+                            </div>
+                          ):(
+                            <div>
+                              <div>{u.name||"—"}</div>
+                              {u.username&&<div style={{fontSize:11,color:"#475569",fontWeight:400}}>@{u.username}</div>}
+                            </div>
+                          )}
+                        </td>
+                        {/* Email cell */}
+                        <td style={{padding:"10px 16px",color:"#64748b",fontSize:13}}>
+                          {isEditing?(
+                            <input value={editForm.email} onChange={e=>setEditForm(p=>({...p,email:e.target.value}))}
+                              placeholder="Email" style={{background:"#0f172a",border:"1px solid #6366f1",borderRadius:6,padding:"4px 8px",color:"#f1f5f9",fontSize:12,width:160}}/>
+                          ):(u.email||"—")}
+                        </td>
+                        {/* Role cell */}
+                        <td style={{padding:"10px 16px"}}>
                           <select value={u.role} onChange={e=>updateRole(u.user_id,e.target.value)}
                             style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"#64748b",border:"1px solid "+(roleColor[u.role]||"#334155"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
                             <option value="user">User</option>
@@ -2057,12 +2136,13 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                             <option value="inactive">Inactive</option>
                           </select>
                         </td>
-                        <td style={{padding:"12px 16px"}}>
+                        {/* Companies cell */}
+                        <td style={{padding:"10px 16px"}}>
                           <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}>
                             {allUserRoles.filter(r=>r.user_id===u.user_id).map(r=>(
                               <span key={r.company_id} style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(99,102,241,0.12)",border:"1px solid rgba(99,102,241,0.25)",borderRadius:12,padding:"2px 8px",fontSize:11,color:"#a5b4fc",whiteSpace:"nowrap"}}>
                                 {companyName(r.company_id)}
-                                {u.user_id!==currentUser.id&&(
+                                {!isMe&&(
                                   <span onClick={()=>removeFromCompany(u.user_id,r.company_id)}
                                     style={{cursor:"pointer",color:"#64748b",fontWeight:700,fontSize:13,lineHeight:1,marginLeft:2}} title="Remove from company">×</span>
                                 )}
@@ -2083,17 +2163,62 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                             )}
                           </div>
                         </td>
-                        <td style={{padding:"12px 16px"}}>
-                          {u.role!=="inactive"&&u.user_id!==currentUser.id&&(
-                            <button onClick={()=>deactivateUser(u.user_id)}
-                              style={{padding:"4px 12px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
-                              Deactivate
-                            </button>
+                        {/* Last Login cell */}
+                        <td style={{padding:"10px 16px",fontSize:11,color:"#475569",whiteSpace:"nowrap"}}>
+                          {fmtLastLogin(u.login_history)}
+                        </td>
+                        {/* Actions cell */}
+                        <td style={{padding:"10px 16px"}}>
+                          {isEditing?(
+                            <div style={{display:"flex",gap:6}}>
+                              <button onClick={()=>saveUserEdit(u.user_id)} disabled={saving}
+                                style={{padding:"4px 11px",borderRadius:7,border:"none",background:"#6366f1",color:"#fff",fontSize:11,fontWeight:700}}>
+                                {saving?"…":"Save"}
+                              </button>
+                              <button onClick={()=>setEditingUser(null)}
+                                style={{padding:"4px 11px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
+                                Cancel
+                              </button>
+                            </div>
+                          ):isDeleteConfirm?(
+                            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                              <span style={{fontSize:11,color:"#f87171",fontWeight:600}}>Delete?</span>
+                              <button onClick={()=>deleteUser(u.user_id)} disabled={saving}
+                                style={{padding:"4px 11px",borderRadius:7,border:"none",background:"#dc2626",color:"#fff",fontSize:11,fontWeight:700}}>
+                                {saving?"…":"Yes"}
+                              </button>
+                              <button onClick={()=>setDeleteConfirmUser(null)}
+                                style={{padding:"4px 11px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
+                                No
+                              </button>
+                            </div>
+                          ):(
+                            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                              {!isMe&&(
+                                <>
+                                  <button onClick={()=>startEditUser(u)} title="Edit user"
+                                    style={{padding:"4px 9px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontSize:12}}>
+                                    ✏️
+                                  </button>
+                                  <button onClick={()=>{setDeleteConfirmUser(u.user_id);setEditingUser(null);setExpandedUser(null);}} title="Delete user"
+                                    style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(220,38,38,0.3)",background:"transparent",color:"#f87171",fontSize:12}}>
+                                    🗑️
+                                  </button>
+                                  {u.role!=="inactive"&&(
+                                    <button onClick={()=>deactivateUser(u.user_id)}
+                                      style={{padding:"4px 12px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
+                                      Deactivate
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                              {isMe&&<span style={{fontSize:11,color:"#475569",fontStyle:"italic"}}>You</span>}
+                            </div>
                           )}
-                          {u.user_id===currentUser.id&&<span style={{fontSize:11,color:"#475569",fontStyle:"italic"}}>You</span>}
                         </td>
                       </tr>
-                    ))}
+                    );})}
+
                   </tbody>
                 </table>
               )}
