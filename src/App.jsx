@@ -43,7 +43,38 @@ const GCSS = [
   "  @page { margin: 1.5cm; size: A4; }",
   "}",
   ".ph { display: none; }",
+  "html.cm-light { filter: invert(1) hue-rotate(180deg); }",
+  "html.cm-light img { filter: invert(1) hue-rotate(180deg); }",
+  ".notif-panel { animation: slideIn 0.22s ease; }",
+  "@keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }",
+  ".shortcut-key { display:inline-block; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); border-radius:5px; padding:1px 7px; font-family:monospace; font-size:12px; color:#a5b4fc; }",
 ].join("\n");
+
+function buildNotifications(clients){
+  const notifs=[];const now=new Date();
+  (clients||[]).forEach(c=>{
+    if(c.archived)return;
+    (c.documents||[]).forEach(d=>{
+      if(!d.expiry)return;
+      const days=Math.ceil((new Date(d.expiry)-now)/86400000);
+      if(days>=0&&days<=30)notifs.push({id:`doc-${c.id}-${d.id||d.name}`,type:"expiry",urgency:days<=7?"high":"medium",icon:"📄",title:"Document expiring soon",body:`${d.name||"Doc"} for ${c.name} — ${days===0?"today":days+" day"+(days!==1?"s":"")}`,clientId:c.id,clientName:c.name});
+      else if(days<0&&days>=-7)notifs.push({id:`docx-${c.id}-${d.id||d.name}`,type:"expired",urgency:"high",icon:"🚨",title:"Document expired",body:`${d.name||"Doc"} for ${c.name} expired ${Math.abs(days)} day${Math.abs(days)!==1?"s":""} ago`,clientId:c.id,clientName:c.name});
+    });
+    (c.appointments||[]).filter(a=>a.status==="Scheduled"&&a.date).forEach(a=>{
+      const days=Math.ceil((new Date(a.date)-now)/86400000);
+      if(days>=0&&days<=7)notifs.push({id:`apt-${c.id}-${a.id}`,type:"appointment",urgency:days===0?"high":"low",icon:"📅",title:`Appointment ${days===0?"today":"in "+days+" day"+(days!==1?"s":"")}`,body:`${c.name} — ${a.type||"Appointment"}`,clientId:c.id,clientName:c.name});
+    });
+    const fr=calcFallRisk(c);
+    if(fr.level==="High")notifs.push({id:`fr-${c.id}`,type:"fall_risk",urgency:"medium",icon:"🚶",title:"High fall risk",body:`${c.name} scores ${fr.score} — ${fr.factors.slice(0,2).join(", ")}`,clientId:c.id,clientName:c.name});
+    (c.incidents||[]).forEach(inc=>{
+      if(!inc.date)return;
+      const days=Math.ceil((now-new Date(inc.date))/86400000);
+      if(days<=7)notifs.push({id:`inc-${c.id}-${inc.id}`,type:"incident",urgency:inc.severity==="Severe"?"high":inc.severity==="Moderate"?"medium":"low",icon:"⚠️",title:`${inc.type||"Incident"} reported`,body:`${c.name} — ${inc.severity||""} ${days===0?"today":days===1?"yesterday":days+"d ago"}`,clientId:c.id,clientName:c.name});
+    });
+  });
+  const ord={high:0,medium:1,low:2};
+  return notifs.sort((a,b)=>ord[a.urgency]-ord[b.urgency]);
+}
 
 const T = {
   en: {
@@ -3626,9 +3657,45 @@ export default function App(){
   const [companiesMap,setCompaniesMap]=useState({});
   const [bulkMode,setBulkMode]=useState(false);
   const [bulkSelected,setBulkSelected]=useState(new Set());
+  const [darkMode,setDarkMode]=useState(()=>localStorage.getItem("cm-dark")!=="false");
+  const [notifOpen,setNotifOpen]=useState(false);
+  const [readNotifIds,setReadNotifIds]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem("cm-read-notifs")||"[]"));}catch{return new Set();}});
+  const [showShortcuts,setShowShortcuts]=useState(false);
+  const [recentClients,setRecentClients]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-recent")||"[]");}catch{return [];}});
+  const [dashNote,setDashNote]=useState(()=>localStorage.getItem("cm-dash-note")||"");
+  const [emailPrefs,setEmailPrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-email-prefs")||"{}") ;}catch{return {};}});
 
   const t=T[lang]||T["en"];
   const selectLang=code=>{localStorage.setItem("cm-lang",code);setLang(code);};
+
+  const trackRecent=useCallback((c)=>{
+    if(!c)return;
+    setRecentClients(prev=>{
+      const next=[{id:c.id,name:c.name,photo_url:c.photo_url||null},...prev.filter(x=>x.id!==c.id)].slice(0,5);
+      localStorage.setItem("cm-recent",JSON.stringify(next));
+      return next;
+    });
+  },[]);
+
+  useEffect(()=>{
+    document.documentElement.classList.toggle("cm-light",!darkMode);
+    localStorage.setItem("cm-dark",String(darkMode));
+  },[darkMode]);
+
+  useEffect(()=>{
+    if(!currentUser)return;
+    const handler=e=>{
+      if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA"||e.target.tagName==="SELECT")return;
+      if(e.key==="?"||e.key==="."){setShowShortcuts(s=>!s);e.preventDefault();}
+      else if(e.key==="Escape"){setShowShortcuts(false);setNotifOpen(false);setSidebarOpen(false);}
+      else if(e.key==="d"&&!e.ctrlKey&&!e.metaKey&&!e.altKey){setView("dashboard");setSelected(null);}
+      else if(e.key==="n"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&can(currentUser.role,"add")){setSelected(null);setView("add");}
+      else if(e.key==="k"&&!e.ctrlKey&&!e.metaKey){e.preventDefault();document.getElementById("cm-search")?.focus();}
+      else if(e.key==="b"&&!e.ctrlKey&&!e.metaKey){setNotifOpen(s=>!s);}
+    };
+    window.addEventListener("keydown",handler);
+    return()=>window.removeEventListener("keydown",handler);
+  },[currentUser]);
 
   useEffect(()=>{
     supabase.auth.getSession().then(async({data:{session}})=>{
@@ -3700,7 +3767,7 @@ export default function App(){
     if(err){setError(err.message);setSaving(false);return;}
     await logAudit(exists?"Edited client":"Added new client",data.name);
     await loadClients();
-    setSelected(data);setView("detail");setSaving(false);
+    setSelected(data);setView("detail");setSaving(false);trackRecent(data);
   };
 
   const archiveClient=async()=>{
@@ -3861,7 +3928,15 @@ export default function App(){
                   <div style={{fontSize:11,color:currentUser.role==="superadmin"?"#f59e0b":"#64748b"}}>{currentUser.role==="superadmin"?"Super Admin":"Staff"}</div>
                 </div>
               </div>
-              <button onClick={handleLogout} style={{background:"none",border:"1px solid #334155",borderRadius:7,padding:"4px 10px",color:"#64748b",fontSize:11,fontWeight:600}}>{t.signOut}</button>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                {(()=>{const notifs=buildNotifications(clients);const unread=notifs.filter(n=>!readNotifIds.has(n.id)).length;return(
+                  <button onClick={()=>setNotifOpen(o=>!o)} title="Notifications (b)" style={{position:"relative",background:"none",border:"1px solid #334155",borderRadius:7,padding:"4px 9px",color:"#64748b",fontSize:14}}>
+                    🔔{unread>0&&<span style={{position:"absolute",top:-5,right:-5,background:"#ef4444",color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{unread>9?"9+":unread}</span>}
+                  </button>
+                );})()}
+                <button onClick={()=>setDarkMode(d=>!d)} title="Toggle light/dark" style={{background:"none",border:"1px solid #334155",borderRadius:7,padding:"4px 9px",color:"#64748b",fontSize:14}}>{darkMode?"☀️":"🌙"}</button>
+                <button onClick={handleLogout} style={{background:"none",border:"1px solid #334155",borderRadius:7,padding:"4px 10px",color:"#64748b",fontSize:11,fontWeight:600}}>{t.signOut}</button>
+              </div>
             </div>
           </div>
           {company?.logo_url&&(
@@ -3920,7 +3995,7 @@ export default function App(){
                 </button>
               ))}
             </div>
-            <input style={{...INP,background:"#0f172a",borderColor:"#1e293b"}} placeholder={searchMode==="notes"?t.searchNotes:t.search} value={search} onChange={e=>setSearch(e.target.value)}/>
+            <input id="cm-search" style={{...INP,background:"#0f172a",borderColor:"#1e293b"}} placeholder={searchMode==="notes"?t.searchNotes:t.search} value={search} onChange={e=>setSearch(e.target.value)}/>
             {currentUser?.role==="superadmin"&&(
               <button onClick={()=>{setSearchAllCompanies(s=>!s);setSearch("");}}
                 style={{width:"100%",marginTop:6,padding:"5px",borderRadius:7,border:"1px solid "+(searchAllCompanies?"#6366f1":"#334155"),background:searchAllCompanies?"rgba(99,102,241,0.12)":"transparent",color:searchAllCompanies?"#6366f1":"#475569",fontSize:10,fontWeight:700}}>
@@ -3961,7 +4036,7 @@ export default function App(){
                   if(bulkMode){
                     setBulkSelected(prev=>{const n=new Set(prev);if(n.has(c.id))n.delete(c.id);else n.add(c.id);return n;});
                   } else {
-                    setSelected(c);setView("detail");setDeleteConfirm(false);setSidebarOpen(false);
+                    setSelected(c);setView("detail");setDeleteConfirm(false);setSidebarOpen(false);trackRecent(c);
                   }
                 }}
                   style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 8px",borderRadius:10,border:"none",background:isChecked?"rgba(99,102,241,0.15)":isActive?"rgba(99,102,241,0.12)":c.archived?"rgba(239,68,68,0.04)":"transparent",cursor:"pointer",marginBottom:2,textAlign:"left"}}>
@@ -4022,13 +4097,14 @@ export default function App(){
               </div>
             )}
           </div>
-          <div style={{padding:"0 12px 8px",display:"flex",justifyContent:"center",gap:4}}>
+          <div style={{padding:"0 12px 8px",display:"flex",justifyContent:"center",gap:4,flexWrap:"wrap"}}>
             {LANG_OPTIONS.map(l=>(
               <button key={l.code} onClick={()=>selectLang(l.code)} title={l.label}
                 style={{background:lang===l.code?"rgba(99,102,241,0.2)":"transparent",border:"none",borderRadius:6,padding:"4px 6px",fontSize:11,fontWeight:800,color:lang===l.code?"#6366f1":"#475569"}}>
                 {l.emoji}
               </button>
             ))}
+            <button onClick={()=>setShowShortcuts(true)} title="Keyboard shortcuts (?)" style={{background:"transparent",border:"none",borderRadius:6,padding:"4px 6px",fontSize:11,fontWeight:800,color:"#334155"}}>⌨️</button>
           </div>
           <div style={{padding:"0 12px 16px",color:"#334155",fontSize:11,textAlign:"center"}}>
             {clients.length} {t.clients} - {t.synced}
@@ -4062,7 +4138,7 @@ export default function App(){
               {noteResults.length===0?<div style={{color:"#475569",fontSize:14,textAlign:"center",padding:"40px 0"}}>{t.noNoteResults} "{search}"</div>:(
                 <div style={{display:"flex",flexDirection:"column",gap:12}}>
                   {noteResults.map((n,i)=>(
-                    <div key={i} onClick={()=>{setSelected(n.client);setView("detail");setSearch("");setSearchMode("clients");setSidebarOpen(false);}}
+                    <div key={i} onClick={()=>{setSelected(n.client);setView("detail");setSearch("");setSearchMode("clients");setSidebarOpen(false);trackRecent(n.client);}}
                       style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"14px 18px",cursor:"pointer"}}>
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                         <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(n.clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(n.clientName)}</div>
@@ -4085,7 +4161,43 @@ export default function App(){
                 </div>
               )}
             </div>
-          ):!loading&&view==="dashboard"&&<Dashboard clients={clients} onSelect={c=>{setSelected(c);setView("detail");}} t={t} currentUser={currentUser}/>}
+          ):!loading&&view==="dashboard"&&(
+            <>
+              {recentClients.length>0&&(
+                <div style={{marginBottom:20}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:8}}>⏱ Recently Viewed</div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    {recentClients.map(rc=>{
+                      const full=clients.find(c=>c.id===rc.id);
+                      return(
+                        <button key={rc.id} onClick={()=>{const c=full||rc;setSelected(c);setView("detail");trackRecent(c);}}
+                          style={{display:"flex",alignItems:"center",gap:8,background:"#1e293b",border:"1px solid #334155",borderRadius:10,padding:"7px 12px",cursor:"pointer",maxWidth:180}}>
+                          <div style={{width:28,height:28,borderRadius:"50%",background:avatarColor(rc.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,overflow:"hidden"}}>
+                            {rc.photo_url?<img src={rc.photo_url} alt={rc.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(rc.name)}
+                          </div>
+                          <span style={{fontSize:12,fontWeight:600,color:"#e2e8f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rc.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div style={{marginBottom:20}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:8}}>📝 Quick Note</div>
+                <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:10,overflow:"hidden"}}>
+                  <textarea value={dashNote} onChange={e=>{setDashNote(e.target.value);localStorage.setItem("cm-dash-note",e.target.value);}}
+                    placeholder="Jot a reminder, task, or note... (auto-saved)"
+                    rows={3}
+                    style={{width:"100%",background:"transparent",border:"none",padding:"12px 14px",color:"#e2e8f0",fontSize:13,resize:"vertical",fontFamily:"Inter,sans-serif",lineHeight:1.6}}/>
+                  <div style={{padding:"4px 14px 6px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:10,color:"#334155"}}>Auto-saved · personal to this browser</span>
+                    {dashNote&&<button onClick={()=>{setDashNote("");localStorage.removeItem("cm-dash-note");}} style={{background:"none",border:"none",color:"#475569",fontSize:10,cursor:"pointer",fontWeight:600}}>Clear</button>}
+                  </div>
+                </div>
+              </div>
+              <Dashboard clients={clients} onSelect={c=>{setSelected(c);setView("detail");trackRecent(c);}} t={t} currentUser={currentUser}/>
+            </>
+          )}
           {view==="add"&&can(currentUser.role,"add")&&(
             <div>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:26,color:"#f1f5f9",marginBottom:24}}>{t.newClient}</div>
@@ -4135,6 +4247,94 @@ export default function App(){
           })()}
         </div>
       </div>
+
+      {/* ═══ NOTIFICATION PANEL ═══ */}
+      {notifOpen&&(()=>{
+        const notifs=buildNotifications(clients);
+        const markAllRead=()=>{
+          const all=new Set([...readNotifIds,...notifs.map(n=>n.id)]);
+          setReadNotifIds(all);
+          localStorage.setItem("cm-read-notifs",JSON.stringify([...all]));
+        };
+        const urgColor={high:"#ef4444",medium:"#f59e0b",low:"#6366f1"};
+        const EPREF_LABELS=[["doc_expiry","Document expiry alerts"],["fall_risk","High fall risk alerts"],["incidents","New incident reports"],["appointments","Appointment reminders"]];
+        return(
+          <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:360,height:"100vh",background:"#1e293b",borderLeft:"1px solid #334155",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
+            <div style={{padding:"18px 20px",borderBottom:"1px solid #334155",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontFamily:"Playfair Display,serif",fontSize:17,fontWeight:700,color:"#f1f5f9"}}>🔔 Notifications</div>
+                <div style={{fontSize:11,color:"#475569",marginTop:2}}>{notifs.filter(n=>!readNotifIds.has(n.id)).length} unread · {notifs.length} total</div>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                {notifs.some(n=>!readNotifIds.has(n.id))&&(
+                  <button onClick={markAllRead} style={{padding:"5px 10px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>Mark all read</button>
+                )}
+                <button onClick={()=>setNotifOpen(false)} style={{padding:"5px 10px",borderRadius:7,border:"none",background:"#0f172a",color:"#64748b",fontSize:16,fontWeight:700}}>×</button>
+              </div>
+            </div>
+            <div style={{flex:1,overflowY:"auto"}}>
+              {notifs.length===0?(
+                <div style={{padding:40,textAlign:"center",color:"#475569"}}>
+                  <div style={{fontSize:32,marginBottom:8}}>✅</div>
+                  <div style={{fontSize:14,fontWeight:600,color:"#64748b"}}>All clear!</div>
+                  <div style={{fontSize:12,marginTop:4}}>No expiring documents, upcoming appointments, or incidents in the last 7 days.</div>
+                </div>
+              ):notifs.map(n=>{
+                const isRead=readNotifIds.has(n.id);
+                const markRead=()=>{const s=new Set([...readNotifIds,n.id]);setReadNotifIds(s);localStorage.setItem("cm-read-notifs",JSON.stringify([...s]));};
+                return(
+                  <div key={n.id} onClick={()=>{markRead();if(n.clientId){const c=clients.find(x=>x.id===n.clientId);if(c){setSelected(c);setView("detail");trackRecent(c);setNotifOpen(false);}}}}
+                    style={{padding:"14px 20px",borderBottom:"1px solid #1a2540",cursor:n.clientId?"pointer":"default",background:isRead?"transparent":"rgba(99,102,241,0.04)",display:"flex",gap:12,alignItems:"flex-start"}}>
+                    <div style={{fontSize:20,flexShrink:0,marginTop:1}}>{n.icon}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                        <span style={{width:6,height:6,borderRadius:"50%",background:isRead?"transparent":urgColor[n.urgency],flexShrink:0,display:"block"}}/>
+                        <span style={{fontSize:12,fontWeight:700,color:isRead?"#475569":"#e2e8f0"}}>{n.title}</span>
+                      </div>
+                      <div style={{fontSize:12,color:"#64748b",lineHeight:1.5}}>{n.body}</div>
+                      {n.clientName&&<div style={{fontSize:10,color:"#6366f1",fontWeight:600,marginTop:4}}>→ {n.clientName}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Email alert preferences */}
+            <div style={{borderTop:"1px solid #334155",padding:"14px 20px"}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#475569",letterSpacing:0.5,marginBottom:10}}>📧 EMAIL ALERT PREFERENCES</div>
+              {EPREF_LABELS.map(([key,label])=>(
+                <label key={key} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7,cursor:"pointer"}}>
+                  <input type="checkbox" checked={!!emailPrefs[key]} onChange={e=>{const p={...emailPrefs,[key]:e.target.checked};setEmailPrefs(p);localStorage.setItem("cm-email-prefs",JSON.stringify(p));}} style={{accentColor:"#6366f1",width:14,height:14}}/>
+                  <span style={{fontSize:12,color:"#94a3b8"}}>{label}</span>
+                </label>
+              ))}
+              <div style={{fontSize:10,color:"#334155",marginTop:6}}>Email delivery requires server configuration</div>
+            </div>
+          </div>
+        );
+      })()}
+      {notifOpen&&<div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:299}}/>}
+
+      {/* ═══ KEYBOARD SHORTCUTS MODAL ═══ */}
+      {showShortcuts&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:16,padding:32,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
+            <div style={{fontFamily:"Playfair Display,serif",fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>⌨️ Keyboard Shortcuts</div>
+            <div style={{fontSize:12,color:"#475569",marginBottom:20}}>Works when no input is focused</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[["d","Dashboard"],["n","New client"],["k","Focus search"],["b","Notifications"],["?","This help"],["Esc","Close panels"]].map(([key,desc])=>(
+                <div key={key} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid #1a2540"}}>
+                  <span className="shortcut-key">{key}</span>
+                  <span style={{fontSize:13,color:"#94a3b8"}}>{desc}</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={()=>setShowShortcuts(false)}
+              style={{marginTop:20,width:"100%",padding:"10px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#64748b",fontWeight:600,fontSize:14}}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
