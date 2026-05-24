@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
 
-const SUPABASE_URL = "https://kpwzeawgrqdsezflvjkm.supabase.co";
-const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwd3plYXdncnFkc2V6Zmx2amttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1Mzc1MzIsImV4cCI6MjA5NTExMzUzMn0.-fvmwgZqwyddWyq1IJ4vcHvsTVMpPmhI72p4hyCtC6E";
-const SERVICE_KEY = "";
+const SUPABASE_URL = "https://arwvosghwecyzpqartrh.supabase.co";
+const ANON_KEY = "sb_publishable_hQS1UpNxtIke2N-WICNKlg_ruIPrOeN";
+const SERVICE_KEY = import.meta.env.SUPABASE_SECRET_KEY||import.meta.env.VITE_SUPABASE_SERVICE_KEY||"";
 
 const supabase = createClient(SUPABASE_URL, ANON_KEY);
 const supabaseAdmin = SERVICE_KEY
@@ -1458,11 +1458,25 @@ function Login({onLogin,t}){
   const handle=async()=>{
     if(!email||!password)return;
     setLoading(true);setError(null);
-    const {data,error:err}=await supabase.auth.signInWithPassword({email,password});
+    let loginEmail=email;
+    // If input doesn't look like email, try username lookup
+    if(!email.includes("@")){
+      const {data:byUsername}=await supabase.from("user_roles").select("email").eq("username",email.toLowerCase()).single();
+      if(!byUsername?.email){setError("Username not found");setLoading(false);return;}
+      loginEmail=byUsername.email;
+    }
+    const {data,error:err}=await supabase.auth.signInWithPassword({email:loginEmail,password});
     if(err){setError(err.message);setLoading(false);return;}
     const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",data.user.id);
     const rd=roles?.[0];
-    onLogin({...data.user,role:rd?.role||"staff",displayName:rd?.name||email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[]});
+    // Log login history (keep last 10)
+    if(rd){
+      const prev=rd.login_history||[];
+      const entry={at:new Date().toISOString(),ip:"unknown",device:navigator.userAgent.slice(0,80)};
+      const updated=[entry,...prev].slice(0,10);
+      await supabase.from("user_roles").update({login_history:updated}).eq("user_id",data.user.id).eq("company_id",rd.company_id);
+    }
+    onLogin({...data.user,role:rd?.role||"staff",displayName:rd?.name||loginEmail.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
     setLoading(false);
   };
   return(
@@ -1474,7 +1488,7 @@ function Login({onLogin,t}){
           <div style={{fontSize:13,color:"#64748b"}}>{t.signIn}</div>
         </div>
         {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:16,color:"#ef4444",fontSize:13}}>{error}</div>}
-        <div style={{marginBottom:14}}><label style={LBL}>{t.email}</label><input type="email" style={INP} placeholder="your@email.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()}/></div>
+        <div style={{marginBottom:14}}><label style={LBL}>Email or Username</label><input type="text" style={INP} placeholder="your@email.com or username" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()}/></div>
         <div style={{marginBottom:24}}><label style={LBL}>{t.password}</label><input type="password" style={INP} placeholder="..." value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()}/></div>
         <button onClick={handle} disabled={loading} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:loading?"#334155":"#6366f1",color:loading?"#64748b":"#fff",fontWeight:700,fontSize:15}}>
           {loading?t.signingIn:t.signIn}
@@ -2207,7 +2221,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
     try{
       for(const [key,allowed] of Object.entries(pendingChanges)){
         const isCompany=key.startsWith("c_");
-        const withoutPrefix=key.slice(2); // remove "g_" or "c_"
+        const withoutPrefix=key.slice(2);
         const ROLES=["superadmin","admin","power_user","user","inactive"];
         const matchedRole=ROLES.find(r=>withoutPrefix.startsWith(r+"_"));
         const role=matchedRole||withoutPrefix.split("_")[0];
@@ -2393,6 +2407,213 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
   );
 }
 
+
+function UserProfile({currentUser,onUpdate,onClose,t}){
+  const [tab,setTab]=useState("profile"); // profile | password | history | sessions
+  const [form,setForm]=useState({displayName:currentUser.displayName||"",username:currentUser.username||""});
+  const [pwForm,setPwForm]=useState({current:"",newPw:"",confirm:""});
+  const [saving,setSaving]=useState(false);
+  const [msg,setMsg]=useState(null);
+  const [uploading,setUploading]=useState(false);
+  const [loginHistory,setLoginHistory]=useState([]);
+  const [sessions,setSessions]=useState([]);
+
+  useEffect(()=>{loadHistory();},[]);
+
+  const loadHistory=async()=>{
+    const {data}=await supabase.from("user_roles").select("login_history").eq("user_id",currentUser.id).eq("company_id",currentUser.company_id).single();
+    setLoginHistory(data?.login_history||[]);
+  };
+
+  const saveProfile=async()=>{
+    if(!form.displayName.trim()){setMsg({type:"error",text:"Display name required"});return;}
+    setSaving(true);setMsg(null);
+    // Check username uniqueness
+    if(form.username){
+      const {data:existing}=await supabase.from("user_roles").select("user_id").eq("username",form.username.toLowerCase()).neq("user_id",currentUser.id);
+      if(existing?.length>0){setMsg({type:"error",text:"Username already taken"});setSaving(false);return;}
+    }
+    const {error}=await supabase.from("user_roles").update({
+      name:form.displayName.trim(),
+      username:form.username?form.username.toLowerCase().trim():null,
+    }).eq("user_id",currentUser.id).eq("company_id",currentUser.company_id);
+    if(error){setMsg({type:"error",text:error.message});}
+    else{
+      setMsg({type:"success",text:"Profile updated!"});
+      onUpdate({...currentUser,displayName:form.displayName.trim(),username:form.username.toLowerCase().trim()});
+    }
+    setSaving(false);
+  };
+
+  const uploadAvatar=async(e)=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    if(file.size>2*1024*1024){setMsg({type:"error",text:"Max file size is 2MB"});return;}
+    setUploading(true);setMsg(null);
+    const ext=file.name.split(".").pop();
+    const path=`${currentUser.id}/avatar.${ext}`;
+    const {error:upErr}=await supabase.storage.from("avatars").upload(path,file,{upsert:true});
+    if(upErr){setMsg({type:"error",text:upErr.message});setUploading(false);return;}
+    const {data:{publicUrl}}=supabase.storage.from("avatars").getPublicUrl(path);
+    const {error:dbErr}=await supabase.from("user_roles").update({avatar_url:publicUrl}).eq("user_id",currentUser.id).eq("company_id",currentUser.company_id);
+    if(dbErr){setMsg({type:"error",text:dbErr.message});}
+    else{
+      setMsg({type:"success",text:"Photo updated!"});
+      onUpdate({...currentUser,avatar_url:publicUrl});
+    }
+    setUploading(false);
+  };
+
+  const changePassword=async()=>{
+    if(!pwForm.newPw||!pwForm.confirm){setMsg({type:"error",text:"Fill in all fields"});return;}
+    if(pwForm.newPw!==pwForm.confirm){setMsg({type:"error",text:"Passwords don't match"});return;}
+    if(pwForm.newPw.length<8){setMsg({type:"error",text:"Password must be at least 8 characters"});return;}
+    setSaving(true);setMsg(null);
+    const {error}=await supabase.auth.updateUser({password:pwForm.newPw});
+    if(error){setMsg({type:"error",text:error.message});}
+    else{setMsg({type:"success",text:"Password changed!"});setPwForm({current:"",newPw:"",confirm:""});}
+    setSaving(false);
+  };
+
+  const signOutAll=async()=>{
+    await supabase.auth.signOut({scope:"global"});
+    window.location.reload();
+  };
+
+  const TABS=[
+    {id:"profile",label:"👤 Profile"},
+    {id:"password",label:"🔑 Password"},
+    {id:"history",label:"📋 Login History"},
+    {id:"sessions",label:"📱 Sessions"},
+  ];
+
+  const INP3={background:"#0f172a",border:"1px solid #334155",borderRadius:8,padding:"10px 14px",color:"#f1f5f9",fontSize:14,width:"100%"};
+  const LB={fontSize:12,color:"#94a3b8",fontWeight:600,marginBottom:4,display:"block"};
+
+  return(
+    <div style={{maxWidth:640,margin:"0 auto",padding:"24px 16px"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24}}>
+        <div style={{fontFamily:"Playfair Display,serif",fontSize:22,fontWeight:700,color:"#f1f5f9"}}>My Profile</div>
+        <button onClick={onClose} style={{background:"none",border:"1px solid #334155",borderRadius:8,padding:"6px 14px",color:"#94a3b8",fontSize:13,fontWeight:600}}>← Back</button>
+      </div>
+
+      {msg&&<div style={{padding:"10px 14px",borderRadius:8,marginBottom:16,background:msg.type==="error"?"rgba(239,68,68,0.1)":"rgba(34,197,94,0.1)",border:`1px solid ${msg.type==="error"?"#ef4444":"#22c55e"}`,color:msg.type==="error"?"#ef4444":"#22c55e",fontSize:13}}>{msg.text}</div>}
+
+      {/* Tabs */}
+      <div style={{display:"flex",gap:4,marginBottom:20,background:"#1e293b",borderRadius:10,padding:4}}>
+        {TABS.map(tb=>(
+          <button key={tb.id} onClick={()=>{setTab(tb.id);setMsg(null);}}
+            style={{flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:tab===tb.id?"#6366f1":"transparent",color:tab===tb.id?"#fff":"#64748b",fontWeight:600,fontSize:12,cursor:"pointer"}}>
+            {tb.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Profile Tab */}
+      {tab==="profile"&&(
+        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+          {/* Avatar */}
+          <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
+            <div style={{position:"relative"}}>
+              {currentUser.avatar_url?
+                <img src={currentUser.avatar_url} alt="avatar" style={{width:72,height:72,borderRadius:"50%",objectFit:"cover",border:"3px solid #6366f1"}}/>:
+                <div style={{width:72,height:72,borderRadius:"50%",background:"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:700,color:"#fff"}}>{(currentUser.displayName||"?")[0].toUpperCase()}</div>
+              }
+            </div>
+            <div>
+              <label style={{background:"#6366f1",border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"inline-block"}}>
+                {uploading?"Uploading...":"📷 Change Photo"}
+                <input type="file" accept="image/*" onChange={uploadAvatar} style={{display:"none"}} disabled={uploading}/>
+              </label>
+              <div style={{fontSize:11,color:"#64748b",marginTop:4}}>Max 2MB · JPG, PNG, GIF</div>
+            </div>
+          </div>
+          {/* Form */}
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            <div>
+              <label style={LB}>Display Name *</label>
+              <input style={INP3} value={form.displayName} onChange={e=>setForm(f=>({...f,displayName:e.target.value}))} placeholder="Your full name"/>
+            </div>
+            <div>
+              <label style={LB}>Username <span style={{color:"#475569"}}>(optional — used for login)</span></label>
+              <input style={INP3} value={form.username} onChange={e=>setForm(f=>({...f,username:e.target.value}))} placeholder="e.g. maria_j"/>
+            </div>
+            <div>
+              <label style={LB}>Email</label>
+              <input style={{...INP3,opacity:0.5}} value={currentUser.email} disabled/>
+            </div>
+            <div>
+              <label style={LB}>Role</label>
+              <input style={{...INP3,opacity:0.5}} value={currentUser.role} disabled/>
+            </div>
+            <button onClick={saveProfile} disabled={saving} style={{background:"#6366f1",border:"none",borderRadius:8,padding:"10px",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",marginTop:4}}>
+              {saving?"Saving...":"Save Changes"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Password Tab */}
+      {tab==="password"&&(
+        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            <div>
+              <label style={LB}>New Password</label>
+              <input type="password" style={INP3} value={pwForm.newPw} onChange={e=>setPwForm(f=>({...f,newPw:e.target.value}))} placeholder="Min. 8 characters"/>
+            </div>
+            <div>
+              <label style={LB}>Confirm New Password</label>
+              <input type="password" style={INP3} value={pwForm.confirm} onChange={e=>setPwForm(f=>({...f,confirm:e.target.value}))} placeholder="Repeat new password"/>
+            </div>
+            <button onClick={changePassword} disabled={saving} style={{background:"#6366f1",border:"none",borderRadius:8,padding:"10px",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",marginTop:4}}>
+              {saving?"Changing...":"Change Password"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Login History Tab */}
+      {tab==="history"&&(
+        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+          {loginHistory.length===0?
+            <div style={{color:"#475569",textAlign:"center",padding:"24px 0"}}>No login history yet</div>:
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {loginHistory.map((h,i)=>(
+                <div key={i} style={{background:"#0f172a",borderRadius:8,padding:"12px 14px",border:"1px solid #334155"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <span style={{color:"#22c55e",fontSize:13,fontWeight:600}}>✓ Login</span>
+                    <span style={{color:"#475569",fontSize:12}}>{new Date(h.at).toLocaleString()}</span>
+                  </div>
+                  <div style={{fontSize:12,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h.device}</div>
+                </div>
+              ))}
+            </div>
+          }
+        </div>
+      )}
+
+      {/* Sessions Tab */}
+      {tab==="sessions"&&(
+        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+          <div style={{background:"#0f172a",borderRadius:8,padding:"14px",border:"1px solid #22c55e",marginBottom:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{color:"#22c55e",fontWeight:600,fontSize:13}}>● Current Session</div>
+                <div style={{color:"#64748b",fontSize:12,marginTop:2}}>{navigator.userAgent.slice(0,60)}...</div>
+              </div>
+              <span style={{background:"rgba(34,197,94,0.1)",border:"1px solid #22c55e",borderRadius:6,padding:"2px 8px",color:"#22c55e",fontSize:11,fontWeight:600}}>Active</span>
+            </div>
+          </div>
+          <button onClick={signOutAll} style={{width:"100%",background:"rgba(239,68,68,0.1)",border:"1px solid #ef4444",borderRadius:8,padding:"10px",color:"#ef4444",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+            🚪 Sign Out All Devices
+          </button>
+          <div style={{fontSize:11,color:"#475569",textAlign:"center",marginTop:8}}>This will sign you out everywhere immediately</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App(){
   const [lang,setLang]=useState(()=>localStorage.getItem("cm-lang")||null);
   const [currentUser,setCurrentUser]=useState(null);
@@ -2420,7 +2641,7 @@ export default function App(){
       if(session){
         const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",session.user.id);
         const rd=roles?.[0];
-        setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[]});
+        setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
       }
       setAuthChecked(true);
     });
@@ -2432,7 +2653,7 @@ export default function App(){
     if(session){
       const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",session.user.id);
       const rd=roles?.[0];
-      setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[]});
+      setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
     }
   },[]);
 
@@ -2523,9 +2744,12 @@ export default function App(){
             <div style={{fontFamily:"Playfair Display,serif",fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:2}}>CareManager</div>
             <div style={{fontSize:11,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:12}}>Elder Care Platform</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div>
-                <div style={{fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{currentUser.displayName}</div>
-                <div style={{fontSize:11,color:currentUser.role==="superadmin"?"#f59e0b":"#64748b"}}>{currentUser.role==="superadmin"?"Super Admin":"Staff"}</div>
+              <div onClick={()=>{if(["admin","superadmin"].includes(currentUser.role)){setView("profile");setSelected(null);setSidebarOpen(false);}}} style={{cursor:["admin","superadmin"].includes(currentUser.role)?"pointer":"default",display:"flex",alignItems:"center",gap:8}}>
+                {currentUser.avatar_url?<img src={currentUser.avatar_url} alt="avatar" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",border:"2px solid #6366f1"}}/>:<div style={{width:32,height:32,borderRadius:"50%",background:"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff"}}>{(currentUser.displayName||"?")[0].toUpperCase()}</div>}
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{currentUser.displayName}</div>
+                  <div style={{fontSize:11,color:currentUser.role==="superadmin"?"#f59e0b":"#64748b"}}>{currentUser.role==="superadmin"?"Super Admin":"Staff"}</div>
+                </div>
               </div>
               <button onClick={handleLogout} style={{background:"none",border:"1px solid #334155",borderRadius:7,padding:"4px 10px",color:"#64748b",fontSize:11,fontWeight:600}}>{t.signOut}</button>
             </div>
@@ -2648,6 +2872,14 @@ export default function App(){
           {!loading&&view==="audit"&&currentUser.role==="superadmin"&&<AuditTrail t={t} companyId={currentUser.company_id}/>}
           {!loading&&view==="company"&&currentUser.role==="superadmin"&&(
             <CompanyView company={company} onUpdate={updated=>{setCompany(updated);}} currentUser={currentUser} t={t}/>
+          )}
+          {!loading&&view==="profile"&&["admin","superadmin"].includes(currentUser.role)&&(
+            <UserProfile
+              currentUser={currentUser}
+              onUpdate={updated=>setCurrentUser(updated)}
+              onClose={()=>setView("dashboard")}
+              t={t}
+            />
           )}
           {!loading&&view==="users"&&can(currentUser.role,"users")&&(
             <UserManagement currentUser={currentUser} onRoleChange={refreshCurrentUser} activeCompanyId={activeCompanyId} t={t}/>
