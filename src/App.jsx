@@ -348,6 +348,21 @@ function allergyMedConflicts(c){
     return allergies.some(a=>mn.includes(a)||a.includes(mn));
   });
 }
+const FALL_RISK_DIAG={"Falls Risk":3,"Parkinson's Disease":2,"Dementia":2,"Alzheimer's Disease":2,"Stroke (CVA)":2,"TIA":1,"Vascular Dementia":2,"Epilepsy":2,"Osteoporosis":1,"Peripheral Neuropathy":1,"Arthritis (Osteoarthritis)":1,"Arthritis (Rheumatoid)":1,"Incontinence":1};
+const FALL_RISK_MEDS={"Zolpidem":2,"Morphine":2,"Tramadol":2,"Furosemide":1,"Insulin Basal":1,"Insulin Rapid":1,"Levodopa":1,"Donepezil":1,"Memantine":1};
+function calcFallRisk(client){
+  const factors=[];let score=0;
+  const age=calcAge(client.date_of_birth);
+  if(age!==null){if(age>=85){score+=3;factors.push("Age "+age+" (85+)");}else if(age>=76){score+=2;factors.push("Age "+age+" (76-85)");}else if(age>=65){score+=1;factors.push("Age "+age+" (65-75)");}}
+  const diags=(client.diagnoses||[]).filter(d=>d.value).map(d=>d.value.toLowerCase());
+  for(const[k,pts]of Object.entries(FALL_RISK_DIAG)){if(diags.some(d=>d.includes(k.toLowerCase()))){score+=pts;factors.push(k);}}
+  const meds=(client.medications||[]).filter(m=>m.name).map(m=>m.name.toLowerCase());
+  for(const[k,pts]of Object.entries(FALL_RISK_MEDS)){if(meds.some(m=>m.includes(k.toLowerCase()))){score+=pts;factors.push(k);}}
+  if(meds.length>=5){score+=1;factors.push("Polypharmacy ("+meds.length+" meds)");}
+  const level=score>=6?"High":score>=3?"Moderate":"Low";
+  const color=score>=6?"#ef4444":score>=3?"#f59e0b":"#10b981";
+  return{score,level,color,factors};
+}
 function expiryBadge(d){
   if(d===null)return null;
   if(d<0)return{label:"EXPIRED",color:"#ef4444",bg:"rgba(239,68,68,0.1)"};
@@ -406,6 +421,18 @@ async function loadPermissions(companyId){
   }
 }
 
+const DEFAULT_INTAKE_ITEMS=[
+  {key:"id_docs",label:"ID documents verified"},
+  {key:"insurance",label:"Insurance / AZV card on file"},
+  {key:"medical_history",label:"Medical history form completed"},
+  {key:"emergency_contacts",label:"Emergency contacts recorded"},
+  {key:"consent_form",label:"Consent form signed"},
+  {key:"photo",label:"Profile photo taken"},
+  {key:"med_reconciliation",label:"Medication reconciliation done"},
+  {key:"allergies_recorded",label:"Allergies reviewed and recorded"},
+  {key:"care_plan_initial",label:"Initial care plan created"},
+  {key:"room_assigned",label:"Room / location assigned"},
+];
 function emptyClient(){return{
   id:uid(),name:"",date_of_birth:"",phone:"",room_or_address:"",
   emergency_contact:"",emergency_phone:"",azv_number:"",dr_di_cas:"",
@@ -415,6 +442,8 @@ function emptyClient(){return{
   allergies:[{id:uid(),value:""}],
   session_notes:[{id:uid(),date:tod(),role:"",staff_name:"",text:""}],
   vitals:[],care_plan:[],documents:[],inventory:[],
+  family_contacts:[],appointments:[],incidents:[],
+  intake_checklist:DEFAULT_INTAKE_ITEMS.map(i=>({id:uid(),key:i.key,label:i.label,done:false,completed_by:"",completed_at:""})),
 };}
 
 function toDb(d){return{
@@ -427,6 +456,10 @@ function toDb(d){return{
   medications:JSON.stringify(d.medications),session_notes:JSON.stringify(d.session_notes),
   vitals:JSON.stringify(d.vitals||[]),care_plan:JSON.stringify(d.care_plan||[]),
   documents:JSON.stringify(d.documents||[]),inventory:JSON.stringify(d.inventory||[]),
+  family_contacts:JSON.stringify(d.family_contacts||[]),
+  appointments:JSON.stringify(d.appointments||[]),
+  incidents:JSON.stringify(d.incidents||[]),
+  intake_checklist:JSON.stringify(d.intake_checklist||[]),
 };}
 
 function fromDb(row){
@@ -439,6 +472,10 @@ function fromDb(row){
     session_notes:p(row.session_notes,[{id:uid(),date:tod(),role:"",staff_name:"",text:""}]),
     vitals:p(row.vitals,[]),care_plan:p(row.care_plan,[]),
     documents:p(row.documents,[]),inventory:p(row.inventory,[]),
+    family_contacts:p(row.family_contacts,[]),
+    appointments:p(row.appointments,[]),
+    incidents:p(row.incidents,[]),
+    intake_checklist:p(row.intake_checklist,[]),
   };
 }
 
@@ -945,7 +982,262 @@ function Inventory({items,onChange,t}){
   );
 }
 
-function ClientForm({client,onSave,onCancel,saving,t}){
+// ─── Family Contacts ─────────────────────────────────────────────────────────
+const RELATIONSHIPS=["Spouse","Parent","Child","Sibling","Grandchild","Grandparent","Friend","Guardian","Legal Representative","Other"];
+function FamilyContacts({items,onChange}){
+  const [expanded,setExpanded]=useState(null);
+  const add=()=>{const n={id:uid(),name:"",relationship:"",phone:"",email:"",is_primary:items.length===0,notes:""};onChange([...items,n]);setExpanded(n.id);};
+  const rm=id=>{onChange(items.filter(i=>i.id!==id));if(expanded===id)setExpanded(null);};
+  const upd=(id,f,v)=>onChange(items.map(i=>i.id===id?{...i,[f]:v}:i));
+  const setPrimary=id=>onChange(items.map(i=>({...i,is_primary:i.id===id})));
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {items.length===0&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"16px 0"}}>No family contacts added yet</div>}
+      {items.map(item=>(
+        <div key={item.id} style={{background:"#0f172a",border:"1px solid "+(item.is_primary?"rgba(99,102,241,0.4)":"#334155"),borderRadius:10,overflow:"hidden"}}>
+          <div onClick={()=>setExpanded(expanded===item.id?null:item.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer"}}>
+            <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(item.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(item.name||"?")}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:600,fontSize:13,color:"#f1f5f9"}}>{item.name||"New Contact"}</div>
+              <div style={{fontSize:11,color:"#64748b"}}>{item.relationship}{item.phone?" · "+item.phone:""}</div>
+            </div>
+            {item.is_primary&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(99,102,241,0.15)",color:"#a5b4fc"}}>Primary</span>}
+            <span style={{color:"#475569",fontSize:12}}>{expanded===item.id?"^":"v"}</span>
+          </div>
+          {expanded===item.id&&(
+            <div style={{padding:"12px 14px",borderTop:"1px solid #334155",display:"flex",flexDirection:"column",gap:10}}>
+              <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <div><label style={LBL}>Full Name</label><input style={INP} value={item.name} onChange={e=>upd(item.id,"name",e.target.value)} placeholder="Full name..."/></div>
+                <div><label style={LBL}>Relationship</label>
+                  <select style={{...INP,cursor:"pointer"}} value={item.relationship} onChange={e=>upd(item.id,"relationship",e.target.value)}>
+                    <option value="">Select...</option>
+                    {RELATIONSHIPS.map(r=><option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div><label style={LBL}>Phone</label><input style={INP} type="tel" value={item.phone} onChange={e=>upd(item.id,"phone",e.target.value)} placeholder="+297-..."/></div>
+                <div><label style={LBL}>Email</label><input style={INP} type="email" value={item.email} onChange={e=>upd(item.id,"email",e.target.value)} placeholder="..."/></div>
+              </div>
+              <div><label style={LBL}>Notes</label><input style={INP} value={item.notes} onChange={e=>upd(item.id,"notes",e.target.value)} placeholder="e.g. Available evenings only..."/></div>
+              <div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center"}}>
+                {!item.is_primary?<button onClick={()=>setPrimary(item.id)} style={{background:"none",border:"1px solid #6366f1",borderRadius:6,padding:"4px 12px",color:"#6366f1",fontSize:11,fontWeight:700}}>★ Set as Primary</button>:<span style={{fontSize:11,color:"#6366f1",fontWeight:700}}>★ Primary Contact</span>}
+                <button onClick={()=>rm(item.id)} style={{background:"none",border:"1px solid #334155",borderRadius:6,padding:"4px 12px",color:"#ef4444",fontSize:11,fontWeight:600}}>Remove</button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+      <button style={ABTN} onClick={add}>+ Add Contact</button>
+    </div>
+  );
+}
+
+// ─── Appointment Log ──────────────────────────────────────────────────────────
+const APPT_TYPES=["Doctor Visit","Specialist","Lab / Imaging","Physiotherapy","Dentist","Transport Only","Other"];
+const APPT_STATUSES=["Scheduled","Completed","Cancelled","No-Show"];
+const APPT_STATUS_COLORS={Scheduled:"#6366f1",Completed:"#10b981",Cancelled:"#64748b","No-Show":"#f59e0b"};
+const TRANSPORT_TYPES=["Family","Facility Transport","Taxi","Ambulance","None"];
+function AppointmentLog({items,onChange}){
+  const [showForm,setShowForm]=useState(false);
+  const [entry,setEntry]=useState(null);
+  const blank=()=>({id:uid(),date:tod(),time:"",type:"Doctor Visit",provider:"",location:"",transport_needed:false,transport_type:"None",notes:"",status:"Scheduled"});
+  const openNew=()=>{setEntry(blank());setShowForm(true);};
+  const openEdit=item=>{setEntry({...item});setShowForm(true);};
+  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
+  const rm=id=>onChange(items.filter(i=>i.id!==id));
+  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <span style={{fontSize:13,color:"#64748b"}}>{items.length} appointment{items.length!==1?"s":""}</span>
+        <button style={{...ABTN,borderStyle:"solid",borderColor:"#6366f1"}} onClick={openNew}>+ Log Appointment</button>
+      </div>
+      {showForm&&entry&&(
+        <div style={{background:"#0f172a",border:"1px solid #6366f1",borderRadius:10,padding:14,marginBottom:12}}>
+          <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
+            <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
+            <div><label style={LBL}>Type</label>
+              <select style={{...INP,cursor:"pointer"}} value={entry.type} onChange={e=>setEntry(v=>({...v,type:e.target.value}))}>
+                {APPT_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div><label style={LBL}>Status</label>
+              <select style={{...INP,cursor:"pointer",color:APPT_STATUS_COLORS[entry.status],borderColor:APPT_STATUS_COLORS[entry.status]}} value={entry.status} onChange={e=>setEntry(v=>({...v,status:e.target.value}))}>
+                {APPT_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div><label style={LBL}>Provider / Doctor</label><input style={INP} value={entry.provider} onChange={e=>setEntry(v=>({...v,provider:e.target.value}))} placeholder="Dr. Smith..."/></div>
+            <div><label style={LBL}>Location / Clinic</label><input style={INP} value={entry.location} onChange={e=>setEntry(v=>({...v,location:e.target.value}))} placeholder="e.g. CMC..."/></div>
+          </div>
+          <div style={{marginBottom:10}}>
+            <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#e2e8f0",fontWeight:600,cursor:"pointer",marginBottom:6}}>
+              <input type="checkbox" checked={entry.transport_needed} onChange={e=>setEntry(v=>({...v,transport_needed:e.target.checked}))} style={{accentColor:"#6366f1",width:15,height:15}}/>
+              Transport needed
+            </label>
+            {entry.transport_needed&&<select style={{...INP,cursor:"pointer"}} value={entry.transport_type} onChange={e=>setEntry(v=>({...v,transport_type:e.target.value}))}>
+              {TRANSPORT_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+            </select>}
+          </div>
+          <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...INP,height:56,resize:"vertical"}} value={entry.notes} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Additional notes..."/></div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
+            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
+          </div>
+        </div>
+      )}
+      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No appointments logged yet</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {sorted.map(item=>{
+          const sc=APPT_STATUS_COLORS[item.status]||"#64748b";
+          return(
+            <div key={item.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+sc}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(item.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}{item.time&&" at "+item.time}</span>
+                  <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:sc+"20",color:sc}}>{item.status}</span>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>openEdit(item)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#6366f1",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                <span style={{fontSize:12,color:"#64748b"}}>📋 {item.type}</span>
+                {item.provider&&<span style={{fontSize:12,color:"#94a3b8"}}>👨‍⚕️ {item.provider}</span>}
+                {item.location&&<span style={{fontSize:12,color:"#94a3b8"}}>📍 {item.location}</span>}
+                {item.transport_needed&&<span style={{fontSize:11,fontWeight:600,color:"#f59e0b"}}>🚗 {item.transport_type}</span>}
+              </div>
+              {item.notes&&<div style={{fontSize:12,color:"#475569",marginTop:4,fontStyle:"italic"}}>{item.notes}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Incident Reports ─────────────────────────────────────────────────────────
+const INCIDENT_TYPES=["Fall","Near Fall","Behavioral Event","Medical Emergency","Medication Error","Skin / Wound","Property Damage","Other"];
+const INCIDENT_SEV_COLORS={Minor:"#f59e0b",Moderate:"#ef4444",Severe:"#dc2626"};
+function IncidentReports({items,onChange,currentUser}){
+  const [showForm,setShowForm]=useState(false);
+  const [entry,setEntry]=useState(null);
+  const blank=()=>({id:uid(),date:tod(),time:"",type:"Fall",severity:"Minor",description:"",witnesses:"",action_taken:"",reported_by:currentUser?.displayName||"",follow_up_required:false,follow_up_date:""});
+  const openNew=()=>{setEntry(blank());setShowForm(true);};
+  const openEdit=item=>{setEntry({...item});setShowForm(true);};
+  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
+  const rm=id=>onChange(items.filter(i=>i.id!==id));
+  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <span style={{fontSize:13,color:"#64748b"}}>{items.length} incident{items.length!==1?"s":""}</span>
+        <button style={{...ABTN,borderStyle:"solid",borderColor:"#ef4444",color:"#ef4444"}} onClick={openNew}>+ Log Incident</button>
+      </div>
+      {showForm&&entry&&(
+        <div style={{background:"#0f172a",border:"1px solid #ef4444",borderRadius:10,padding:14,marginBottom:12}}>
+          <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
+            <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
+            <div><label style={LBL}>Incident Type</label>
+              <select style={{...INP,cursor:"pointer"}} value={entry.type} onChange={e=>setEntry(v=>({...v,type:e.target.value}))}>
+                {INCIDENT_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div><label style={LBL}>Severity</label>
+              <select style={{...INP,cursor:"pointer",color:INCIDENT_SEV_COLORS[entry.severity]||"#e2e8f0",borderColor:INCIDENT_SEV_COLORS[entry.severity]||"#334155"}} value={entry.severity} onChange={e=>setEntry(v=>({...v,severity:e.target.value}))}>
+                {["Minor","Moderate","Severe"].map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:10}}>
+            <div><label style={LBL}>Description</label><textarea style={{...INP,height:72,resize:"vertical"}} value={entry.description} onChange={e=>setEntry(v=>({...v,description:e.target.value}))} placeholder="What happened..."/></div>
+            <div><label style={LBL}>Witnesses</label><input style={INP} value={entry.witnesses} onChange={e=>setEntry(v=>({...v,witnesses:e.target.value}))} placeholder="Names of witnesses..."/></div>
+            <div><label style={LBL}>Action Taken</label><textarea style={{...INP,height:56,resize:"vertical"}} value={entry.action_taken} onChange={e=>setEntry(v=>({...v,action_taken:e.target.value}))} placeholder="Immediate actions taken..."/></div>
+            <div><label style={LBL}>Reported By</label><input style={INP} value={entry.reported_by} onChange={e=>setEntry(v=>({...v,reported_by:e.target.value}))}/></div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+            <input type="checkbox" checked={entry.follow_up_required} onChange={e=>setEntry(v=>({...v,follow_up_required:e.target.checked}))} style={{accentColor:"#6366f1",width:15,height:15}}/>
+            <label style={{fontSize:13,color:"#e2e8f0",fontWeight:600}}>Follow-up required</label>
+            {entry.follow_up_required&&<input type="date" style={{...INP,flex:1}} value={entry.follow_up_date} onChange={e=>setEntry(v=>({...v,follow_up_date:e.target.value}))}/>}
+          </div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
+            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontWeight:600}} onClick={save}>Save Incident</button>
+          </div>
+        </div>
+      )}
+      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No incidents recorded</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {sorted.map(item=>{
+          const sc=INCIDENT_SEV_COLORS[item.severity]||"#f59e0b";
+          return(
+            <div key={item.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"12px 14px",borderLeft:"4px solid "+sc}}>
+              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
+                <div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{item.type}</span>
+                    <span style={{fontSize:11,fontWeight:800,padding:"2px 8px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40"}}>{item.severity}</span>
+                  </div>
+                  <span style={{fontSize:11,color:"#64748b"}}>{new Date(item.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{item.time&&" at "+item.time}</span>
+                </div>
+                <div style={{display:"flex",gap:6,flexShrink:0}}>
+                  <button onClick={()=>openEdit(item)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#6366f1",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                </div>
+              </div>
+              {item.description&&<div style={{fontSize:13,color:"#94a3b8",lineHeight:1.5,marginBottom:6}}>{item.description}</div>}
+              <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                {item.action_taken&&<span style={{fontSize:11,color:"#64748b"}}>✓ {item.action_taken}</span>}
+                {item.reported_by&&<span style={{fontSize:11,color:"#475569"}}>By: {item.reported_by}</span>}
+                {item.follow_up_required&&<span style={{fontSize:11,fontWeight:700,color:"#8b5cf6"}}>📋 Follow-up{item.follow_up_date?" "+item.follow_up_date:""}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Intake Checklist ─────────────────────────────────────────────────────────
+function IntakeChecklist({items,onChange,currentUser}){
+  const full=DEFAULT_INTAKE_ITEMS.map(def=>{
+    const ex=items.find(i=>i.key===def.key);
+    return ex||{id:uid(),key:def.key,label:def.label,done:false,completed_by:"",completed_at:""};
+  });
+  const toggle=key=>{
+    const item=full.find(i=>i.key===key);
+    const newDone=!item.done;
+    onChange(full.map(i=>i.key===key?{...i,done:newDone,completed_by:newDone?(currentUser?.displayName||""):"",completed_at:newDone?tod():""}:i));
+  };
+  const doneCount=full.filter(i=>i.done).length;
+  const pct=Math.round(doneCount/full.length*100);
+  return(
+    <div>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+        <div style={{flex:1,height:8,background:"#0f172a",borderRadius:4,overflow:"hidden"}}>
+          <div style={{height:"100%",width:pct+"%",background:pct===100?"#10b981":"#6366f1",borderRadius:4,transition:"width 0.3s"}}/>
+        </div>
+        <span style={{fontSize:12,fontWeight:700,color:pct===100?"#10b981":"#94a3b8",whiteSpace:"nowrap"}}>{doneCount}/{full.length}{pct===100?" ✓ Complete":""}</span>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {full.map(item=>(
+          <div key={item.key} onClick={()=>toggle(item.key)}
+            style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:9,border:"1px solid "+(item.done?"rgba(16,185,129,0.3)":"#334155"),background:item.done?"rgba(16,185,129,0.05)":"#0f172a",cursor:"pointer"}}>
+            <div style={{width:20,height:20,borderRadius:5,border:"2px solid "+(item.done?"#10b981":"#475569"),background:item.done?"#10b981":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12,color:"#fff",fontWeight:700}}>
+              {item.done?"✓":""}
+            </div>
+            <span style={{flex:1,fontSize:13,color:item.done?"#10b981":"#e2e8f0",fontWeight:item.done?600:400}}>{item.label}</span>
+            {item.done&&item.completed_by&&<span style={{fontSize:10,color:"#475569",whiteSpace:"nowrap"}}>{item.completed_by}{item.completed_at?" · "+item.completed_at:""}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
   const [d,setD]=useState(()=>JSON.parse(JSON.stringify(client)));
   const s=(f,v)=>setD(prev=>({...prev,[f]:v}));
   const valid=d.name.trim().length>0;
@@ -978,6 +1270,10 @@ function ClientForm({client,onSave,onCancel,saving,t}){
       <Sec icon="📋" title={t.carePlan} accent="#8b5cf6" defaultOpen={false}><CarePlan items={d.care_plan||[]} onChange={v=>s("care_plan",v)} t={t}/></Sec>
       <Sec icon="📊" title={t.vitals} accent="#6366f1" defaultOpen={false}><VitalsTracker vitals={d.vitals||[]} onChange={v=>s("vitals",v)} t={t}/></Sec>
       <Sec icon="📝" title={t.notes} accent="#7c3aed"><NotesList items={d.session_notes} onChange={v=>s("session_notes",v)} t={t}/></Sec>
+      <Sec icon="👨‍👩‍👧" title="Family Contacts" accent="#ec4899" defaultOpen={false}><FamilyContacts items={d.family_contacts||[]} onChange={v=>s("family_contacts",v)}/></Sec>
+      <Sec icon="📅" title="Appointments & Transport" accent="#06b6d4" defaultOpen={false}><AppointmentLog items={d.appointments||[]} onChange={v=>s("appointments",v)}/></Sec>
+      <Sec icon="⚠️" title="Incident Reports" accent="#ef4444" defaultOpen={false}><IncidentReports items={d.incidents||[]} onChange={v=>s("incidents",v)} currentUser={currentUser}/></Sec>
+      <Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
         <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
         <button onClick={()=>valid&&!saving&&onSave(d)} disabled={!valid||saving}
@@ -1075,7 +1371,7 @@ function EmergCard({client,onClose,t}){
   );
 }
 
-function ClientDetail({client,onEdit,onDelete,onRestore,t,currentUser}){
+function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,currentUser}){
   const role=currentUser?.role||"user";
   const canEdit=can(role,"edit");
   const canDelete=can(role,"delete");
@@ -1083,6 +1379,8 @@ function ClientDetail({client,onEdit,onDelete,onRestore,t,currentUser}){
   const age=calcAge(client.date_of_birth);
   const color=avatarColor(client.name);
   const {highRisk,polypharmacy,medCount}=getMedFlags(client);
+  const fallRisk=calcFallRisk(client);
+  const [showFallFactors,setShowFallFactors]=useState(false);
   const fd=(client.diagnoses||[]).filter(d=>d.value&&d.value.trim());
   const fa=(client.allergies||[]).filter(a=>a.value&&a.value.trim());
   const fm=(client.medications||[]).filter(m=>m.name&&m.name.trim());
@@ -1156,7 +1454,17 @@ function ClientDetail({client,onEdit,onDelete,onRestore,t,currentUser}){
               <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:4}}>
                 <span style={{fontFamily:"Playfair Display,serif",fontSize:24,fontWeight:700,color:"#f1f5f9"}}>{client.name}</span>
                 <span style={{fontSize:12,fontWeight:700,padding:"3px 10px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40"}}>{client.status||t.active}</span>
+                <button onClick={()=>setShowFallFactors(f=>!f)} title={fallRisk.factors.join(", ")||"No risk factors"}
+                  style={{fontSize:11,fontWeight:800,padding:"3px 10px",borderRadius:20,background:fallRisk.color+"20",color:fallRisk.color,border:"1px solid "+fallRisk.color+"40",cursor:"pointer"}}>
+                  🚶 Fall Risk: {fallRisk.level} ({fallRisk.score})
+                </button>
+                {(()=>{const ic=client.intake_checklist||[];const done=ic.filter(i=>i.done).length;const total=DEFAULT_INTAKE_ITEMS.length;const pct=total>0?Math.round(done/total*100):0;return<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:pct===100?"rgba(16,185,129,0.2)":"rgba(99,102,241,0.1)",color:pct===100?"#10b981":"#a5b4fc",border:"1px solid "+(pct===100?"rgba(16,185,129,0.3)":"rgba(99,102,241,0.2)")}}>✅ Intake {pct}%</span>;})()}
               </div>
+              {showFallFactors&&fallRisk.factors.length>0&&(
+                <div style={{background:fallRisk.color+"10",border:"1px solid "+fallRisk.color+"30",borderRadius:8,padding:"8px 12px",marginBottom:8,display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {fallRisk.factors.map((f,i)=><span key={i} style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:fallRisk.color+"20",color:fallRisk.color,fontWeight:600}}>{f}</span>)}
+                </div>
+              )}
               {client.date_of_birth&&<div style={{fontSize:14,color:"#94a3b8",marginBottom:4}}>{new Date(client.date_of_birth+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}{age!==null&&" - Age "+age}{client.room_or_address&&" - "+client.room_or_address}</div>}
               <div style={{display:"flex",flexWrap:"wrap",gap:12}}>
                 {client.azv_number&&<span style={{fontSize:13,color:"#64748b"}}>ID: {client.azv_number}</span>}
@@ -1301,6 +1609,44 @@ function ClientDetail({client,onEdit,onDelete,onRestore,t,currentUser}){
           </div>
         )}
       </div>
+        {/* Family Contacts */}
+        {(client.family_contacts||[]).length>0&&(
+          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+            <div style={{fontWeight:700,color:"#ec4899",fontSize:13,marginBottom:12}}>👨‍👩‍👧 FAMILY CONTACTS</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {(client.family_contacts||[]).map(c=>(
+                <div key={c.id} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 12px",background:"#0f172a",borderRadius:8}}>
+                  <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name||"?")}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:600,fontSize:13,color:"#f1f5f9"}}>{c.name}{c.is_primary&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:20,background:"rgba(99,102,241,0.15)",color:"#a5b4fc",marginLeft:6}}>Primary</span>}</div>
+                    <div style={{fontSize:11,color:"#64748b"}}>{c.relationship}{c.phone?" · "+c.phone:""}{c.email?" · "+c.email:""}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Appointments */}
+        {(client.appointments||[]).length>0&&(
+          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>📅 APPOINTMENTS</div>
+            <AppointmentLog items={client.appointments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("appointments",v):()=>{}}/>
+          </div>
+        )}
+        {/* Incidents */}
+        {(client.incidents||[]).length>0&&(
+          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+            <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:12}}>⚠️ INCIDENT REPORTS</div>
+            <IncidentReports items={client.incidents||[]} onChange={onInlineUpdate?v=>onInlineUpdate("incidents",v):()=>{}} currentUser={currentUser}/>
+          </div>
+        )}
+        {/* Intake Checklist */}
+        {(()=>{const ic=client.intake_checklist||[];return(
+          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+            <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>✅ INTAKE CHECKLIST</div>
+            <IntakeChecklist items={ic} onChange={onInlineUpdate?v=>onInlineUpdate("intake_checklist",v):()=>{}} currentUser={currentUser}/>
+          </div>
+        );})()}
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
     </div>
   );
@@ -3106,6 +3452,8 @@ export default function App(){
   const [selectedCompany,setSelectedCompany]=useState(null); // for superadmin switching
   const [searchAllCompanies,setSearchAllCompanies]=useState(false);
   const [companiesMap,setCompaniesMap]=useState({});
+  const [bulkMode,setBulkMode]=useState(false);
+  const [bulkSelected,setBulkSelected]=useState(new Set());
 
   const t=T[lang]||T["en"];
   const selectLang=code=>{localStorage.setItem("cm-lang",code);setLang(code);};
@@ -3197,6 +3545,32 @@ export default function App(){
     await logAudit("Restored client",client.name);
     await loadClients();
     setSelected(null);setView("dashboard");
+  };
+
+  const inlineUpdate=async(field,value)=>{
+    if(!selected)return;
+    const{error}=await supabase.from("clients").update({[field]:JSON.stringify(value)}).eq("id",selected.id);
+    if(!error){
+      setClients(cs=>cs.map(c=>c.id===selected.id?{...c,[field]:value}:c));
+      setSelected(s=>({...s,[field]:value}));
+    }
+  };
+
+  const bulkArchive=async()=>{
+    const ids=[...bulkSelected];
+    await Promise.all(ids.map(id=>supabase.from("clients").update({archived:true}).eq("id",id)));
+    await loadClients();setBulkSelected(new Set());setBulkMode(false);
+  };
+
+  const bulkExportCSV=()=>{
+    const sel=filtered.filter(c=>bulkSelected.has(c.id));
+    const esc=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;
+    const headers=["Name","Status","Date of Birth","Age","Room/Address","AZV Number","Diagnoses","Medications"];
+    const rows=sel.map(c=>[c.name,c.status||"Active",c.date_of_birth||"",calcAge(c.date_of_birth)??(""),c.room_or_address||"",c.azv_number||"",(c.diagnoses||[]).filter(d=>d.value).map(d=>d.value).join("; "),(c.medications||[]).filter(m=>m.name).map(m=>m.name).join("; ")]);
+    const csv=[headers,...rows].map(r=>r.map(esc).join(",")).join("\n");
+    const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download="clients-selected.csv";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   };
 
   const hardDeleteClient=async()=>{
@@ -3382,7 +3756,7 @@ export default function App(){
               </button>
             )}
           </div>
-          <div style={{padding:"0 12px 8px",display:"flex",gap:3,flexWrap:"wrap"}}>
+          <div style={{padding:"0 12px 4px",display:"flex",gap:3,flexWrap:"wrap"}}>
             {["Active","Inactive","Discharged","All","Archived"].map(s=>{
               const cols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6",All:"#6366f1",Archived:"#ef4444"};
               const active=statusFilter===s;
@@ -3394,6 +3768,13 @@ export default function App(){
               );
             })}
           </div>
+          <div style={{padding:"2px 12px 4px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span style={{fontSize:10,color:"#475569",fontWeight:600}}>{filtered.length} clients</span>
+            <button onClick={()=>{setBulkMode(b=>!b);setBulkSelected(new Set());}}
+              style={{background:bulkMode?"rgba(99,102,241,0.15)":"none",border:"1px solid "+(bulkMode?"#6366f1":"#334155"),borderRadius:6,padding:"2px 8px",color:bulkMode?"#6366f1":"#475569",fontSize:10,fontWeight:700}}>
+              {bulkMode?"✕ Cancel":"☑ Select"}
+            </button>
+          </div>
           <div style={{flex:1,overflowY:"auto",padding:"0 8px"}}>
             {filtered.length===0&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"24px 10px"}}>{clients.length===0?t.noClients:t.noResults}</div>}
             {filtered.map(c=>{
@@ -3401,9 +3782,20 @@ export default function App(){
               const color=avatarColor(c.name);
               const age=calcAge(c.date_of_birth);
               const scols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6"};
+              const isChecked=bulkSelected.has(c.id);
+              const fr=calcFallRisk(c);
               return(
-                <button key={c.id} onClick={()=>{setSelected(c);setView("detail");setDeleteConfirm(false);setSidebarOpen(false);}}
-                  style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 8px",borderRadius:10,border:"none",background:isActive?"rgba(99,102,241,0.12)":c.archived?"rgba(239,68,68,0.04)":"transparent",cursor:"pointer",marginBottom:2,textAlign:"left"}}>
+                <button key={c.id} onClick={()=>{
+                  if(bulkMode){
+                    setBulkSelected(prev=>{const n=new Set(prev);if(n.has(c.id))n.delete(c.id);else n.add(c.id);return n;});
+                  } else {
+                    setSelected(c);setView("detail");setDeleteConfirm(false);setSidebarOpen(false);
+                  }
+                }}
+                  style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 8px",borderRadius:10,border:"none",background:isChecked?"rgba(99,102,241,0.15)":isActive?"rgba(99,102,241,0.12)":c.archived?"rgba(239,68,68,0.04)":"transparent",cursor:"pointer",marginBottom:2,textAlign:"left"}}>
+                  {bulkMode&&(
+                    <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(isChecked?"#6366f1":"#475569"),background:isChecked?"#6366f1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:10,color:"#fff",fontWeight:700}}>{isChecked?"✓":""}</div>
+                  )}
                   <div style={{width:36,height:36,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",flexShrink:0,overflow:"hidden",border:isActive?"2px solid #6366f1":"2px solid transparent",opacity:c.archived?0.5:1}}>
                     {c.photo_url?<img src={c.photo_url} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(c.name)}
                   </div>
@@ -3412,6 +3804,7 @@ export default function App(){
                       <span style={{color:c.archived?"#64748b":"#e2e8f0",fontWeight:600,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
                       {c.archived&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:10,background:"rgba(239,68,68,0.15)",color:"#f87171",flexShrink:0}}>Arc</span>}
                       {!c.archived&&(c.status||"Active")!=="Active"&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:10,background:(scols[c.status]||"#64748b")+"20",color:scols[c.status]||"#64748b",flexShrink:0}}>{c.status}</span>}
+                      {fr.level!=="Low"&&<span style={{fontSize:9,fontWeight:800,padding:"1px 5px",borderRadius:10,background:fr.color+"20",color:fr.color,flexShrink:0}}>{fr.level[0]}FR</span>}
                     </div>
                     <div style={{color:"#475569",fontSize:11}}>{age!==null?"Age "+age:""}{c.room_or_address?(age!==null?" - ":"")+c.room_or_address:""}</div>
                     {searchAllCompanies&&companiesMap[c.company_id]&&<div style={{color:"#6366f1",fontSize:10,fontWeight:600}}>{companiesMap[c.company_id]}</div>}
@@ -3421,13 +3814,30 @@ export default function App(){
             })}
           </div>
           <div style={{padding:12}}>
-            {can(currentUser.role,"add")&&(
+            {bulkMode&&bulkSelected.size>0&&(
+              <div style={{marginBottom:8,display:"flex",flexDirection:"column",gap:6}}>
+                <div style={{fontSize:12,color:"#a5b4fc",fontWeight:700,textAlign:"center"}}>{bulkSelected.size} client{bulkSelected.size!==1?"s":""} selected</div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={bulkExportCSV}
+                    style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontSize:11,fontWeight:700}}>
+                    ⬇ Export
+                  </button>
+                  {can(currentUser.role,"delete")&&statusFilter!=="Archived"&&(
+                    <button onClick={bulkArchive}
+                      style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid #f59e0b",background:"rgba(245,158,11,0.1)",color:"#f59e0b",fontSize:11,fontWeight:700}}>
+                      📦 Archive
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            {!bulkMode&&can(currentUser.role,"add")&&(
               <button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}}
                 style={{width:"100%",padding:"11px",borderRadius:10,border:"none",background:"#6366f1",color:"#fff",fontWeight:700,fontSize:14}}>
                 {t.newClient}
               </button>
             )}
-            {filtered.length>0&&(
+            {!bulkMode&&filtered.length>0&&(
               <div style={{display:"flex",gap:6,marginTop:8}}>
                 <button onClick={exportCSV}
                   style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:700}}>
@@ -3507,20 +3917,20 @@ export default function App(){
           {view==="add"&&can(currentUser.role,"add")&&(
             <div>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:26,color:"#f1f5f9",marginBottom:24}}>{t.newClient}</div>
-              <ClientForm client={emptyClient()} onSave={saveClient} onCancel={()=>setView(selected?"detail":"dashboard")} saving={saving} t={t}/>
+              <ClientForm client={emptyClient()} onSave={saveClient} onCancel={()=>setView(selected?"detail":"dashboard")} saving={saving} t={t} currentUser={currentUser}/>
             </div>
           )}
           {view==="edit"&&selected&&can(currentUser.role,"edit")&&(
             <div>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:26,color:"#f1f5f9",marginBottom:24}}>Edit - {selected.name}</div>
-              <ClientForm client={selected} onSave={saveClient} onCancel={()=>setView("detail")} saving={saving} t={t}/>
+              <ClientForm client={selected} onSave={saveClient} onCancel={()=>setView("detail")} saving={saving} t={t} currentUser={currentUser}/>
             </div>
           )}
           {view==="detail"&&selected&&(()=>{
             const fresh=clients.find(c=>c.id===selected.id)||selected;
             return(
               <>
-                <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} t={t} currentUser={currentUser}/>
+                <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser}/>
                 {deleteConfirm&&(
                   <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400}}>
                     <div style={{background:"#1e293b",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid #334155"}}>
