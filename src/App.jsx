@@ -1930,7 +1930,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   const INP2={...INP,marginBottom:0};
 
   return(
-    <div style={{maxWidth:900}}>
+    <div style={{maxWidth:1050}}>
       {toast&&(
         <div style={{position:"fixed",top:24,right:24,zIndex:999,padding:"12px 20px",borderRadius:10,background:toast.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
           {toast.type==="success"?"✓ ":"✗ "}{toast.msg}
@@ -2082,14 +2082,14 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
 
           {/* User List */}
           {loading?<div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
+            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflowX:"auto"}}>
               {filteredUsers.length===0?(
                 <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>No users found</div>
               ):(
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
                   <thead>
                     <tr style={{borderBottom:"1px solid #334155"}}>
-                      {["Name / Username","Email","Role","Companies","Last Login","Actions"].map(h=>(
+                      {["Name","Email","Role","Companies","Actions"].map(h=>(
                         <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5}}>{h}</th>
                       ))}
                     </tr>
@@ -2102,7 +2102,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                       const rowBg=isEditing?"rgba(99,102,241,0.06)":isDeleteConfirm?"rgba(220,38,38,0.06)":i%2===0?"transparent":"rgba(255,255,255,0.02)";
                       return(
                       <tr key={u.user_id} style={{borderBottom:"1px solid #1e293b",background:rowBg}}>
-                        {/* Name / Username cell */}
+                        {/* Name / Username / Last Login cell */}
                         <td style={{padding:"10px 16px",fontWeight:600,color:"#f1f5f9",fontSize:13}}>
                           {isEditing?(
                             <div style={{display:"flex",flexDirection:"column",gap:4}}>
@@ -2115,6 +2115,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                             <div>
                               <div>{u.name||"—"}</div>
                               {u.username&&<div style={{fontSize:11,color:"#475569",fontWeight:400}}>@{u.username}</div>}
+                              <div style={{fontSize:10,color:"#334155",fontWeight:400,marginTop:2}}>🕐 {fmtLastLogin(u.login_history)}</div>
                             </div>
                           )}
                         </td>
@@ -2162,10 +2163,6 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                                   </span>
                             )}
                           </div>
-                        </td>
-                        {/* Last Login cell */}
-                        <td style={{padding:"10px 16px",fontSize:11,color:"#475569",whiteSpace:"nowrap"}}>
-                          {fmtLastLogin(u.login_history)}
                         </td>
                         {/* Actions cell */}
                         <td style={{padding:"10px 16px"}}>
