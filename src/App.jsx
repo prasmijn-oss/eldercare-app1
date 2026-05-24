@@ -1446,7 +1446,7 @@ function Dashboard({clients,onSelect,t,currentUser}){
             <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(clientName)}</div>
               <div style={{flex:1}}>
-                <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{clientName} <span style={{fontSize:11,color:"#475569",fontWeight:400"}}>— recorded {new Date(date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></div>
+                <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{clientName} <span style={{fontSize:11,color:"#475569",fontWeight:400}}>— recorded {new Date(date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {flags.map((f,i)=>(
                     <span key={i} style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:f.sev==="high"?"rgba(239,68,68,0.15)":"rgba(245,158,11,0.15)",color:f.sev==="high"?"#f87171":"#fbbf24",border:"1px solid "+(f.sev==="high"?"rgba(239,68,68,0.3)":"rgba(245,158,11,0.3)")}}>
