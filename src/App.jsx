@@ -2059,24 +2059,17 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                               </span>
                             ))}
                             {companies.filter(c=>!allUserRoles.find(r=>r.user_id===u.user_id&&r.company_id===c.id)).length>0&&(
-                              <div style={{position:"relative"}}>
-                                <span onClick={()=>setExpandedUser(expandedUser===u.user_id?null:u.user_id)}
-                                  style={{display:"inline-flex",alignItems:"center",background:"transparent",border:"1px dashed #475569",borderRadius:12,padding:"2px 8px",fontSize:11,color:"#475569",cursor:"pointer",whiteSpace:"nowrap"}}>
-                                  + add
-                                </span>
-                                {expandedUser===u.user_id&&(
-                                  <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:50,background:"#1e293b",border:"1px solid #334155",borderRadius:8,padding:6,minWidth:180,boxShadow:"0 8px 24px rgba(0,0,0,0.4)"}}>
-                                    {companies.filter(c=>!allUserRoles.find(r=>r.user_id===u.user_id&&r.company_id===c.id)).map(c=>(
-                                      <div key={c.id} onClick={()=>addToCompany(u.user_id,c.id)}
-                                        style={{padding:"7px 10px",fontSize:12,color:"#e2e8f0",cursor:"pointer",borderRadius:6,whiteSpace:"nowrap"}}
-                                        onMouseEnter={e=>e.currentTarget.style.background="#334155"}
-                                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                                        {c.name}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
+                              expandedUser===u.user_id
+                                ? companies.filter(c=>!allUserRoles.find(r=>r.user_id===u.user_id&&r.company_id===c.id)).map(c=>(
+                                    <span key={c.id} onClick={()=>addToCompany(u.user_id,c.id)}
+                                      style={{display:"inline-flex",alignItems:"center",background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.35)",borderRadius:12,padding:"2px 8px",fontSize:11,color:"#10b981",cursor:"pointer",whiteSpace:"nowrap"}}>
+                                      + {companyName(c.id)}
+                                    </span>
+                                  ))
+                                : <span onClick={()=>setExpandedUser(u.user_id)}
+                                    style={{display:"inline-flex",alignItems:"center",background:"transparent",border:"1px dashed #475569",borderRadius:12,padding:"2px 8px",fontSize:11,color:"#475569",cursor:"pointer",whiteSpace:"nowrap"}}>
+                                    + add
+                                  </span>
                             )}
                           </div>
                         </td>
