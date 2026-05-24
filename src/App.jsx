@@ -1034,7 +1034,7 @@ function EmergCard({client,onClose,t}){
   );
 }
 
-function ClientDetail({client,onEdit,onDelete,t,currentUser}){
+function ClientDetail({client,onEdit,onDelete,onRestore,t,currentUser}){
   const role=currentUser?.role||"user";
   const canEdit=can(role,"edit");
   const canDelete=can(role,"delete");
@@ -1084,12 +1084,22 @@ function ClientDetail({client,onEdit,onDelete,t,currentUser}){
     <div>
       <style dangerouslySetInnerHTML={{__html:"@media print { body > * { display: none !important; } #pz { display: block !important; position: fixed; top: 0; left: 0; width: 100%; padding: 32px; background: #fff; color: #000; } .np { display: none !important; } .ph { display: block !important; } @page { margin: 1.5cm; size: A4; } } .ph { display: none; }"}}/>
       <div className="np" style={{display:"flex",gap:8,justifyContent:"flex-end",marginBottom:16,flexWrap:"wrap"}}>
-        <button onClick={doExport} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:600,fontSize:13}}>Export PDF</button>
-        <button onClick={()=>setShowEmerg(true)} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontWeight:600,fontSize:13}}>Emergency Card</button>
-        <button onClick={doPrint} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:13}}>Print</button>
-        {canEdit&&<button onClick={onEdit} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontWeight:600,fontSize:13}}>{t.edit}</button>}
-        {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #ef4444",background:"rgba(239,68,68,0.1)",color:"#ef4444",fontWeight:600,fontSize:13}}>{t.delete}</button>}
-        {!canEdit&&<span style={{fontSize:12,color:"#475569",alignSelf:"center",fontStyle:"italic"}}>View only</span>}
+        {client.archived?(
+          <>
+            <span style={{fontSize:12,fontWeight:700,padding:"8px 14px",borderRadius:8,background:"rgba(239,68,68,0.1)",color:"#f87171",border:"1px solid rgba(239,68,68,0.25)",alignSelf:"center"}}>📦 Archived</span>
+            {onRestore&&<button onClick={onRestore} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#10b981",color:"#fff",fontWeight:600,fontSize:13}}>♻️ Restore</button>}
+            {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #ef4444",background:"rgba(239,68,68,0.1)",color:"#ef4444",fontWeight:600,fontSize:13}}>🗑️ Delete Permanently</button>}
+          </>
+        ):(
+          <>
+            <button onClick={doExport} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:600,fontSize:13}}>Export PDF</button>
+            <button onClick={()=>setShowEmerg(true)} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontWeight:600,fontSize:13}}>Emergency Card</button>
+            <button onClick={doPrint} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:13}}>Print</button>
+            {canEdit&&<button onClick={onEdit} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontWeight:600,fontSize:13}}>{t.edit}</button>}
+            {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #f59e0b",background:"rgba(245,158,11,0.1)",color:"#f59e0b",fontWeight:600,fontSize:13}}>📦 Archive</button>}
+            {!canEdit&&<span style={{fontSize:12,color:"#475569",alignSelf:"center",fontStyle:"italic"}}>View only</span>}
+          </>
+        )}
       </div>
       <div id="pz">
         <div className="ph" style={{textAlign:"center",borderBottom:"2px solid #6366f1",paddingBottom:12,marginBottom:20}}>
@@ -2845,6 +2855,8 @@ export default function App(){
   const [company,setCompany]=useState(null);
   const [companySaving,setCompanySaving]=useState(false);
   const [selectedCompany,setSelectedCompany]=useState(null); // for superadmin switching
+  const [searchAllCompanies,setSearchAllCompanies]=useState(false);
+  const [companiesMap,setCompaniesMap]=useState({});
 
   const t=T[lang]||T["en"];
   const selectLang=code=>{localStorage.setItem("cm-lang",code);setLang(code);};
@@ -2873,11 +2885,18 @@ export default function App(){
   const loadClients=useCallback(async()=>{
     setLoading(true);
     const cid=selectedCompany||currentUser?.company_id;
+    const isSuperAdmin=currentUser?.role==="superadmin";
     const q=supabase.from("clients").select("*").order("name");
-    const {data,error:err}=cid?await q.eq("company_id",cid):await q;
+    const {data,error:err}=(isSuperAdmin&&searchAllCompanies)?await q:(cid?await q.eq("company_id",cid):await q);
     if(err)setError(err.message);else setClients((data||[]).map(fromDb));
+    // Build company name map for cross-company display
+    if(isSuperAdmin){
+      const {data:cos}=await supabase.from("companies").select("id,name");
+      const m={};(cos||[]).forEach(c=>m[c.id]=c.name);
+      setCompaniesMap(m);
+    }
     setLoading(false);
-  },[currentUser,selectedCompany]);
+  },[currentUser,selectedCompany,searchAllCompanies]);
 
   const loadCompany=useCallback(async()=>{
     if(!currentUser)return;
@@ -2887,7 +2906,7 @@ export default function App(){
     if(data)setCompany(data);
   },[currentUser,selectedCompany]);
 
-  useEffect(()=>{if(currentUser){loadClients();loadCompany();loadPermissions(activeCompanyId);}},[currentUser,selectedCompany,loadClients,loadCompany]);
+  useEffect(()=>{if(currentUser){loadClients();loadCompany();loadPermissions(activeCompanyId);}},[currentUser,selectedCompany,searchAllCompanies,loadClients,loadCompany]);
 
   const activeCompanyId=selectedCompany||currentUser?.company_id;
 
@@ -2915,21 +2934,100 @@ export default function App(){
     setSelected(data);setView("detail");setSaving(false);
   };
 
-  const deleteClient=async()=>{
+  const archiveClient=async()=>{
+    const {error:err}=await supabase.from("clients").update({archived:true}).eq("id",selected.id);
+    if(err){setError(err.message);return;}
+    await logAudit("Archived client",selected.name);
+    await loadClients();
+    setSelected(null);setView("dashboard");setDeleteConfirm(false);
+  };
+
+  const restoreClient=async(client)=>{
+    const {error:err}=await supabase.from("clients").update({archived:false}).eq("id",client.id);
+    if(err){setError(err.message);return;}
+    await logAudit("Restored client",client.name);
+    await loadClients();
+    setSelected(null);setView("dashboard");
+  };
+
+  const hardDeleteClient=async()=>{
     const {error:err}=await supabase.from("clients").delete().eq("id",selected.id);
     if(err){setError(err.message);return;}
-    await logAudit("Deleted client",selected.name);
+    await logAudit("Permanently deleted client",selected.name);
     setClients(c=>c.filter(x=>x.id!==selected.id));
     setSelected(null);setView("dashboard");setDeleteConfirm(false);
+  };
+
+  const exportCSV=()=>{
+    const esc=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;
+    const headers=["Name","Status","Date of Birth","Age","Room/Address","AZV Number","Diagnoses","Medications","Company"];
+    const rows=filtered.map(c=>[
+      c.name,
+      c.status||"Active",
+      c.date_of_birth||"",
+      calcAge(c.date_of_birth)??(""),
+      c.room_or_address||"",
+      c.azv_number||"",
+      (c.diagnoses||[]).filter(d=>d.value).map(d=>d.value).join("; "),
+      (c.medications||[]).filter(m=>m.name).map(m=>m.name+(m.dosage?" "+m.dosage:"")).join("; "),
+      companiesMap[c.company_id]||company?.name||"",
+    ]);
+    const csv=[headers,...rows].map(r=>r.map(esc).join(",")).join("\n");
+    const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=`clients-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);URL.revokeObjectURL(url);
+  };
+
+  const exportPDF=()=>{
+    const companyLabel=searchAllCompanies?"All Companies":(company?.name||"CareManager");
+    const rowsHtml=filtered.map(c=>`
+      <tr>
+        <td>${c.name}</td>
+        <td>${c.status||"Active"}</td>
+        <td>${c.date_of_birth||"—"}</td>
+        <td>${calcAge(c.date_of_birth)??("—")}</td>
+        <td>${c.room_or_address||"—"}</td>
+        <td>${(c.diagnoses||[]).filter(d=>d.value).map(d=>d.value).join(", ")||"—"}</td>
+        <td>${(c.medications||[]).filter(m=>m.name).length}</td>
+        ${searchAllCompanies?`<td>${companiesMap[c.company_id]||"—"}</td>`:""}
+      </tr>`).join("");
+    const win=window.open("","_blank");
+    if(!win)return;
+    win.document.write(`<!DOCTYPE html><html><head>
+      <title>Client List — ${companyLabel}</title>
+      <style>
+        body{font-family:Arial,sans-serif;color:#000;font-size:12px;padding:24px;}
+        h1{font-size:20px;margin-bottom:4px;}
+        .meta{color:#666;font-size:11px;margin-bottom:20px;}
+        table{width:100%;border-collapse:collapse;}
+        th{background:#f3f4f6;padding:7px 10px;text-align:left;border:1px solid #ddd;font-size:11px;font-weight:700;}
+        td{padding:6px 10px;border:1px solid #ddd;font-size:11px;}
+        tr:nth-child(even){background:#f9fafb;}
+        @page{margin:1.5cm;size:A4 landscape;}
+      </style>
+    </head><body>
+      <h1>Client List — ${companyLabel}</h1>
+      <div class="meta">Exported ${new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})} &bull; ${filtered.length} clients &bull; Filter: ${statusFilter}</div>
+      <table><thead><tr>
+        <th>Name</th><th>Status</th><th>DOB</th><th>Age</th><th>Room/Address</th><th>Diagnoses</th><th>Meds</th>
+        ${searchAllCompanies?"<th>Company</th>":""}
+      </tr></thead><tbody>${rowsHtml}</tbody></table>
+    </body></html>`);
+    win.document.close();
+    setTimeout(()=>win.print(),400);
   };
 
   const handleLogout=async()=>{await supabase.auth.signOut();setCurrentUser(null);};
 
   const filtered=clients.filter(c=>{
     const q=search.toLowerCase();
-    const ms=c.name.toLowerCase().includes(q)||(c.room_or_address||"").toLowerCase().includes(q)||(c.azv_number||"").toLowerCase().includes(q);
+    const ms=c.name.toLowerCase().includes(q)||(c.room_or_address||"").toLowerCase().includes(q)||(c.azv_number||"").toLowerCase().includes(q)||(searchAllCompanies&&(companiesMap[c.company_id]||"").toLowerCase().includes(q));
+    if(statusFilter==="Archived")return ms&&c.archived===true;
     const mst=statusFilter==="All"||(c.status||"Active")===statusFilter;
-    return ms&&mst;
+    return ms&&mst&&!c.archived;
   });
 
   const noteResults=search.trim().length>1&&searchMode==="notes"
@@ -3028,15 +3126,21 @@ export default function App(){
               ))}
             </div>
             <input style={{...INP,background:"#0f172a",borderColor:"#1e293b"}} placeholder={searchMode==="notes"?t.searchNotes:t.search} value={search} onChange={e=>setSearch(e.target.value)}/>
+            {currentUser?.role==="superadmin"&&(
+              <button onClick={()=>{setSearchAllCompanies(s=>!s);setSearch("");}}
+                style={{width:"100%",marginTop:6,padding:"5px",borderRadius:7,border:"1px solid "+(searchAllCompanies?"#6366f1":"#334155"),background:searchAllCompanies?"rgba(99,102,241,0.12)":"transparent",color:searchAllCompanies?"#6366f1":"#475569",fontSize:10,fontWeight:700}}>
+                🌐 {searchAllCompanies?"All Companies (on)":"Search All Companies"}
+              </button>
+            )}
           </div>
-          <div style={{padding:"0 12px 8px",display:"flex",gap:4}}>
-            {["Active","Inactive","Discharged","All"].map(s=>{
-              const cols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6",All:"#6366f1"};
+          <div style={{padding:"0 12px 8px",display:"flex",gap:3,flexWrap:"wrap"}}>
+            {["Active","Inactive","Discharged","All","Archived"].map(s=>{
+              const cols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6",All:"#6366f1",Archived:"#ef4444"};
               const active=statusFilter===s;
               return(
                 <button key={s} onClick={()=>setStatusFilter(s)}
-                  style={{flex:1,padding:"4px 2px",borderRadius:7,border:"none",background:active?cols[s]+"20":"#0f172a",color:active?cols[s]:"#475569",fontSize:10,fontWeight:700}}>
-                  {s==="Active"?"Act":s==="Inactive"?"Inac":s==="Discharged"?"Disc":"All"}
+                  style={{flex:1,padding:"4px 2px",borderRadius:7,border:"none",background:active?cols[s]+"20":"#0f172a",color:active?cols[s]:"#475569",fontSize:10,fontWeight:700,minWidth:0}}>
+                  {s==="Active"?"Act":s==="Inactive"?"Inac":s==="Discharged"?"Disc":s==="Archived"?"Arc":"All"}
                 </button>
               );
             })}
@@ -3050,16 +3154,18 @@ export default function App(){
               const scols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6"};
               return(
                 <button key={c.id} onClick={()=>{setSelected(c);setView("detail");setDeleteConfirm(false);setSidebarOpen(false);}}
-                  style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 8px",borderRadius:10,border:"none",background:isActive?"rgba(99,102,241,0.12)":"transparent",cursor:"pointer",marginBottom:2,textAlign:"left"}}>
-                  <div style={{width:36,height:36,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",flexShrink:0,overflow:"hidden",border:isActive?"2px solid #6366f1":"2px solid transparent"}}>
+                  style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 8px",borderRadius:10,border:"none",background:isActive?"rgba(99,102,241,0.12)":c.archived?"rgba(239,68,68,0.04)":"transparent",cursor:"pointer",marginBottom:2,textAlign:"left"}}>
+                  <div style={{width:36,height:36,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",flexShrink:0,overflow:"hidden",border:isActive?"2px solid #6366f1":"2px solid transparent",opacity:c.archived?0.5:1}}>
                     {c.photo_url?<img src={c.photo_url} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(c.name)}
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:4}}>
-                      <span style={{color:"#e2e8f0",fontWeight:600,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
-                      {(c.status||"Active")!=="Active"&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:10,background:(scols[c.status]||"#64748b")+"20",color:scols[c.status]||"#64748b",flexShrink:0}}>{c.status}</span>}
+                      <span style={{color:c.archived?"#64748b":"#e2e8f0",fontWeight:600,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
+                      {c.archived&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:10,background:"rgba(239,68,68,0.15)",color:"#f87171",flexShrink:0}}>Arc</span>}
+                      {!c.archived&&(c.status||"Active")!=="Active"&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:10,background:(scols[c.status]||"#64748b")+"20",color:scols[c.status]||"#64748b",flexShrink:0}}>{c.status}</span>}
                     </div>
                     <div style={{color:"#475569",fontSize:11}}>{age!==null?"Age "+age:""}{c.room_or_address?(age!==null?" - ":"")+c.room_or_address:""}</div>
+                    {searchAllCompanies&&companiesMap[c.company_id]&&<div style={{color:"#6366f1",fontSize:10,fontWeight:600}}>{companiesMap[c.company_id]}</div>}
                   </div>
                 </button>
               );
@@ -3071,6 +3177,18 @@ export default function App(){
                 style={{width:"100%",padding:"11px",borderRadius:10,border:"none",background:"#6366f1",color:"#fff",fontWeight:700,fontSize:14}}>
                 {t.newClient}
               </button>
+            )}
+            {filtered.length>0&&(
+              <div style={{display:"flex",gap:6,marginTop:8}}>
+                <button onClick={exportCSV}
+                  style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:700}}>
+                  ⬇ CSV
+                </button>
+                <button onClick={exportPDF}
+                  style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:700}}>
+                  🖨 PDF
+                </button>
+              </div>
             )}
           </div>
           <div style={{padding:"0 12px 8px",display:"flex",justifyContent:"center",gap:4}}>
@@ -3153,16 +3271,31 @@ export default function App(){
             const fresh=clients.find(c=>c.id===selected.id)||selected;
             return(
               <>
-                <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} t={t} currentUser={currentUser}/>
+                <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} t={t} currentUser={currentUser}/>
                 {deleteConfirm&&(
                   <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400}}>
-                    <div style={{background:"#1e293b",borderRadius:16,padding:32,maxWidth:380,width:"90%",border:"1px solid #334155"}}>
-                      <div style={{fontFamily:"Playfair Display,serif",fontSize:20,marginBottom:10,color:"#f1f5f9"}}>{t.deleteTitle}</div>
-                      <div style={{color:"#64748b",marginBottom:24}}>{t.deleteMsg} <strong style={{color:"#f1f5f9"}}>{fresh.name}</strong>.</div>
-                      <div style={{display:"flex",gap:10}}>
-                        <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"10px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
-                        <button onClick={deleteClient} style={{flex:1,padding:"10px",borderRadius:9,border:"none",background:"#ef4444",color:"#fff",fontWeight:700}}>{t.confirmDelete}</button>
-                      </div>
+                    <div style={{background:"#1e293b",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid #334155"}}>
+                      {fresh.archived?(
+                        <>
+                          <div style={{fontFamily:"Playfair Display,serif",fontSize:20,marginBottom:10,color:"#f1f5f9"}}>🗑️ Permanently Delete</div>
+                          <div style={{color:"#64748b",marginBottom:6}}>This will <strong style={{color:"#ef4444"}}>permanently delete</strong> <strong style={{color:"#f1f5f9"}}>{fresh.name}</strong>. This cannot be undone.</div>
+                          <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#f87171",marginBottom:20}}>⚠️ All clinical data, notes, and documents will be lost forever.</div>
+                          <div style={{display:"flex",gap:10}}>
+                            <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"10px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
+                            <button onClick={hardDeleteClient} style={{flex:1,padding:"10px",borderRadius:9,border:"none",background:"#ef4444",color:"#fff",fontWeight:700}}>Delete Forever</button>
+                          </div>
+                        </>
+                      ):(
+                        <>
+                          <div style={{fontFamily:"Playfair Display,serif",fontSize:20,marginBottom:10,color:"#f1f5f9"}}>📦 Archive Client</div>
+                          <div style={{color:"#64748b",marginBottom:6}}>Archive <strong style={{color:"#f1f5f9"}}>{fresh.name}</strong>? They will be hidden from the active list but all data is preserved.</div>
+                          <div style={{background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#a5b4fc",marginBottom:20}}>✓ You can restore this client at any time from the Archived filter.</div>
+                          <div style={{display:"flex",gap:10}}>
+                            <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"10px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
+                            <button onClick={archiveClient} style={{flex:1,padding:"10px",borderRadius:9,border:"none",background:"#f59e0b",color:"#fff",fontWeight:700}}>📦 Archive</button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
