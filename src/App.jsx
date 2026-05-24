@@ -3985,7 +3985,7 @@ export default function App(){
                 {currentUser.avatar_url?<img src={currentUser.avatar_url} alt="avatar" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",border:"2px solid #6366f1"}}/>:<div style={{width:32,height:32,borderRadius:"50%",background:"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff"}}>{(currentUser.displayName||"?")[0].toUpperCase()}</div>}
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{currentUser.displayName}</div>
-                  <div style={{fontSize:11,color:currentUser.role==="superadmin"?"#f59e0b":"#64748b"}}>{currentUser.role==="superadmin"?"Super Admin":"Staff"}</div>
+                  <div style={{fontSize:11,color:currentUser.role==="superadmin"?"#f59e0b":currentUser.role==="admin"?"#a78bfa":currentUser.role==="power_user"?"#34d399":"#64748b"}}>{currentUser.role==="superadmin"?"Super Admin":currentUser.role==="admin"?"Admin":currentUser.role==="power_user"?"Power User":currentUser.role==="inactive"?"Inactive":"Staff"}</div>
                 </div>
               </div>
               <div style={{display:"flex",gap:6,alignItems:"center"}}>
