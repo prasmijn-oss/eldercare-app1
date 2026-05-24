@@ -1461,7 +1461,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
         {client.archived?(
           <>
             <span style={{fontSize:12,fontWeight:700,padding:"8px 14px",borderRadius:8,background:"rgba(239,68,68,0.1)",color:"#f87171",border:"1px solid rgba(239,68,68,0.25)",alignSelf:"center"}}>📦 Archived</span>
-            {onRestore&&<button onClick={onRestore} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#10b981",color:"#fff",fontWeight:600,fontSize:13}}>♻️ Restore</button>}
+            {onRestore&&canEdit&&<button onClick={onRestore} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#10b981",color:"#fff",fontWeight:600,fontSize:13}}>♻️ Restore</button>}
             {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #ef4444",background:"rgba(239,68,68,0.1)",color:"#ef4444",fontWeight:600,fontSize:13}}>🗑️ Delete Permanently</button>}
           </>
         ):(
@@ -2626,25 +2626,54 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     setSaving(false);
   };
 
+  // Helper: call manage-user edge function
+  const callManageUser=async(action,targetUserId)=>{
+    const {data:{session}}=await supabase.auth.getSession();
+    if(!session)return{ok:false,error:"No session"};
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/manage-user`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":`Bearer ${session.access_token}`,"apikey":ANON_KEY},
+      body:JSON.stringify({action,targetUserId}),
+    });
+    const json=await res.json();
+    return res.ok?{ok:true}:{ok:false,error:json.error||"Edge function error"};
+  };
+
   const updateRole=async(userId,newRole)=>{
     const target=users.find(x=>x.user_id===userId);
     const oldRole=target?.role||"unknown";
+    // Role elevation ceiling: only superadmin can grant superadmin
+    if(newRole==="superadmin"&&currentUser.role!=="superadmin"){
+      showToast("error","Only a superadmin can grant superadmin role");return;
+    }
     // Update all rows for this user so role is consistent across companies
     const {error}=await supabase.from("user_roles").update({role:newRole}).eq("user_id",userId);
     if(error){showToast("error","Failed to update role");return;}
     setUsers(u=>u.map(x=>x.user_id===userId?{...x,role:newRole}:x));
     showToast("success","Role updated");
     await logAudit("Role changed",target?.name||target?.email||userId,{section:"User Management",details:`Role changed from "${oldRole.replace(/_/g," ")}" → "${newRole.replace(/_/g," ")}" for ${target?.name||target?.email||userId} (all companies)`});
+    // If reactivating (old role was inactive), unban in auth
+    if(oldRole==="inactive"&&newRole!=="inactive"){
+      await callManageUser("unban",userId);
+    }
     if(userId===currentUser.id&&onRoleChange)await onRoleChange();
   };
 
   const deactivateUser=async(userId)=>{
     const target=users.find(x=>x.user_id===userId);
+    // Prevent acting on equal or higher role (admin cannot deactivate admin/superadmin)
+    const RORD={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+    if((RORD[target?.role]??9)<=(RORD[currentUser.role]??9)&&currentUser.role!=="superadmin"){
+      showToast("error","You cannot deactivate a user with an equal or higher role");return;
+    }
     const {error}=await supabase.from("user_roles").update({role:"inactive"}).eq("user_id",userId);
     if(error){showToast("error","Failed to deactivate");return;}
     setUsers(u=>u.map(x=>x.user_id===userId?{...x,role:"inactive"}:x));
-    showToast("success","User deactivated");
-    await logAudit("User deactivated",target?.name||target?.email||userId,{section:"User Management",details:`Account deactivated — user can no longer log in`});
+    // Ban in auth so existing sessions are invalidated
+    const {ok,error:banErr}=await callManageUser("ban",userId);
+    if(!ok)console.warn("Auth ban failed (user_roles updated):",banErr);
+    showToast("success","User deactivated and session revoked");
+    await logAudit("User deactivated",target?.name||target?.email||userId,{section:"User Management",details:`Account deactivated and auth session revoked`});
   };
 
   const removeFromCompany=async(userId,companyId)=>{
@@ -2709,10 +2738,16 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   };
 
   const deleteUser=async(userId)=>{
+    // Only superadmin can delete users
+    if(currentUser.role!=="superadmin"){showToast("error","Only superadmins can permanently delete users");return;}
     setSaving(true);
+    // Delete user_roles first (FK constraint; auth deletion also cascades but explicit is safer)
     const {error}=await supabase.from("user_roles").delete().eq("user_id",userId);
     if(error){showToast("error","Failed to delete: "+error.message);setSaving(false);return;}
-    showToast("success","User removed from all companies");
+    // Delete the auth.users record via Edge Function
+    const {ok,error:authErr}=await callManageUser("delete",userId);
+    if(!ok)console.warn("Auth user deletion failed (user_roles already removed):",authErr);
+    showToast("success","User permanently deleted");
     setDeleteConfirmUser(null);
     await loadData();
     setSaving(false);
@@ -2826,7 +2861,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                       <option value="user">User</option>
                       <option value="power_user">Power User</option>
                       <option value="admin">Admin</option>
-                      <option value="superadmin">Super Admin</option>
+                      {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
                     </select>
                   </div>
                   <div style={{gridColumn:"1/-1"}}>
@@ -2864,7 +2899,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                       <option value="user">User</option>
                       <option value="power_user">Power User</option>
                       <option value="admin">Admin</option>
-                      <option value="superadmin">Super Admin</option>
+                      {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
                     </select>
                   </div>
                   <div style={{gridColumn:"1/-1"}}>
@@ -2951,12 +2986,20 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                         </td>
                         {/* Role cell */}
                         <td style={{padding:"10px 16px"}}>
-                          <select value={u.role} onChange={e=>{const nr=e.target.value;if(nr===u.role)return;setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});}}
+                          <select value={u.role} onChange={e=>{
+                              const nr=e.target.value;if(nr===u.role)return;
+                              // Ceiling: only superadmin can grant superadmin
+                              if(nr==="superadmin"&&currentUser.role!=="superadmin"){showToast("error","Only a superadmin can grant the superadmin role");return;}
+                              // Cannot act on a user of equal or higher role (unless superadmin)
+                              const RORD={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+                              if(currentUser.role!=="superadmin"&&(RORD[u.role]??9)<=(RORD[currentUser.role]??9)){showToast("error","You cannot change the role of a user with an equal or higher role");return;}
+                              setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});
+                            }}
                             style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"#64748b",border:"1px solid "+(roleColor[u.role]||"#334155"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
                             <option value="user">User</option>
                             <option value="power_user">Power User</option>
                             <option value="admin">Admin</option>
-                            <option value="superadmin">Super Admin</option>
+                            {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
                             <option value="inactive">Inactive</option>
                           </select>
                         </td>
@@ -3020,16 +3063,22 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                     style={{padding:"4px 9px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontSize:12}}>
                                     ✏️
                                   </button>
-                                  <button onClick={()=>{setDeleteConfirmUser(u.user_id);setEditingUser(null);setExpandedUser(null);}} title="Delete user"
-                                    style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(220,38,38,0.3)",background:"transparent",color:"#f87171",fontSize:12}}>
-                                    🗑️
-                                  </button>
-                                  {u.role!=="inactive"&&(
-                                    <button onClick={()=>setPendingAction({type:"deactivate",userId:u.user_id,userName:u.name||u.email,meta:{}})}
-                                      style={{padding:"4px 12px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
-                                      Deactivate
+                                  {currentUser.role==="superadmin"&&(
+                                    <button onClick={()=>{setDeleteConfirmUser(u.user_id);setEditingUser(null);setExpandedUser(null);}} title="Delete user (superadmin only)"
+                                      style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(220,38,38,0.3)",background:"transparent",color:"#f87171",fontSize:12}}>
+                                      🗑️
                                     </button>
                                   )}
+                                  {(()=>{
+                                    const RORD={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+                                    const canDeactivate=u.role!=="inactive"&&(currentUser.role==="superadmin"||(RORD[u.role]??9)>(RORD[currentUser.role]??9));
+                                    return canDeactivate?(
+                                      <button onClick={()=>setPendingAction({type:"deactivate",userId:u.user_id,userName:u.name||u.email,meta:{}})}
+                                        style={{padding:"4px 12px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
+                                        Deactivate
+                                      </button>
+                                    ):null;
+                                  })()}
                                 </>
                               )}
                               {isMe&&<span style={{fontSize:11,color:"#475569",fontStyle:"italic"}}>You</span>}
@@ -4080,6 +4129,7 @@ export default function App(){
 
   const inlineUpdate=async(field,value)=>{
     if(!selected)return;
+    if(!can(currentUser?.role,"edit")){setError("You do not have permission to edit client data");return;}
     const{error}=await supabase.from("clients").update({[field]:JSON.stringify(value)}).eq("id",selected.id);
     if(error){setError("Failed to save "+field+": "+error.message);return;}
     setClients(cs=>cs.map(c=>c.id===selected.id?{...c,[field]:value}:c));
