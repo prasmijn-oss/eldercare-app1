@@ -1963,12 +1963,13 @@ function AuditTrail({t,companyId,currentUser}){
   const [fS,setFS]=useState("");
   const [fA,setFA]=useState("");
   const [fCo,setFCo]=useState("");
+  const [fSec,setFSec]=useState("");
   const [fFrom,setFFrom]=useState("");
   const [fTo,setFTo]=useState("");
+  const [expandedRow,setExpandedRow]=useState(null);
 
   useEffect(()=>{
     setLoading(true);
-    // Superadmin sees all companies; others scoped to their company
     const isSA=currentUser?.role==="superadmin";
     const q=supabase.from("audit_log").select("*").order("performed_at",{ascending:false}).limit(1000);
     ((!isSA)&&companyId?q.eq("company_id",companyId):q).then(({data})=>{
@@ -1980,7 +1981,7 @@ function AuditTrail({t,companyId,currentUser}){
   const coName=id=>companies.find(c=>c.id===id)?.name||"—";
   const sl=[...new Set(logs.map(l=>l.performed_by))].filter(Boolean).sort();
   const al=[...new Set(logs.map(l=>l.action))].filter(Boolean).sort();
-  // Only show companies that actually appear in the log
+  const secList=[...new Set(logs.map(l=>l.section))].filter(Boolean).sort();
   const coIds=[...new Set(logs.map(l=>l.company_id))].filter(Boolean);
   const filterCos=companies.filter(c=>coIds.includes(c.id));
 
@@ -1988,19 +1989,31 @@ function AuditTrail({t,companyId,currentUser}){
     if(fS&&l.performed_by!==fS)return false;
     if(fA&&l.action!==fA)return false;
     if(fCo&&l.company_id!==fCo)return false;
+    if(fSec&&l.section!==fSec)return false;
     const d=l.performed_at?l.performed_at.slice(0,10):"";
     if(fFrom&&d<fFrom)return false;
     if(fTo&&d>fTo)return false;
     return true;
   });
 
-  const hasFilter=fS||fA||fCo||fFrom||fTo;
-  const clearFilters=()=>{setFS("");setFA("");setFCo("");setFFrom("");setFTo("");};
+  const hasFilter=fS||fA||fCo||fSec||fFrom||fTo;
+  const clearFilters=()=>{setFS("");setFA("");setFCo("");setFSec("");setFFrom("");setFTo("");};
+
+  // Section badge colours
+  const sectionColor={
+    "Client Profile":"#34d399","User Management":"#f59e0b","Appointments":"#60a5fa",
+    "Incidents":"#f87171","Medications":"#a78bfa","Documents":"#fb923c",
+    "Vitals":"#2dd4bf","Notes":"#94a3b8","Intake":"#fbbf24",
+  };
+  const secColor=s=>sectionColor[s]||"#64748b";
+
+  // Role label color
+  const roleColor={superadmin:"#f59e0b",admin:"#a78bfa",power_user:"#34d399",user:"#64748b",inactive:"#ef4444"};
 
   const doExport=()=>{
-    const rows=filtered.map(l=>"<tr><td>"+new Date(l.performed_at).toLocaleString("en-US")+"</td><td>"+(l.performed_by||"-")+"</td><td>"+(l.action||"-")+"</td><td>"+(l.client_name||"-")+"</td><td>"+coName(l.company_id)+"</td></tr>").join("");
-    const style="body{font-family:Arial,sans-serif;padding:24px}h1{font-size:20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f8f9fa;padding:8px;text-align:left;border-bottom:2px solid #dee2e6}td{padding:7px 8px;border-bottom:1px solid #f0f0f0}";
-    const html="<!DOCTYPE html><html><head><title>Audit Trail</title><style>"+style+"</style></head><body><h1>Audit Trail</h1><p style='color:#6c757d;font-size:12px'>Exported "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})+" — "+filtered.length+" records"+(fFrom||fTo?" — "+( fFrom||"start")+" → "+(fTo||"now"):"")+"</p><table><thead><tr><th>Date & Time</th><th>Staff</th><th>Action</th><th>Client</th><th>Company</th></tr></thead><tbody>"+rows+"</tbody></table></body></html>";
+    const rows=filtered.map(l=>"<tr><td>"+new Date(l.performed_at).toLocaleString("en-US")+"</td><td>"+(l.performed_by||"-")+(l.performed_role?" ("+l.performed_role+")":"")+"</td><td>"+(l.section?l.section+" — ":"")+(l.action||"-")+"</td><td>"+(l.details||"-")+"</td><td>"+(l.client_name||"-")+"</td><td>"+coName(l.company_id)+"</td></tr>").join("");
+    const style="body{font-family:Arial,sans-serif;padding:24px}h1{font-size:20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f8f9fa;padding:8px;text-align:left;border-bottom:2px solid #dee2e6}td{padding:7px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}";
+    const html="<!DOCTYPE html><html><head><title>Audit Trail</title><style>"+style+"</style></head><body><h1>Audit Trail</h1><p style='color:#6c757d;font-size:12px'>Exported "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})+" — "+filtered.length+" records"+(fFrom||fTo?" — "+(fFrom||"start")+" → "+(fTo||"now"):"")+"</p><table><thead><tr><th>Date & Time</th><th>Staff</th><th>Action</th><th>Details</th><th>Client</th><th>Company</th></tr></thead><tbody>"+rows+"</tbody></table></body></html>";
     const blob=new Blob([html],{type:"text/html"});
     const url=URL.createObjectURL(blob);
     const w=window.open(url,"_blank");
@@ -2019,8 +2032,8 @@ function AuditTrail({t,companyId,currentUser}){
         {hasFilter&&<button onClick={clearFilters} style={{padding:"3px 10px",borderRadius:6,border:"1px solid #334155",background:"transparent",color:"#f59e0b",fontSize:11,fontWeight:700}}>✕ Clear filters</button>}
       </div>
 
-      {/* Filters — row 1: staff / action / company */}
-      <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:10}}>
+      {/* Filters — row 1: staff / action / section / company */}
+      <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12,marginBottom:10}}>
         <div><label style={LBL}>{t.filterStaff}</label>
           <select style={{...INP,cursor:"pointer"}} value={fS} onChange={e=>setFS(e.target.value)}>
             <option value="">{t.allStaff}</option>
@@ -2031,6 +2044,12 @@ function AuditTrail({t,companyId,currentUser}){
           <select style={{...INP,cursor:"pointer"}} value={fA} onChange={e=>setFA(e.target.value)}>
             <option value="">{t.allActions}</option>
             {al.map(a=><option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+        <div><label style={LBL}>Section</label>
+          <select style={{...INP,cursor:"pointer"}} value={fSec} onChange={e=>setFSec(e.target.value)}>
+            <option value="">All Sections</option>
+            {secList.map(s=><option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div><label style={LBL}>Company</label>
@@ -2064,26 +2083,53 @@ function AuditTrail({t,companyId,currentUser}){
           ?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.loadingAudit}</div>
           :filtered.length===0
             ?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.noAudit}</div>
-            :<table style={{width:"100%",borderCollapse:"collapse",minWidth:650}}>
+            :<table style={{width:"100%",borderCollapse:"collapse",minWidth:700}}>
               <thead>
                 <tr style={{borderBottom:"1px solid #334155"}}>
-                  {["Date & Time","Staff","Action","Client","Company"].map(h=>(
+                  {["Date & Time","Staff","Action & Details","Client","Company"].map(h=>(
                     <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,whiteSpace:"nowrap"}}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((l,i)=>(
-                  <tr key={l.id} style={{borderBottom:"1px solid #1e293b",background:i%2===0?"transparent":"rgba(255,255,255,0.02)"}}>
-                    <td style={{padding:"10px 16px",fontSize:12,color:"#64748b",whiteSpace:"nowrap"}}>{new Date(l.performed_at).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}</td>
-                    <td style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{l.performed_by||"—"}</td>
-                    <td style={{padding:"10px 16px",fontSize:13}}>
-                      <span style={{background:"rgba(99,102,241,0.1)",color:"#a5b4fc",borderRadius:6,padding:"2px 8px",fontSize:12,fontWeight:600}}>{l.action||"—"}</span>
-                    </td>
-                    <td style={{padding:"10px 16px",fontSize:13,color:"#94a3b8"}}>{l.client_name||"—"}</td>
-                    <td style={{padding:"10px 16px",fontSize:12,color:"#475569"}}>{coName(l.company_id)}</td>
-                  </tr>
-                ))}
+                {filtered.map((l,i)=>{
+                  const isExpanded=expandedRow===l.id;
+                  const hasDevice=!!l.device;
+                  return(
+                    <Fragment key={l.id}>
+                      <tr style={{borderBottom:isExpanded?"none":"1px solid #1e293b",background:i%2===0?"transparent":"rgba(255,255,255,0.02)",cursor:hasDevice?"pointer":"default"}}
+                        onClick={()=>hasDevice&&setExpandedRow(isExpanded?null:l.id)}>
+                        <td style={{padding:"10px 16px",fontSize:12,color:"#64748b",whiteSpace:"nowrap",verticalAlign:"top"}}>
+                          {new Date(l.performed_at).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}
+                        </td>
+                        <td style={{padding:"10px 16px",verticalAlign:"top"}}>
+                          <div style={{fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{l.performed_by||"—"}</div>
+                          {l.performed_role&&<div style={{fontSize:11,color:roleColor[l.performed_role]||"#64748b",marginTop:2,fontWeight:600,textTransform:"capitalize"}}>{l.performed_role.replace(/_/g," ")}</div>}
+                        </td>
+                        <td style={{padding:"10px 16px",verticalAlign:"top",maxWidth:340}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:l.details?4:0}}>
+                            <span style={{background:"rgba(99,102,241,0.12)",color:"#a5b4fc",borderRadius:6,padding:"2px 8px",fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>{l.action||"—"}</span>
+                            {l.section&&<span style={{background:"rgba(0,0,0,0.25)",color:secColor(l.section),border:"1px solid "+secColor(l.section)+"44",borderRadius:5,padding:"1px 7px",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>{l.section}</span>}
+                            {hasDevice&&<span style={{fontSize:10,color:"#334155",marginLeft:"auto"}}>▾</span>}
+                          </div>
+                          {l.details&&<div style={{fontSize:12,color:"#64748b",lineHeight:1.5,marginTop:2}}>{l.details}</div>}
+                        </td>
+                        <td style={{padding:"10px 16px",fontSize:13,color:"#94a3b8",verticalAlign:"top"}}>{l.client_name||"—"}</td>
+                        <td style={{padding:"10px 16px",fontSize:12,color:"#475569",verticalAlign:"top"}}>{coName(l.company_id)}</td>
+                      </tr>
+                      {isExpanded&&hasDevice&&(
+                        <tr style={{borderBottom:"1px solid #1e293b",background:"rgba(99,102,241,0.04)"}}>
+                          <td colSpan={5} style={{padding:"6px 16px 10px 48px"}}>
+                            <div style={{fontSize:11,color:"#475569",display:"flex",alignItems:"flex-start",gap:8}}>
+                              <span style={{color:"#334155",fontWeight:700,whiteSpace:"nowrap"}}>🖥 Device:</span>
+                              <span style={{wordBreak:"break-all",lineHeight:1.6}}>{l.device}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>}
       </div>
@@ -2139,6 +2185,17 @@ function Login({onLogin,t}){
         supabase.from("user_roles").update({login_history:updated}).eq("user_id",data.user.id).eq("company_id",rd.company_id).then(()=>{});
       }catch(_){}
     }
+    // Audit: sign-in event
+    supabase.from("audit_log").insert({
+      action:"User signed in",
+      client_name:"",
+      performed_by:rd?.name||loginEmail,
+      performed_role:rd?.role||"",
+      company_id:rd?.company_id||null,
+      section:"Auth",
+      details:`Signed in from ${navigator.userAgent.includes("Mobile")?"mobile":"desktop"}`,
+      device:navigator.userAgent.slice(0,220),
+    }).then(()=>{});
     onLogin({...data.user,role:rd?.role||"staff",displayName:rd?.name||loginEmail.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
     setLoading(false);
   };
@@ -2332,7 +2389,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
   );
 }
 
-function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
+function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const [users,setUsers]=useState([]);
   const [companies,setCompanies]=useState([]);
   const [allAuthUsers,setAllAuthUsers]=useState([]);
@@ -2543,26 +2600,33 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   };
 
   const updateRole=async(userId,newRole)=>{
+    const target=users.find(x=>x.user_id===userId);
+    const oldRole=target?.role||"unknown";
     const {error}=await supabase.from("user_roles").update({role:newRole}).eq("user_id",userId);
     if(error){showToast("error","Failed to update role");return;}
     setUsers(u=>u.map(x=>x.user_id===userId?{...x,role:newRole}:x));
     showToast("success","Role updated");
+    await logAudit("Role changed",target?.name||target?.email||userId,{section:"User Management",details:`Role changed from "${oldRole.replace(/_/g," ")}" → "${newRole.replace(/_/g," ")}" for ${target?.name||target?.email||userId}`});
     if(userId===currentUser.id&&onRoleChange)await onRoleChange();
   };
 
   const deactivateUser=async(userId)=>{
+    const target=users.find(x=>x.user_id===userId);
     const {error}=await supabase.from("user_roles").update({role:"inactive"}).eq("user_id",userId);
     if(error){showToast("error","Failed to deactivate");return;}
     setUsers(u=>u.map(x=>x.user_id===userId?{...x,role:"inactive"}:x));
     showToast("success","User deactivated");
+    await logAudit("User deactivated",target?.name||target?.email||userId,{section:"User Management",details:`Account deactivated — user can no longer log in`});
   };
 
   const removeFromCompany=async(userId,companyId)=>{
     const userRows=allUserRoles.filter(r=>r.user_id===userId);
     if(userRows.length<=1){showToast("error","Cannot remove — user must belong to at least one company");return;}
+    const target=users.find(x=>x.user_id===userId);
     const {error}=await supabase.from("user_roles").delete().eq("user_id",userId).eq("company_id",companyId);
     if(error){showToast("error","Failed: "+error.message);return;}
     showToast("success","Removed from company");
+    await logAudit("User removed from company",target?.name||target?.email||userId,{section:"User Management",details:`Removed from company ID ${companyId}`});
     await loadData();
   };
 
@@ -3806,15 +3870,19 @@ export default function App(){
 
   const activeCompanyId=selectedCompany||currentUser?.company_id;
 
-  const logAudit=async(action,clientName)=>{
+  const logAudit=async(action,clientName,{details="",clientId=null,section=""}={})=>{
     if(!currentUser)return;
     const payload={
       action,
       client_name:clientName||"",
       performed_by:currentUser.displayName||currentUser.email,
+      performed_role:currentUser.role||"",
       company_id:activeCompanyId||null,
+      details:details||"",
+      client_id:clientId||null,
+      section:section||"",
+      device:navigator.userAgent.slice(0,220),
     };
-    console.log("Writing Audit:",payload);
     const {error}=await supabase.from("audit_log").insert(payload);
     if(error)console.error("Audit insert failed:",error.message);
   };
@@ -3825,7 +3893,7 @@ export default function App(){
     const row={...toDb(data),company_id:activeCompanyId||null};
     const {error:err}=exists?await supabase.from("clients").update(row).eq("id",data.id):await supabase.from("clients").insert(row);
     if(err){setError(err.message);setSaving(false);return;}
-    await logAudit(exists?"Edited client":"Added new client",data.name);
+    await logAudit(exists?"Edited client":"Added new client",data.name,{clientId:data.id,section:"Client Profile",details:exists?`Updated client record`:`New client added — DOB: ${data.date_of_birth||"—"}, Status: ${data.status||"Active"}`});
     await loadClients();
     setSelected(data);setView("detail");setSaving(false);trackRecent(data);
   };
@@ -3833,7 +3901,7 @@ export default function App(){
   const archiveClient=async()=>{
     const {error:err}=await supabase.from("clients").update({archived:true}).eq("id",selected.id);
     if(err){setError(err.message);return;}
-    await logAudit("Archived client",selected.name);
+    await logAudit("Archived client",selected.name,{clientId:selected.id,section:"Client Profile",details:"Client moved to archived state"});
     await loadClients();
     setSelected(null);setView("dashboard");setDeleteConfirm(false);
   };
@@ -3841,7 +3909,7 @@ export default function App(){
   const restoreClient=async(client)=>{
     const {error:err}=await supabase.from("clients").update({archived:false}).eq("id",client.id);
     if(err){setError(err.message);return;}
-    await logAudit("Restored client",client.name);
+    await logAudit("Restored client",client.name,{clientId:client.id,section:"Client Profile",details:"Client restored from archived state"});
     await loadClients();
     setSelected(null);setView("dashboard");
   };
@@ -3875,7 +3943,7 @@ export default function App(){
   const hardDeleteClient=async()=>{
     const {error:err}=await supabase.from("clients").delete().eq("id",selected.id);
     if(err){setError(err.message);return;}
-    await logAudit("Permanently deleted client",selected.name);
+    await logAudit("Permanently deleted client",selected.name,{section:"Client Profile",details:"Client record permanently removed from system"});
     setClients(c=>c.filter(x=>x.id!==selected.id));
     setSelected(null);setView("dashboard");setDeleteConfirm(false);
   };
@@ -4186,7 +4254,7 @@ export default function App(){
             />
           )}
           {!loading&&view==="users"&&can(currentUser.role,"users")&&(
-            <UserManagement currentUser={currentUser} onRoleChange={refreshCurrentUser} activeCompanyId={activeCompanyId} t={t}/>
+            <UserManagement currentUser={currentUser} onRoleChange={refreshCurrentUser} activeCompanyId={activeCompanyId} t={t} logAudit={logAudit}/>
           )}
           {!loading&&view==="permissions"&&can(currentUser.role,"permissions")&&(
             <PermissionsPanel activeCompanyId={activeCompanyId} currentUser={currentUser} t={t}/>
