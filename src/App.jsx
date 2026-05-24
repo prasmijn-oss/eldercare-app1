@@ -1690,7 +1690,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   const [userTab,setUserTab]=useState("all");
   const [search,setSearch]=useState("");
   const [expandedUser,setExpandedUser]=useState(null);
-  const [userForm,setUserForm]=useState({name:"",email:"",password:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
+  const [userForm,setUserForm]=useState({name:"",email:"",password:"",username:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [existingForm,setExistingForm]=useState({user_id:"",name:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [companyForm,setCompanyForm]=useState({name:"",address:"",phone:"",email:"",website:"",mission_statement:""});
 
@@ -1755,6 +1755,14 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
     }
     setSaving(true);
     try{
+      // Duplicate email check
+      const {data:existingEmail}=await supabase.from("user_roles").select("user_id").eq("email",userForm.email.toLowerCase().trim()).limit(1).maybeSingle();
+      if(existingEmail){showToast("error","A user with this email already exists");setSaving(false);return;}
+      // Duplicate username check (if provided)
+      if(userForm.username.trim()){
+        const {data:existingUsername}=await supabase.from("user_roles").select("user_id").eq("username",userForm.username.toLowerCase().trim()).limit(1).maybeSingle();
+        if(existingUsername){showToast("error","This username is already taken");setSaving(false);return;}
+      }
       const {data:{session}}=await supabase.auth.getSession();
       // Step 1: Create the auth user via edge function (pass first company so edge fn is happy)
       const res=await fetch(`${SUPABASE_URL}/functions/v1/create-user`,{
@@ -1782,14 +1790,15 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
         const {error:roleErr}=await supabase.from("user_roles").insert({
           user_id:newUserId,
           name:userForm.name,
-          email:userForm.email,
+          email:userForm.email.toLowerCase().trim(),
+          username:userForm.username.toLowerCase().trim()||null,
           role:userForm.role,
           company_id,
         });
         if(roleErr)console.error("Failed inserting role for company",company_id,":",roleErr.message);
       }
       showToast("success","User created successfully!");
-      setUserForm({name:"",email:"",password:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
+      setUserForm({name:"",email:"",password:"",username:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
       setShowUserForm(false);
       await loadData();
     }catch(err){
@@ -1974,6 +1983,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                   <div><label style={LBL}>Full Name *</label><input name="name" value={userForm.name} onChange={onChangeUser} placeholder="e.g. Maria Johnson" style={INP2}/></div>
                   <div><label style={LBL}>Email *</label><input name="email" type="email" value={userForm.email} onChange={onChangeUser} placeholder="user@company.aw" style={INP2}/></div>
                   <div><label style={LBL}>Temporary Password *</label><input name="password" type="password" value={userForm.password} onChange={onChangeUser} placeholder="Min. 8 characters" style={INP2}/></div>
+                  <div><label style={LBL}>Username <span style={{color:"#475569",fontWeight:400}}>(optional)</span></label><input name="username" value={userForm.username} onChange={onChangeUser} placeholder="e.g. maria.j" style={INP2}/></div>
                   <div><label style={LBL}>Role *</label>
                     <select name="role" value={userForm.role} onChange={onChangeUser} style={{...INP2,cursor:"pointer"}}>
                       <option value="user">User</option>
