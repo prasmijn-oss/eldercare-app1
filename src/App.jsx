@@ -2556,19 +2556,25 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
       const newUserId=result.user_id;
       // Step 2: Wipe the single user_roles row the edge function inserted
       await supabase.from("user_roles").delete().eq("user_id",newUserId);
-      // Step 3: Insert one row per selected company
+      // Step 3: Insert one row per selected company.
+      // Username must only go on the FIRST row — user_roles has a UNIQUE(username) constraint
+      // so inserting the same username on rows 2+ would fail with a unique violation.
+      let firstRow=true;
+      let anyFailed=false;
       for(const company_id of userForm.company_ids){
         const {error:roleErr}=await supabase.from("user_roles").insert({
           user_id:newUserId,
           name:userForm.name,
           email:userForm.email.toLowerCase().trim(),
-          username:userForm.username.toLowerCase().trim()||null,
+          username:firstRow?(userForm.username.toLowerCase().trim()||null):null,
           role:userForm.role,
           company_id,
         });
-        if(roleErr)console.error("Failed inserting role for company",company_id,":",roleErr.message);
+        if(roleErr){console.error("Failed inserting role for company",company_id,":",roleErr.message);anyFailed=true;}
+        firstRow=false;
       }
-      showToast("success","User created successfully!");
+      if(anyFailed)showToast("warning","User created but some company assignments failed — check console");
+      else showToast("success","User created successfully!");
       setUserForm({name:"",email:"",password:"",username:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
       setShowUserForm(false);
       await loadData();
