@@ -12,11 +12,15 @@ const supabaseAdmin = SERVICE_KEY
 const GCSS = [
   "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap');",
   "* { box-sizing: border-box; margin: 0; padding: 0; }",
-  "body { font-family: Inter, sans-serif; background: #0f172a; color: #e2e8f0; }",
+  "body { font-family: Inter, sans-serif; background: #1c1f2e; color: #cdd5e0; }",
   "input, textarea, select { font-family: inherit; }",
-  "input:focus, textarea:focus, select:focus { outline: none; border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }",
+  "input:focus, textarea:focus, select:focus { outline: none; border-color: #7dd3fc !important; box-shadow: 0 0 0 3px rgba(125,211,252,0.12); }",
   "button { font-family: inherit; cursor: pointer; } button:hover { opacity: 0.88; }",
-  "::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }",
+  "::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #2a2e42; border-radius: 3px; }",
+  ".client-row { transition: transform 0.2s ease, box-shadow 0.2s ease !important; }",
+  ".client-row:hover { transform: translateX(4px) !important; box-shadow: 4px 4px 12px rgba(0,0,0,0.6), -2px -2px 6px rgba(255,255,255,0.04) !important; }",
+  ".dash-row { transition: transform 0.18s ease, box-shadow 0.18s ease !important; }",
+  ".dash-row:hover { transform: translateX(3px) !important; box-shadow: 3px 3px 10px rgba(0,0,0,0.55) !important; }",
   ".sidebar { transition: transform 0.25s ease; }",
   "@media (max-width: 768px) {",
   "  .sidebar { position: fixed !important; left: 0; top: 0; height: 100vh; z-index: 200; transform: translateX(-100%); }",
@@ -32,7 +36,7 @@ const GCSS = [
   "  .overlay { display: none !important; }",
   "  .mob-hdr { display: none !important; }",
   "}",
-  ".mob-hdr { display: none; align-items: center; justify-content: space-between; padding: 14px 20px; background: #1e293b; border-bottom: 1px solid #334155; position: sticky; top: 0; z-index: 100; }",
+  ".mob-hdr { display: none; align-items: center; justify-content: space-between; padding: 14px 20px; background: #1a1d2b; border-bottom: 1px solid rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 100; }",
   ".overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 199; }",
   ".overlay.show { display: block; }",
   "@media print {",
@@ -534,7 +538,7 @@ function SearchDrop({value,onChange,options,placeholder}){
         onFocus={()=>setOpen(true)}/>
       <span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:"#475569",fontSize:10,pointerEvents:"none"}}>v</span>
       {open&&filtered.length>0&&(
-        <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#1e293b",border:"1px solid #334155",borderRadius:8,zIndex:999,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",maxHeight:220,overflowY:"auto"}}>
+        <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#1c1f2e",border:"1px solid #334155",borderRadius:8,zIndex:999,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",maxHeight:220,overflowY:"auto"}}>
           {filtered.map(opt=>(
             <div key={opt} onMouseDown={()=>pick(opt)}
               style={{padding:"9px 12px",cursor:"pointer",fontSize:13,color:"#cbd5e1",borderBottom:"1px solid #0f172a"}}>
@@ -555,7 +559,7 @@ function SearchDrop({value,onChange,options,placeholder}){
 function Sec({icon,title,accent,children,defaultOpen=true}){
   const [open,setOpen]=useState(defaultOpen);
   return(
-    <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,marginBottom:16,overflow:"visible"}}>
+    <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,marginBottom:16,overflow:"visible"}}>
       <button onClick={()=>setOpen(o=>!o)}
         style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"14px 18px",background:"none",border:"none",borderBottom:open?"1px solid #334155":"none"}}>
         <span style={{fontSize:18}}>{icon}</span>
@@ -1275,7 +1279,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
   const scols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6"};
   return(
     <div style={{paddingBottom:40}}>
-      <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
+      <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
         <PhotoUp value={d.photo_url} onChange={v=>s("photo_url",v)} clientId={d.id} t={t}/>
         <Sec icon="👤" title={t.personalInfo} defaultOpen={true}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -1354,7 +1358,7 @@ function EmergCard({client,onClose,t}){
   };
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}}>
-      <div style={{background:"#1e293b",borderRadius:16,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",border:"1px solid #334155"}}>
+      <div style={{background:"#1c1f2e",borderRadius:16,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",border:"1px solid #334155"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid #334155"}}>
           <span style={{fontWeight:700,color:"#ef4444",fontSize:16}}>Emergency Card</span>
           <div style={{display:"flex",gap:8}}>
@@ -1476,7 +1480,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           <div style={{fontSize:22,fontWeight:700,color:"#1e293b",fontFamily:"serif"}}>CareManager - Client Profile</div>
           <div style={{fontSize:11,color:"#64748b",marginTop:4}}>Printed on {new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</div>
         </div>
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,marginBottom:16}}>
           <div style={{display:"flex",alignItems:"center",gap:18,padding:20}}>
             <div style={{width:72,height:72,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,fontWeight:800,color:"#fff",flexShrink:0,overflow:"hidden"}}>
               {client.photo_url?<img src={client.photo_url} alt={client.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(client.name)}
@@ -1516,13 +1520,13 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {fa.length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:10}}>ALLERGIES</div>
             {fa.map(a=><span key={a.id} style={{display:"inline-block",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:20,padding:"3px 10px",fontSize:12,color:"#f59e0b",fontWeight:600,margin:2}}>{a.value}</span>)}
           </div>
         )}
         {fd.length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:10}}>DIAGNOSES</div>
             {fd.map(d=><span key={d.id} style={{display:"inline-block",background:"rgba(6,182,212,0.1)",border:"1px solid rgba(6,182,212,0.2)",borderRadius:20,padding:"3px 10px",fontSize:12,color:"#06b6d4",fontWeight:600,margin:2}}>{d.value}</span>)}
           </div>
@@ -1531,7 +1535,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           const sched=TSLOTS.map(slot=>({...slot,meds:fm.filter(m=>m.timing&&m.timing[slot.key])})).filter(s=>s.meds.length>0);
           const labs={morning:t.morning,afternoon:t.afternoon,evening:t.evening,night:t.night};
           return(
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
               <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:12}}>MEDICATIONS</div>
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:sched.length>0?16:0}}>
                 {fm.map(m=><div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"#0f172a",borderRadius:8}}>
@@ -1557,7 +1561,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           );
         })()}
         {(client.inventory||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <div style={{fontWeight:700,color:"#10b981",fontSize:13}}>INVENTORY</div>
               <div style={{fontSize:12,color:"#64748b"}}>{(client.inventory||[]).length} items{(client.inventory||[]).reduce((s,i)=>s+(parseFloat(i.value)||0),0)>0&&" - AWG "+(client.inventory||[]).reduce((s,i)=>s+(parseFloat(i.value)||0),0).toFixed(2)}</div>
@@ -1567,8 +1571,8 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
                 const cc={Excellent:"#10b981",Good:"#06b6d4",Fair:"#f59e0b",Poor:"#ef4444"};
                 const c=cc[item.condition]||"#64748b";
                 return(
-                  <div key={item.id} style={{background:"#0f172a",borderRadius:8,overflow:"hidden",border:"1px solid #334155"}}>
-                    {item.photo_url?<img src={item.photo_url} alt={item.name} style={{width:"100%",height:90,objectFit:"cover",display:"block"}}/>:<div style={{width:"100%",height:90,background:"#1e293b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"#475569"}}>+</div>}
+                  <div key={item.id} style={{background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,overflow:"hidden",border:"1px solid #334155"}}>
+                    {item.photo_url?<img src={item.photo_url} alt={item.name} style={{width:"100%",height:90,objectFit:"cover",display:"block"}}/>:<div style={{width:"100%",height:90,background:"#1c1f2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"#475569"}}>+</div>}
                     <div style={{padding:"8px 10px"}}>
                       <div style={{fontWeight:700,fontSize:12,color:"#f1f5f9",marginBottom:4}}>{item.name||"Item"}</div>
                       <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
@@ -1584,7 +1588,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {(client.documents||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>DOCUMENTS</div>
             {(client.documents||[]).map(doc=>{
               const days=daysUntil(doc.expiry);
@@ -1602,7 +1606,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {(client.care_plan||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>CARE PLAN</div>
             {(client.care_plan||[]).map(item=>{
               const gs=GSTATUSES.find(s=>s.value===item.status)||GSTATUSES[0];
@@ -1619,12 +1623,12 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {(client.vitals||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <VitalsTracker vitals={client.vitals||[]} onChange={()=>{}} t={t}/>
           </div>
         )}
         {fn.length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:12}}>SESSION NOTES</div>
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               {fn.map(n=>(
@@ -1642,7 +1646,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
       </div>
         {/* Family Contacts */}
         {(client.family_contacts||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#ec4899",fontSize:13,marginBottom:12}}>👨‍👩‍👧 FAMILY CONTACTS</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {(client.family_contacts||[]).map(c=>(
@@ -1659,26 +1663,75 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
         )}
         {/* Appointments */}
         {(client.appointments||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>📅 APPOINTMENTS</div>
             <AppointmentLog items={client.appointments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("appointments",v):()=>{}}/>
           </div>
         )}
         {/* Incidents */}
         {(client.incidents||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:12}}>⚠️ INCIDENT REPORTS</div>
             <IncidentReports items={client.incidents||[]} onChange={onInlineUpdate?v=>onInlineUpdate("incidents",v):()=>{}} currentUser={currentUser}/>
           </div>
         )}
         {/* Intake Checklist */}
         {(()=>{const ic=client.intake_checklist||[];return(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>✅ INTAKE CHECKLIST</div>
             <IntakeChecklist items={ic} onChange={onInlineUpdate?v=>onInlineUpdate("intake_checklist",v):()=>{}} currentUser={currentUser}/>
           </div>
         );})()}
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
+    </div>
+  );
+}
+
+function TiltCard({icon,label,value,color}){
+  const ref=useRef(null);
+  useEffect(()=>{
+    const el=ref.current;if(!el)return;
+    const base="6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)";
+    const hot="10px 10px 20px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05)";
+    const onMove=e=>{
+      const r=el.getBoundingClientRect();
+      const x=(e.clientX-r.left)/r.width-0.5;
+      const y=(e.clientY-r.top)/r.height-0.5;
+      el.style.transform=`rotateX(${-y*18}deg) rotateY(${x*18}deg) translateZ(24px) scale(1.04)`;
+      el.style.boxShadow=hot;
+    };
+    const onLeave=()=>{el.style.transform="";el.style.boxShadow=base;};
+    el.addEventListener("mousemove",onMove);
+    el.addEventListener("mouseleave",onLeave);
+    return()=>{el.removeEventListener("mousemove",onMove);el.removeEventListener("mouseleave",onLeave);};
+  },[]);
+  return(
+    <div ref={ref} style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:18,padding:"20px 24px",display:"flex",alignItems:"center",gap:16,transition:"transform 0.15s ease, box-shadow 0.15s ease",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:"50%",background:"linear-gradient(180deg,rgba(255,255,255,0.06),transparent)",pointerEvents:"none",borderRadius:"inherit"}}/>
+      <div style={{width:48,height:48,borderRadius:12,background:color+"25",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,boxShadow:"3px 3px 8px rgba(0,0,0,0.5), -1px -1px 4px rgba(255,255,255,0.04)"}}>{icon}</div>
+      <div>
+        <div style={{fontSize:28,fontWeight:800,color:"#cdd5e0",lineHeight:1}}>{value}</div>
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.35)",marginTop:4}}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function FlipCard({frontIcon,frontLabel,backValue,backSub,backGradient}){
+  const [flipped,setFlipped]=useState(false);
+  return(
+    <div style={{height:130,perspective:"600px"}} onMouseEnter={()=>setFlipped(true)} onMouseLeave={()=>setFlipped(false)}>
+      <div style={{position:"relative",width:"100%",height:"100%",transformStyle:"preserve-3d",transition:"transform 0.45s cubic-bezier(0.4,0,0.2,1)",transform:flipped?"rotateY(180deg)":"rotateY(0deg)"}}>
+        <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:18,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,overflow:"hidden"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:"50%",background:"linear-gradient(180deg,rgba(255,255,255,0.06),transparent)",pointerEvents:"none"}}/>
+          <div style={{fontSize:32}}>{frontIcon}</div>
+          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.35)",letterSpacing:0.5,textTransform:"uppercase"}}>{frontLabel}</div>
+        </div>
+        <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",background:backGradient,boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:18,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,transform:"rotateY(180deg)"}}>
+          <div style={{fontSize:36,fontWeight:800,color:"#fff",lineHeight:1}}>{backValue}</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.72)",textAlign:"center",padding:"0 16px",lineHeight:1.5}}>{backSub}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1719,12 +1772,14 @@ function Dashboard({clients,onSelect,t,currentUser}){
   const ag={"60-69":0,"70-79":0,"80-89":0,"90+":0,"Unknown":0};
   clients.forEach(c=>{const a=c.date_of_birth?calcAge(c.date_of_birth):null;if(a===null)ag["Unknown"]++;else if(a<70)ag["60-69"]++;else if(a<80)ag["70-79"]++;else if(a<90)ag["80-89"]++;else ag["90+"]++;});
   const sc={Active:clients.filter(c=>(c.status||"Active")==="Active").length,Inactive:clients.filter(c=>c.status==="Inactive").length,Discharged:clients.filter(c=>c.status==="Discharged").length};
-  const scard=(icon,label,value,color)=>(
-    <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"20px 24px",display:"flex",alignItems:"center",gap:16}}>
-      <div style={{width:48,height:48,borderRadius:12,background:color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{icon}</div>
-      <div><div style={{fontSize:28,fontWeight:800,color:"#f1f5f9",lineHeight:1}}>{value}</div><div style={{fontSize:13,color:"#64748b",marginTop:4}}>{label}</div></div>
-    </div>
-  );
+  // Flip card data
+  const _now7=new Date();_now7.setDate(_now7.getDate()-7);
+  const incidentLast7=clients.reduce((s,c)=>s+(c.incidents||[]).filter(inc=>inc.date&&new Date(inc.date)>=_now7).length,0);
+  const intakeItems=clients.flatMap(c=>c.intake_checklist||[]);
+  const intakeDone=intakeItems.filter(i=>i.done).length;
+  const intakeTotal=intakeItems.length;
+  const intakePct=intakeTotal>0?Math.round(intakeDone/intakeTotal*100):0;
+  const highRiskMedsCount=clients.reduce((s,c)=>s+getMedFlags(c).highRisk.length,0);
   return(
     <div>
       <div style={{marginBottom:24}}>
@@ -1733,23 +1788,28 @@ function Dashboard({clients,onSelect,t,currentUser}){
           {Object.entries(sc).map(([s,c])=>{const cols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6"};const col=cols[s];return <span key={s} style={{fontSize:12,fontWeight:700,padding:"4px 12px",borderRadius:20,background:col+"20",color:col,border:"1px solid "+col+"40"}}>{s}: {c}</span>;})}
         </div>
       </div>
-      <div className="g4" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:20}}>
-        {scard("👥",t.totalClients,total,"#6366f1")}
-        {scard("💊",t.totalMeds,totalMeds,"#ef4444")}
-        {scard("⚠️",t.allergyAlerts,totalAllergies,"#f59e0b")}
-        {scard("🩺",t.diagnosesLogged,totalDiag,"#06b6d4")}
+      <div className="g4" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:20,perspective:"800px"}}>
+        <TiltCard icon="👥" label={t.totalClients} value={total} color="#6366f1"/>
+        <TiltCard icon="💊" label={t.totalMeds} value={totalMeds} color="#ef4444"/>
+        <TiltCard icon="⚠️" label={t.allergyAlerts} value={totalAllergies} color="#f59e0b"/>
+        <TiltCard icon="🩺" label={t.diagnosesLogged} value={totalDiag} color="#06b6d4"/>
+      </div>
+      <div className="g4" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,marginBottom:20}}>
+        <FlipCard frontIcon="💊" frontLabel="Medications" backValue={highRiskMedsCount} backSub="High-risk medication flags across all clients" backGradient="linear-gradient(135deg,#7f1d1d,#ef4444)"/>
+        <FlipCard frontIcon="📋" frontLabel="Intake Progress" backValue={intakePct+"%"} backSub={intakeDone+" of "+intakeTotal+" intake items completed"} backGradient="linear-gradient(135deg,#065f46,#10b981)"/>
+        <FlipCard frontIcon="⚠️" frontLabel="Incidents" backValue={incidentLast7} backSub="Incidents reported in the last 7 days" backGradient="linear-gradient(135deg,#78350f,#f59e0b)"/>
       </div>
       <div className="g2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
           <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:14}}>ALLERGY ALERTS</div>
           {allergyClients.length===0?<div style={{color:"#475569",fontSize:13}}>{t.noAllergies}</div>:allergyClients.map(c=>(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
               <div style={{flex:1}}><div style={{fontWeight:600,fontSize:13,color:"#f1f5f9"}}>{c.name}</div><div style={{fontSize:12,color:"#f59e0b"}}>{(c.allergies||[]).filter(a=>a.value&&a.value.trim()).map(a=>a.value).join(", ")}</div></div>
             </div>
           ))}
         </div>
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
           <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:14}}>AGE DISTRIBUTION</div>
           {total===0?<div style={{color:"#475569",fontSize:13}}>{t.noClients}</div>:Object.entries(ag).filter(([,v])=>v>0).map(([group,count])=>(
             <div key={group} style={{marginBottom:10}}>
@@ -1764,10 +1824,10 @@ function Dashboard({clients,onSelect,t,currentUser}){
         </div>
       </div>
       {expiring.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:14}}>DOCUMENT EXPIRY ALERTS</div>
           {expiring.map((d,i)=>{const badge=expiryBadge(d.days);return(
-            <div key={i} onClick={()=>onSelect(d.client)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+            <div key={i} onClick={()=>onSelect(d.client)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(d.clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(d.clientName)}</div>
               <div style={{flex:1}}><span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{d.clientName}</span><span style={{fontSize:12,color:"#64748b"}}> - {d.name}</span></div>
               {badge&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:badge.bg,color:badge.color,whiteSpace:"nowrap"}}>{d.days<0?"Expired":d.days+"d left"}</span>}
@@ -1776,10 +1836,10 @@ function Dashboard({clients,onSelect,t,currentUser}){
         </div>
       )}
       {flagged.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:14}}>MEDICATION FLAGS</div>
           {flagged.map(c=>{const {highRisk,polypharmacy,medCount}=getMedFlags(c);return(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(c.name)}</div>
               <div style={{flex:1}}>
                 <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{c.name}</div>
@@ -1794,13 +1854,13 @@ function Dashboard({clients,onSelect,t,currentUser}){
       )}
       {/* ── Birthdays ── */}
       {birthdays.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#ec4899",fontSize:13,marginBottom:14}}>🎂 UPCOMING BIRTHDAYS</div>
           {birthdays.map(c=>{
             const thisWeek=c.bDays<=7;
             const age=calcAge(c.date_of_birth);
             return(
-              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
                 <div style={{flex:1}}>
                   <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{c.name}</span>
@@ -1817,10 +1877,10 @@ function Dashboard({clients,onSelect,t,currentUser}){
 
       {/* ── Abnormal Vitals ── */}
       {abnormalVitals.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:14}}>🩺 ABNORMAL VITALS</div>
           {abnormalVitals.map(({client:c,clientName,date,flags})=>(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(clientName)}</div>
               <div style={{flex:1}}>
                 <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{clientName} <span style={{fontSize:11,color:"#475569",fontWeight:400}}>— recorded {new Date(date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></div>
@@ -1839,7 +1899,7 @@ function Dashboard({clients,onSelect,t,currentUser}){
 
       {/* ── Allergy ↔ Med Conflicts ── */}
       {allergyMedAlerts.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #ef4444",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",border:"1px solid #ef4444",borderRadius:12,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:4}}>⚠️ ALLERGY — MEDICATION CONFLICTS</div>
           <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>A prescribed medication matches a known allergy. Review immediately.</div>
           {allergyMedAlerts.map(({client:c,clientName,conflicts})=>(
@@ -1863,11 +1923,11 @@ function Dashboard({clients,onSelect,t,currentUser}){
 
       {/* ── Care Plan Staleness ── */}
       {stalePlans.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:4}}>📋 CARE PLAN REVIEW OVERDUE</div>
           <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Care plan items not reviewed in 90+ days.</div>
           {stalePlans.map(c=>(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
               <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{c.name}</div></div>
               <span style={{fontSize:11,fontWeight:700,padding:"2px 10px",borderRadius:20,background:"rgba(139,92,246,0.15)",color:"#a78bfa",whiteSpace:"nowrap"}}>{c.stalestDays}d since review</span>
@@ -1876,10 +1936,10 @@ function Dashboard({clients,onSelect,t,currentUser}){
         </div>
       )}
 
-      <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+      <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
         <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:14}}>RECENT SESSION NOTES</div>
         {rn.length===0?<div style={{color:"#475569",fontSize:13}}>{t.noNotes}</div>:rn.map((n,i)=>(
-          <div key={i} onClick={()=>onSelect(n.client)} style={{display:"flex",gap:12,padding:"10px 14px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+          <div key={i} onClick={()=>onSelect(n.client)} style={{display:"flex",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
             <div style={{width:36,height:36,borderRadius:"50%",background:avatarColor(n.clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(n.clientName)}</div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
@@ -1999,7 +2059,7 @@ function AuditTrail({t,companyId,currentUser}){
         </div>
       )}
 
-      <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflowX:"auto"}}>
+      <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflowX:"auto"}}>
         {loading
           ?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.loadingAudit}</div>
           :filtered.length===0
@@ -2034,7 +2094,7 @@ function AuditTrail({t,companyId,currentUser}){
 function LangPicker({onSelect}){
   return(
     <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{background:"#1e293b",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid #334155",textAlign:"center"}}>
+      <div style={{background:"#1c1f2e",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid #334155",textAlign:"center"}}>
         <div style={{fontSize:52,marginBottom:16}}>+</div>
         <div style={{fontFamily:"Playfair Display,serif",fontSize:28,fontWeight:700,color:"#f1f5f9",marginBottom:6}}>CareManager</div>
         <div style={{fontSize:13,color:"#64748b",marginBottom:32}}>Select your language / Selecta bo idioma</div>
@@ -2084,7 +2144,7 @@ function Login({onLogin,t}){
   };
   return(
     <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{background:"#1e293b",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid #334155"}}>
+      <div style={{background:"#1c1f2e",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid #334155"}}>
         <div style={{textAlign:"center",marginBottom:32}}>
           <div style={{fontSize:48,marginBottom:12}}>🔐</div>
           <div style={{fontFamily:"Playfair Display,serif",fontSize:26,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>CareManager</div>
@@ -2193,7 +2253,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
       <form onSubmit={onSave}>
         {tab==="info"&&(
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>🖼 Company Logo</div>
               <div style={{display:"flex",gap:16,alignItems:"center"}}>
                 <div style={{width:120,height:120,border:"2px dashed #334155",borderRadius:12,background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
@@ -2212,7 +2272,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
                 </div>
               </div>
             </div>
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>🏢 Basic Information</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 {fld("Company Name *","name")}
@@ -2229,7 +2289,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
                   style={{...inp,resize:"vertical",lineHeight:1.5}}/>
               </div>
             </div>
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>👤 Director / Contact</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 {fld("Director Name","director_name","text","e.g. Maria Johnson")}
@@ -2239,7 +2299,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
           </div>
         )}
         {tab==="hours"&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
             <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:16,fontWeight:700}}>🕐 Hours of Operation</div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {DAYS.map(day=>(
@@ -2253,7 +2313,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
           </div>
         )}
         {tab==="emergency"&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
             <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>🚨 Emergency Contact</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               {fld("Emergency Contact Name","emergency_contact","text","e.g. Emergency Hotline")}
@@ -2634,7 +2694,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
         <>
           {/* Add Existing User Form */}
           {showExistingForm&&(
-            <div style={{background:"#1e293b",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
+            <div style={{background:"#1c1f2e",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:16,color:"#f1f5f9",fontWeight:700,marginBottom:6}}>Add Existing User to Company</div>
               <div style={{fontSize:12,color:"#64748b",marginBottom:16}}>For users who already have an account — give them access to this company.</div>
               <form onSubmit={addExistingUser}>
@@ -2682,7 +2742,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
 
           {/* Create New User Form */}
           {showUserForm&&(
-            <div style={{background:"#1e293b",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
+            <div style={{background:"#1c1f2e",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:16,color:"#f1f5f9",fontWeight:700,marginBottom:16}}>Create New User</div>
               <form onSubmit={createUser}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
@@ -2736,7 +2796,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
 
           {/* User List */}
           {loading?<div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflowX:"auto"}}>
+            <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflowX:"auto"}}>
               {filteredUsers.length===0?(
                 <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>No users found</div>
               ):(
@@ -2906,7 +2966,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
           ):activityData.length===0?(
             <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>No activity recorded in this period.</div>
           ):(
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
+            <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
               <table style={{width:"100%",borderCollapse:"collapse"}}>
                 <thead>
                   <tr style={{borderBottom:"1px solid #334155"}}>
@@ -2989,7 +3049,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
         <>
           {/* Create Company Form */}
           {showCompanyForm&&(
-            <div style={{background:"#1e293b",border:"1px solid #10b981",borderRadius:12,padding:20,marginBottom:20}}>
+            <div style={{background:"#1c1f2e",border:"1px solid #10b981",borderRadius:12,padding:20,marginBottom:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:16,color:"#f1f5f9",fontWeight:700,marginBottom:16}}>Create New Company</div>
               <form onSubmit={createCompany}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
@@ -3020,7 +3080,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                 const st=companyStats[c.id]||{clients:0,archivedClients:0,users:0,lastActivity:null};
                 const lastAct=st.lastActivity?new Date(st.lastActivity).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"No activity";
                 return(
-                  <div key={c.id} style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+                  <div key={c.id} style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
                       <div style={{flex:1,minWidth:200}}>
                         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
@@ -3069,7 +3129,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
       {/* ═══════════════ CONFIRM ACTION MODAL ═══════════════ */}
       {pendingAction&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+          <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
             <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>
               {pendingAction.type==="deactivate"?"🔒":pendingAction.type==="role_change"?"🔄":"🏢"}
             </div>
@@ -3149,7 +3209,7 @@ function CompanyPicker({onSelect,currentUser,t}){
               const rc=roleColors[roleForCompany?.role]||"#64748b";
               return(
                 <button key={c.id} onClick={()=>handleSelect(c.id)}
-                  style={{display:"flex",alignItems:"center",gap:16,padding:"20px 24px",borderRadius:16,border:"1px solid #334155",background:"#1e293b",cursor:"pointer",textAlign:"left",width:"100%"}}>
+                  style={{display:"flex",alignItems:"center",gap:16,padding:"20px 24px",borderRadius:16,border:"1px solid #334155",background:"#1c1f2e",cursor:"pointer",textAlign:"left",width:"100%"}}>
                   {c.logo_url?(
                     <div style={{background:"#fff",borderRadius:10,padding:"6px 8px",flexShrink:0}}>
                       <img src={c.logo_url} alt={c.name} style={{height:48,maxWidth:120,objectFit:"contain",display:"block"}}/>
@@ -3316,7 +3376,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
       </div>
 
       {tab==="company"&&!activeCompanyId&&(
-        <div style={{padding:20,background:"#1e293b",borderRadius:12,color:"#64748b",textAlign:"center"}}>
+        <div style={{padding:20,background:"#1c1f2e",borderRadius:12,color:"#64748b",textAlign:"center"}}>
           Select a company first to manage company-specific overrides.
         </div>
       )}
@@ -3338,9 +3398,9 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
               <table style={{width:"100%",borderCollapse:"collapse",minWidth:600}}>
                 <thead>
                   <tr>
-                    <th style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,background:"#1e293b",borderRadius:"8px 0 0 0"}}>ACTION</th>
+                    <th style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,background:"#1c1f2e",borderRadius:"8px 0 0 0"}}>ACTION</th>
                     {ROLES.map(role=>(
-                      <th key={role} style={{padding:"12px 16px",textAlign:"center",fontSize:11,fontWeight:700,color:ROLE_COLORS[role],letterSpacing:0.5,background:"#1e293b"}}>
+                      <th key={role} style={{padding:"12px 16px",textAlign:"center",fontSize:11,fontWeight:700,color:ROLE_COLORS[role],letterSpacing:0.5,background:"#1c1f2e"}}>
                         {ROLE_LABELS[role].toUpperCase()}
                       </th>
                     ))}
@@ -3391,7 +3451,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
           {viewMode==="table"&&(
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               {ROLES.map(role=>(
-                <div key={role} style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
+                <div key={role} style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
                   <div style={{padding:"12px 16px",borderBottom:"1px solid #334155",display:"flex",alignItems:"center",gap:10}}>
                     <span style={{fontWeight:700,color:ROLE_COLORS[role],fontSize:14}}>{ROLE_LABELS[role]}</span>
                     <span style={{fontSize:11,color:"#475569"}}>
@@ -3521,7 +3581,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
       {msg&&<div style={{padding:"10px 14px",borderRadius:8,marginBottom:16,background:msg.type==="error"?"rgba(239,68,68,0.1)":"rgba(34,197,94,0.1)",border:`1px solid ${msg.type==="error"?"#ef4444":"#22c55e"}`,color:msg.type==="error"?"#ef4444":"#22c55e",fontSize:13}}>{msg.text}</div>}
 
       {/* Tabs */}
-      <div style={{display:"flex",gap:4,marginBottom:20,background:"#1e293b",borderRadius:10,padding:4}}>
+      <div style={{display:"flex",gap:4,marginBottom:20,background:"#1c1f2e",borderRadius:10,padding:4}}>
         {TABS.map(tb=>(
           <button key={tb.id} onClick={()=>{setTab(tb.id);setMsg(null);}}
             style={{flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:tab===tb.id?"#6366f1":"transparent",color:tab===tb.id?"#fff":"#64748b",fontWeight:600,fontSize:12,cursor:"pointer"}}>
@@ -3532,7 +3592,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Profile Tab */}
       {tab==="profile"&&(
-        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
           {/* Avatar */}
           <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
             <div style={{position:"relative"}}>
@@ -3576,7 +3636,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Password Tab */}
       {tab==="password"&&(
-        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             <div>
               <label style={LB}>New Password</label>
@@ -3595,7 +3655,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Login History Tab */}
       {tab==="history"&&(
-        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
           {loginHistory.length===0?
             <div style={{color:"#475569",textAlign:"center",padding:"24px 0"}}>No login history yet</div>:
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -3615,7 +3675,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Sessions Tab */}
       {tab==="sessions"&&(
-        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
           <div style={{background:"#0f172a",borderRadius:8,padding:"14px",border:"1px solid #22c55e",marginBottom:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
@@ -3896,7 +3956,7 @@ export default function App(){
     ?clients.flatMap(c=>(c.session_notes||[]).filter(n=>n.text&&n.text.toLowerCase().includes(search.toLowerCase())).map(n=>({...n,clientName:c.name,client:c}))).sort((a,b)=>b.date.localeCompare(a.date))
     :[];
 
-  if(!authChecked)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0f172a",color:"#6366f1",fontSize:18,fontFamily:"serif"}}>Loading...</div>;
+  if(!authChecked)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#1c1f2e",color:"#6366f1",fontSize:18,fontFamily:"serif"}}>Loading...</div>;
   if(!currentUser)return lang?<Login onLogin={setCurrentUser} t={t}/>:<LangPicker onSelect={selectLang}/>;
   if(!lang)return <LangPicker onSelect={selectLang}/>;
   if(currentUser.role==="superadmin"&&!selectedCompany||currentUser?.allRoles?.length>1&&!selectedCompany){
@@ -3907,7 +3967,7 @@ export default function App(){
   }
 
   return(
-    <div style={{minHeight:"100vh",background:"#0f172a",fontFamily:"Inter,Helvetica Neue,sans-serif"}}>
+    <div style={{minHeight:"100vh",background:"#1c1f2e",fontFamily:"Inter,Helvetica Neue,sans-serif"}}>
       <style dangerouslySetInnerHTML={{__html:GCSS}}/>
       <div className="mob-hdr">
         <button onClick={()=>setSidebarOpen(o=>!o)} style={{background:"none",border:"none",color:"#94a3b8",fontSize:22}}>=</button>
@@ -3916,8 +3976,8 @@ export default function App(){
       </div>
       <div className={"overlay"+(sidebarOpen?" show":"")} onClick={()=>setSidebarOpen(false)}/>
       <div style={{display:"flex",minHeight:"100vh"}}>
-        <div className={"sidebar"+(sidebarOpen?" open":"")} style={{width:280,background:"#1e293b",borderRight:"1px solid #334155",display:"flex",flexDirection:"column",flexShrink:0}}>
-          <div style={{padding:"20px 20px 14px",borderBottom:"1px solid #334155"}}>
+        <div className={"sidebar"+(sidebarOpen?" open":"")} style={{width:280,background:"#1a1d2b",boxShadow:"6px 0 18px rgba(0,0,0,0.45)",display:"flex",flexDirection:"column",flexShrink:0}}>
+          <div style={{padding:"20px 20px 14px",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
             <div style={{fontFamily:"Playfair Display,serif",fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:2}}>CareManager</div>
             <div style={{fontSize:11,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:12}}>Elder Care Platform</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -3940,7 +4000,7 @@ export default function App(){
             </div>
           </div>
           {company?.logo_url&&(
-            <div style={{padding:"14px 20px 10px",borderBottom:"1px solid #1e293b",textAlign:"center",background:"#1e293b"}}>
+            <div style={{padding:"14px 20px 10px",borderBottom:"1px solid #1e293b",textAlign:"center",background:"#1c1f2e"}}>
               <div style={{background:"#fff",borderRadius:12,padding:"10px 12px",display:"inline-block",boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>
                 <img src={company.logo_url} alt={company.name||"Company logo"} style={{maxHeight:72,maxWidth:200,objectFit:"contain",display:"block"}}/>
               </div>
@@ -3958,30 +4018,30 @@ export default function App(){
           )}
           <div style={{padding:"12px 12px 6px"}}>
             <button onClick={()=>{setView("dashboard");setSelected(null);setSidebarOpen(false);}}
-              style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="dashboard"?"rgba(99,102,241,0.15)":"transparent",color:view==="dashboard"?"#6366f1":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+              style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="dashboard"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="dashboard"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="dashboard"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
               Dashboard
             </button>
             {can(currentUser.role,"audit")&&(
               <button onClick={()=>{setView("audit");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="audit"?"rgba(99,102,241,0.15)":"transparent",color:view==="audit"?"#6366f1":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="audit"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="audit"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="audit"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
                 {t.auditTrail}
               </button>
             )}
             {can(currentUser.role,"company")&&(
               <button onClick={()=>{setView("company");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="company"?"rgba(99,102,241,0.15)":"transparent",color:view==="company"?"#6366f1":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="company"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="company"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="company"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
                 🏢 Company Settings
               </button>
             )}
             {can(currentUser.role,"users")&&(
               <button onClick={()=>{setView("users");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="users"?"rgba(99,102,241,0.15)":"transparent",color:view==="users"?"#6366f1":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="users"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="users"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="users"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
                 👥 User Management
               </button>
             )}
             {can(currentUser.role,"permissions")&&(
               <button onClick={()=>{setView("permissions");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="permissions"?"rgba(99,102,241,0.15)":"transparent",color:view==="permissions"?"#6366f1":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="permissions"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="permissions"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="permissions"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
                 🔐 Permissions
               </button>
             )}
@@ -4039,7 +4099,7 @@ export default function App(){
                     setSelected(c);setView("detail");setDeleteConfirm(false);setSidebarOpen(false);trackRecent(c);
                   }
                 }}
-                  style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 8px",borderRadius:10,border:"none",background:isChecked?"rgba(99,102,241,0.15)":isActive?"rgba(99,102,241,0.12)":c.archived?"rgba(239,68,68,0.04)":"transparent",cursor:"pointer",marginBottom:2,textAlign:"left"}}>
+                  className="client-row" style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 8px",borderRadius:10,border:"none",background:isChecked?"rgba(99,102,241,0.15)":isActive?"rgba(99,102,241,0.12)":c.archived?"rgba(239,68,68,0.04)":"transparent",cursor:"pointer",marginBottom:2,textAlign:"left"}}>
                   {bulkMode&&(
                     <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(isChecked?"#6366f1":"#475569"),background:isChecked?"#6366f1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:10,color:"#fff",fontWeight:700}}>{isChecked?"✓":""}</div>
                   )}
@@ -4139,7 +4199,7 @@ export default function App(){
                 <div style={{display:"flex",flexDirection:"column",gap:12}}>
                   {noteResults.map((n,i)=>(
                     <div key={i} onClick={()=>{setSelected(n.client);setView("detail");setSearch("");setSearchMode("clients");setSidebarOpen(false);trackRecent(n.client);}}
-                      style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"14px 18px",cursor:"pointer"}}>
+                      style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,padding:"14px 18px",cursor:"pointer"}}>
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                         <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(n.clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(n.clientName)}</div>
                         <div>
@@ -4171,7 +4231,7 @@ export default function App(){
                       const full=clients.find(c=>c.id===rc.id);
                       return(
                         <button key={rc.id} onClick={()=>{const c=full||rc;setSelected(c);setView("detail");trackRecent(c);}}
-                          style={{display:"flex",alignItems:"center",gap:8,background:"#1e293b",border:"1px solid #334155",borderRadius:10,padding:"7px 12px",cursor:"pointer",maxWidth:180}}>
+                          className="client-row" style={{display:"flex",alignItems:"center",gap:8,background:"#1c1f2e",boxShadow:"4px 4px 10px rgba(0,0,0,0.45), -2px -2px 6px rgba(255,255,255,0.03)",borderRadius:10,padding:"7px 12px",cursor:"pointer",maxWidth:180,border:"none"}}>
                           <div style={{width:28,height:28,borderRadius:"50%",background:avatarColor(rc.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,overflow:"hidden"}}>
                             {rc.photo_url?<img src={rc.photo_url} alt={rc.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(rc.name)}
                           </div>
@@ -4184,7 +4244,7 @@ export default function App(){
               )}
               <div style={{marginBottom:20}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:8}}>📝 Quick Note</div>
-                <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:10,overflow:"hidden"}}>
+                <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:10,overflow:"hidden"}}>
                   <textarea value={dashNote} onChange={e=>{setDashNote(e.target.value);localStorage.setItem("cm-dash-note",e.target.value);}}
                     placeholder="Jot a reminder, task, or note... (auto-saved)"
                     rows={3}
@@ -4217,7 +4277,7 @@ export default function App(){
                 <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser}/>
                 {deleteConfirm&&(
                   <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400}}>
-                    <div style={{background:"#1e293b",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid #334155"}}>
+                    <div style={{background:"#1c1f2e",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid #334155"}}>
                       {fresh.archived?(
                         <>
                           <div style={{fontFamily:"Playfair Display,serif",fontSize:20,marginBottom:10,color:"#f1f5f9"}}>🗑️ Permanently Delete</div>
@@ -4259,7 +4319,7 @@ export default function App(){
         const urgColor={high:"#ef4444",medium:"#f59e0b",low:"#6366f1"};
         const EPREF_LABELS=[["doc_expiry","Document expiry alerts"],["fall_risk","High fall risk alerts"],["incidents","New incident reports"],["appointments","Appointment reminders"]];
         return(
-          <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:360,height:"100vh",background:"#1e293b",borderLeft:"1px solid #334155",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
+          <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:360,height:"100vh",background:"#1c1f2e",borderLeft:"1px solid #334155",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
             <div style={{padding:"18px 20px",borderBottom:"1px solid #334155",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{fontFamily:"Playfair Display,serif",fontSize:17,fontWeight:700,color:"#f1f5f9"}}>🔔 Notifications</div>
@@ -4317,7 +4377,7 @@ export default function App(){
       {/* ═══ KEYBOARD SHORTCUTS MODAL ═══ */}
       {showShortcuts&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:16,padding:32,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
+          <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:32,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
             <div style={{fontFamily:"Playfair Display,serif",fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>⌨️ Keyboard Shortcuts</div>
             <div style={{fontSize:12,color:"#475569",marginBottom:20}}>Works when no input is focused</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
