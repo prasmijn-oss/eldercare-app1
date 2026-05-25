@@ -5428,6 +5428,341 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
 }
 
 
+// ─── Reports & Exports ────────────────────────────────────────────────────────
+function ReportsView({clients,company,currentUser}){
+  const now=new Date();
+  const [report,setReport]=useState(null);
+  const [clientId,setClientId]=useState("");
+  const [month,setMonth]=useState(now.getMonth()+1);
+  const [year,setYear]=useState(now.getFullYear());
+  const [generating,setGenerating]=useState(false);
+
+  const activeClients=clients.filter(c=>!c.archived);
+  const MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const monthName=MONTH_NAMES[month-1];
+  const daysInMonth=new Date(year,month,0).getDate();
+  const companyName=company?.name||"CareManager";
+  const generatedOn=new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
+  const inMonth=d=>d&&d.startsWith(`${year}-${String(month).padStart(2,"0")}`);
+  const fmtDate=d=>d?new Date(d+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"—";
+
+  const BASE_CSS=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;color:#1e293b;font-size:12px}h2{font-size:11px;font-weight:800;border-bottom:2px solid #6366f1;padding-bottom:3px;margin:18px 0 8px;color:#6366f1;text-transform:uppercase;letter-spacing:.8px}table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:11px}th{background:#f1f5f9;padding:5px 8px;text-align:left;border-bottom:2px solid #e2e8f0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}td{padding:5px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}.page{padding:28px;max-width:210mm;margin:0 auto}.header-bar{background:#1e293b;color:white;padding:18px 22px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-start}.header-title{font-family:Georgia,serif;font-size:18px;font-weight:700;margin-bottom:4px}.header-meta{font-size:10px;opacity:.65;line-height:1.6}.client-block{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:14px}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px}.info-row{font-size:11px;padding:2px 0;display:flex;gap:8px}.info-label{color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;white-space:nowrap;min-width:76px}.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;margin:2px;border:1px solid}.bg{background:#f0fdf4;color:#16a34a;border-color:#bbf7d0}.by{background:#fefce8;color:#ca8a04;border-color:#fde68a}.br{background:#fef2f2;color:#dc2626;border-color:#fecaca}.bb{background:#eff6ff;color:#2563eb;border-color:#bfdbfe}.note-block{border-left:3px solid #7c3aed;padding:6px 10px;margin-bottom:8px;background:#faf5ff;border-radius:0 4px 4px 0}.note-meta{font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:3px}.note-text{font-size:11px;color:#374151;line-height:1.5}.vital-flag{background:#fef2f2;color:#dc2626;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:700}.footer{text-align:center;font-size:9px;color:#94a3b8;border-top:1px solid #e2e8f0;margin-top:24px;padding-top:10px}.no-data{color:#94a3b8;font-style:italic;font-size:11px;padding:6px 0}@page{size:A4;margin:1.2cm}`;
+
+  const openPrint=html=>{
+    const blob=new Blob([html],{type:"text/html"});
+    const url=URL.createObjectURL(blob);
+    const w=window.open(url,"_blank");
+    if(w){w.onload=()=>{setTimeout(()=>w.print(),450);};}
+    setTimeout(()=>URL.revokeObjectURL(url),12000);
+  };
+
+  // ── Monthly Client Summary ───────────────────────────────────────────────────
+  const genMonthly=()=>{
+    const client=activeClients.find(c=>c.id===clientId);
+    if(!client)return;
+    setGenerating(true);
+    const age=calcAge(client.date_of_birth);
+    const fr=calcFallRisk(client);
+    const {highRisk,polypharmacy,medCount}=getMedFlags(client);
+    const notes=(client.session_notes||[]).filter(n=>inMonth(n.date)).sort((a,b)=>b.date.localeCompare(a.date));
+    const vitals=(client.vitals||[]).filter(v=>inMonth(v.date)).sort((a,b)=>b.date.localeCompare(a.date));
+    const appts=(client.appointments||[]).filter(a=>inMonth(a.date)).sort((a,b)=>b.date.localeCompare(a.date));
+    const incidents=(client.incidents||[]).filter(i=>inMonth(i.date)).sort((a,b)=>b.date.localeCompare(a.date));
+    const meds=(client.medications||[]).filter(m=>m.name&&m.name.trim());
+    const diagnoses=(client.diagnoses||[]).filter(d=>d.value&&d.value.trim());
+    const allergies=(client.allergies||[]).filter(a=>a.value&&a.value.trim());
+    const adl=calcAdlSummary(client.adl_logs);
+    const pain=calcPainSummary(client.pain_assessments);
+    const braden=calcBradenSummary(client.braden_assessments);
+    const cog=calcCognitiveSummary(client.cognitive_assessments);
+    const nutr=calcNutritionSummary(client.nutrition_assessments);
+    const fmtSlot=t=>{const s=[];if(t?.morning)s.push("AM");if(t?.afternoon)s.push("PM");if(t?.evening)s.push("Eve");if(t?.night)s.push("Ngt");return s.length?s.join(" · "):"—";};
+
+    let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Monthly Summary — ${client.name}</title><style>${BASE_CSS}</style></head><body><div class="page">`;
+
+    // Header
+    h+=`<div class="header-bar"><div><div class="header-title">Monthly Client Summary</div><div class="header-meta">${monthName} ${year} &nbsp;·&nbsp; ${companyName}<br>Generated: ${generatedOn} &nbsp;·&nbsp; By: ${currentUser.displayName||currentUser.email}</div></div><div style="text-align:right"><div class="header-title" style="font-size:15px">${client.name}</div><div class="header-meta">${client.status||"Active"} &nbsp;·&nbsp; ${age?"Age "+age:"DOB not set"}</div></div></div>`;
+
+    // Identity block
+    h+=`<div class="client-block"><div class="info-grid"><div class="info-row"><span class="info-label">DOB</span>${client.date_of_birth?fmtDate(client.date_of_birth):"—"}</div><div class="info-row"><span class="info-label">AZV #</span>${client.azv_number||"—"}</div><div class="info-row"><span class="info-label">Room</span>${client.room_or_address||"—"}</div><div class="info-row"><span class="info-label">Phone</span>${client.phone||"—"}</div><div class="info-row"><span class="info-label">GP</span>${client.dr_di_cas||"—"}</div><div class="info-row"><span class="info-label">Specialist</span>${client.dr_specialista||"—"}</div><div class="info-row"><span class="info-label">Emergency</span>${client.emergency_contact||"—"} ${client.emergency_phone||""}</div><div class="info-row"><span class="info-label">Status</span>${client.status||"Active"}</div></div></div>`;
+
+    // Allergy alert
+    if(allergies.length>0)h+=`<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-weight:700;color:#dc2626;font-size:11px">⚠ ALLERGIES: ${allergies.map(a=>a.value).join(" · ")}</div>`;
+
+    // Clinical snapshot
+    const badges=[];
+    badges.push(`<span class="badge ${fr.level==="High"?"br":fr.level==="Medium"?"by":"bg"}">🚶 Fall Risk: ${fr.level} (${fr.score})</span>`);
+    if(adl)badges.push(`<span class="badge ${adl.dep.label==="High"?"br":adl.dep.label==="Moderate"?"by":"bg"}">🧍 ADL: ${adl.dep.label}</span>`);
+    if(pain)badges.push(`<span class="badge ${pain.latestScore>=7?"br":pain.latestScore>=4?"by":"bg"}">🩹 Pain: ${pain.latestScore}/10</span>`);
+    if(braden)badges.push(`<span class="badge ${braden.score<=12?"br":braden.score<=14?"by":"bg"}">🛏 Braden: ${braden.score}/${BRADEN_MAX}</span>`);
+    if(cog)badges.push(`<span class="badge ${cog.level.label.includes("Severe")?"br":cog.level.label.includes("Moderate")?"by":"bg"}">🧠 ${cog.latest.test_type||"MMSE"}: ${cog.score}/30</span>`);
+    if(nutr)badges.push(`<span class="badge ${nutr.score>=2?"br":nutr.score===1?"by":"bg"}">🥗 MUST: ${nutr.score} — ${nutr.risk.label}</span>`);
+    if(polypharmacy)badges.push(`<span class="badge by">💊 Polypharmacy (${medCount} meds)</span>`);
+    if(highRisk.length>0)badges.push(`<span class="badge br">⚠ ${highRisk.length} High-Risk Med${highRisk.length>1?"s":""}</span>`);
+    h+=`<h2>Clinical Snapshot</h2><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">${badges.join("")}</div>`;
+
+    // Diagnoses
+    if(diagnoses.length>0)h+=`<h2>Diagnoses</h2><div style="display:flex;flex-wrap:wrap;gap:4px">${diagnoses.map(d=>`<span class="badge bb">${d.value}</span>`).join("")}</div>`;
+
+    // Medications
+    if(meds.length>0){
+      h+=`<h2>Current Medications</h2><table><thead><tr><th>Medication</th><th>Dosage</th><th>Frequency</th><th>Timing</th><th>High Risk</th></tr></thead><tbody>`;
+      meds.forEach(m=>{const isHR=highRisk.some(x=>x.id===m.id);h+=`<tr${isHR?" style='background:#fef2f2'":" "}><td><strong>${m.name}</strong></td><td>${m.dosage||"—"}</td><td>${m.frequency||"—"}</td><td>${fmtSlot(m.timing)}</td><td>${isHR?"<strong style='color:#dc2626'>⚠ Yes</strong>":"—"}</td></tr>`;});
+      h+=`</tbody></table>`;
+    }
+
+    // Session notes
+    h+=`<h2>Session Notes — ${monthName} ${year} (${notes.length})</h2>`;
+    if(notes.length===0){h+=`<div class="no-data">No session notes recorded this month.</div>`;}
+    else{notes.forEach(n=>{h+=`<div class="note-block"><div class="note-meta">${fmtDate(n.date)}${n.role?" &nbsp;·&nbsp; "+n.role:""}${n.staff_name?" &nbsp;·&nbsp; "+n.staff_name:""}</div><div class="note-text">${(n.text||"").replace(/</g,"&lt;")}</div></div>`;});}
+
+    // Vitals
+    h+=`<h2>Vitals — ${monthName} ${year} (${vitals.length})</h2>`;
+    if(vitals.length===0){h+=`<div class="no-data">No vitals recorded this month.</div>`;}
+    else{
+      h+=`<table><thead><tr><th>Date</th><th>BP (mmHg)</th><th>HR</th><th>Weight (kg)</th><th>Temp (°C)</th><th>O₂ (%)</th><th>Glucose</th><th>Notes</th></tr></thead><tbody>`;
+      vitals.forEach(v=>{
+        const flags=checkAbnormalVitals(v);
+        const bp=v.bp_systolic?`${v.bp_systolic}/${v.bp_diastolic||"?"}`:"-";
+        const flagHtml=flags.length?` <span class="vital-flag">⚠ ${flags.map(f=>f.label).join(", ")}</span>`:"";
+        h+=`<tr><td>${fmtDate(v.date)}</td><td>${bp}${flagHtml}</td><td>${v.heart_rate||"—"}</td><td>${v.weight||"—"}</td><td>${v.temperature||"—"}</td><td>${v.oxygen_sat||"—"}</td><td>${v.blood_sugar||"—"}</td><td style="font-size:10px;color:#64748b">${(v.notes||"").replace(/</g,"&lt;")}</td></tr>`;
+      });
+      h+=`</tbody></table>`;
+    }
+
+    // Appointments
+    h+=`<h2>Appointments — ${monthName} ${year} (${appts.length})</h2>`;
+    if(appts.length===0){h+=`<div class="no-data">No appointments recorded this month.</div>`;}
+    else{
+      h+=`<table><thead><tr><th>Date</th><th>Type</th><th>Status</th><th>Transport</th><th>Notes</th></tr></thead><tbody>`;
+      appts.forEach(a=>{const sc=a.status==="No-Show"?"color:#dc2626;font-weight:700":a.status==="Completed"?"color:#16a34a":"";h+=`<tr><td>${fmtDate(a.date)}</td><td>${a.type||"—"}</td><td style="${sc}">${a.status||"—"}</td><td>${a.transport?"Yes":"—"}</td><td style="font-size:10px">${(a.notes||"").replace(/</g,"&lt;")}</td></tr>`;});
+      h+=`</tbody></table>`;
+    }
+
+    // Incidents
+    if(incidents.length>0){
+      h+=`<h2 style="color:#dc2626;border-color:#dc2626">⚠ Incidents — ${monthName} ${year} (${incidents.length})</h2>`;
+      h+=`<table><thead><tr><th>Date</th><th>Type</th><th>Severity</th><th>Description</th><th>Action Taken</th></tr></thead><tbody>`;
+      incidents.forEach(i=>{const sc=i.severity==="Severe"?"color:#dc2626;font-weight:700":i.severity==="Moderate"?"color:#ca8a04;font-weight:700":"";h+=`<tr><td>${fmtDate(i.date)}</td><td>${i.type||"—"}</td><td style="${sc}">${i.severity||"—"}</td><td>${(i.description||"—").replace(/</g,"&lt;")}</td><td style="font-size:10px">${(i.action||i.action_taken||"—").replace(/</g,"&lt;")}</td></tr>`;});
+      h+=`</tbody></table>`;
+    }
+
+    // Care plan
+    const goals=(client.care_plan||[]).filter(g=>g.goal||g.plan);
+    if(goals.length>0){
+      h+=`<h2>Care Plan</h2><table><thead><tr><th>Goal</th><th>Plan</th><th>Status</th><th>Last Reviewed</th></tr></thead><tbody>`;
+      goals.forEach(g=>{const sb=g.status==="Achieved"?`<span class="badge bg">Achieved</span>`:g.status==="On Hold"?`<span class="badge by">On Hold</span>`:g.status==="Discontinued"?`<span class="badge br">Discontinued</span>`:`<span class="badge bb">In Progress</span>`;h+=`<tr><td>${g.goal||"—"}</td><td style="font-size:10px">${g.plan||"—"}</td><td>${sb}</td><td style="font-size:10px">${g.reviewed?fmtDate(g.reviewed):"—"}</td></tr>`;});
+      h+=`</tbody></table>`;
+    }
+
+    h+=`<div class="footer">CONFIDENTIAL — CareManager &nbsp;·&nbsp; ${companyName} &nbsp;·&nbsp; ${client.name} — Monthly Summary ${monthName} ${year} &nbsp;·&nbsp; Generated ${generatedOn}</div></div></body></html>`;
+    openPrint(h);
+    setGenerating(false);
+  };
+
+  // ── MAR ─────────────────────────────────────────────────────────────────────
+  const genMAR=()=>{
+    const client=activeClients.find(c=>c.id===clientId);
+    if(!client)return;
+    setGenerating(true);
+    const meds=(client.medications||[]).filter(m=>m.name&&m.name.trim());
+    const allergies=(client.allergies||[]).filter(a=>a.value&&a.value.trim());
+    const days=Array.from({length:daysInMonth},(_,i)=>i+1);
+    const SLOTS=[{key:"morning",label:"AM"},{key:"afternoon",label:"PM"},{key:"evening",label:"Eve"},{key:"night",label:"Ngt"}];
+
+    let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>MAR — ${client.name} — ${monthName} ${year}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:9px;color:#000;padding:10px}@page{size:A4 landscape;margin:.8cm}.ph{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e293b;padding-bottom:8px;margin-bottom:6px}.pt{font-size:15px;font-weight:700;font-family:Georgia,serif}.ci{font-size:9px;line-height:1.6;margin-top:2px}.ab{background:#fef2f2;border:2px solid #fca5a5;padding:3px 10px;font-weight:700;color:#dc2626;font-size:9px;margin-bottom:6px;border-radius:4px}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #94a3b8;padding:1px;text-align:center;font-size:8px;vertical-align:middle}.mth{text-align:left;padding:3px 5px;width:130px;font-size:9px;background:#1e293b;color:white}.sth{background:#1e293b;color:white;font-size:8px;font-weight:700;width:16px}.dth{background:#f1f5f9;font-size:7px;font-weight:700;width:18px}.mn{font-weight:700;font-size:9px}.md{font-size:7px;color:#64748b}.sc{font-size:8px;font-weight:700;color:#475569}.ac{background:#fff;height:13px}.lg{font-size:7.5px;color:#475569;margin-top:6px}.ft{text-align:center;font-size:8px;color:#94a3b8;border-top:1px solid #e2e8f0;margin-top:8px;padding-top:5px}</style></head><body>`;
+
+    h+=`<div class="ph"><div><div class="pt">Medication Administration Record (MAR)</div><div class="ci"><strong>Client:</strong> ${client.name} &nbsp;·&nbsp; <strong>DOB:</strong> ${client.date_of_birth||"—"} &nbsp;·&nbsp; <strong>Room:</strong> ${client.room_or_address||"—"} &nbsp;·&nbsp; <strong>AZV #:</strong> ${client.azv_number||"—"}</div><div class="ci"><strong>Period:</strong> ${monthName} ${year} (${daysInMonth} days) &nbsp;·&nbsp; <strong>Facility:</strong> ${companyName}</div></div><div style="text-align:right;font-size:8px;color:#475569"><div>Generated: ${generatedOn}</div><div>By: ${currentUser.displayName||currentUser.email}</div></div></div>`;
+    if(allergies.length>0)h+=`<div class="ab">⚠ ALLERGIES: ${allergies.map(a=>a.value).join(" · ")}</div>`;
+
+    if(meds.length===0){h+=`<p style="color:#94a3b8;text-align:center;padding:20px;font-style:italic">No medications on record.</p>`;}
+    else{
+      h+=`<table><thead><tr><th class="mth">Medication</th><th class="sth">Slot</th>`;
+      days.forEach(d=>{h+=`<th class="dth">${d}</th>`;});
+      h+=`</tr></thead><tbody>`;
+      meds.forEach((m,mi)=>{
+        const active=SLOTS.filter(s=>m.timing&&m.timing[s.key]);
+        const rows=active.length||1;
+        const bg=mi%2===0?"#fff":"#f8fafc";
+        if(active.length===0){
+          h+=`<tr style="background:${bg}"><td class="sc" rowspan="1" style="text-align:left;padding:3px 5px;background:${bg}"><div class="mn">${m.name}</div><div class="md">${m.dosage||""} ${m.frequency||""}</div></td><td class="sc">PRN</td>`;
+          days.forEach(()=>{h+=`<td class="ac"></td>`;});h+=`</tr>`;
+        } else {
+          active.forEach((slot,si)=>{
+            h+=`<tr style="background:${bg}">`;
+            if(si===0)h+=`<td class="sc" rowspan="${rows}" style="text-align:left;padding:3px 5px;background:${bg};vertical-align:middle"><div class="mn">${m.name}</div><div class="md">${m.dosage||""} ${m.frequency||""}</div></td>`;
+            h+=`<td class="sc">${slot.label}</td>`;
+            days.forEach(()=>{h+=`<td class="ac"></td>`;});
+            h+=`</tr>`;
+          });
+        }
+      });
+      h+=`<tr style="height:8px"><td colspan="${2+daysInMonth}" style="border:none;background:#fff"></td></tr>`;
+      h+=`<tr><td style="text-align:left;padding:4px 6px;font-weight:700;font-size:8px;height:28px">NURSE SIGNATURE / INITIALS</td><td colspan="${1+daysInMonth}" style="border:none"></td></tr>`;
+      h+=`</tbody></table>`;
+    }
+    h+=`<div class="lg">Legend: AM = Morning · PM = Afternoon · Eve = Evening · Ngt = Night · PRN = As Needed &nbsp;|&nbsp; Initial each cell after administration. Circle if withheld — document reason separately.</div>`;
+    h+=`<div class="ft">CONFIDENTIAL — ${companyName} &nbsp;·&nbsp; ${client.name} — MAR ${monthName} ${year}</div></body></html>`;
+    openPrint(h);
+    setGenerating(false);
+  };
+
+  // ── Census Report ────────────────────────────────────────────────────────────
+  const genCensus=()=>{
+    setGenerating(true);
+    const all=clients.filter(c=>!c.archived);
+    const byStatus={Active:0,Inactive:0,Discharged:0};
+    all.forEach(c=>{const s=c.status||"Active";byStatus[s]=(byStatus[s]||0)+1;});
+
+    const ageBands=[{l:"Under 65",mn:0,mx:64,n:0},{l:"65–74",mn:65,mx:74,n:0},{l:"75–84",mn:75,mx:84,n:0},{l:"85+",mn:85,mx:999,n:0},{l:"Unknown",mn:-1,mx:-1,n:0}];
+    all.forEach(c=>{const a=calcAge(c.date_of_birth);if(a===null){ageBands[4].n++;return;}const b=ageBands.find(x=>x.mn>=0&&a>=x.mn&&a<=x.mx);if(b)b.n++;});
+
+    const frCount={Low:0,Medium:0,High:0};
+    all.forEach(c=>{const fr=calcFallRisk(c);frCount[fr.level]=(frCount[fr.level]||0)+1;});
+
+    const diagCount={};
+    all.forEach(c=>(c.diagnoses||[]).filter(d=>d.value).forEach(d=>{const v=d.value.trim();diagCount[v]=(diagCount[v]||0)+1;}));
+    const topDiags=Object.entries(diagCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+    const locCount={};
+    all.forEach(c=>{const l=c.room_or_address?.trim()||"Not assigned";locCount[l]=(locCount[l]||0)+1;});
+    const topLocs=Object.entries(locCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+    const polyClients=all.filter(c=>getMedFlags(c).polypharmacy);
+    let totalNotes=0;const staffNotes={};
+    all.forEach(c=>(c.session_notes||[]).filter(n=>inMonth(n.date)).forEach(n=>{totalNotes++;const st=n.staff_name||n.role||"Unknown";staffNotes[st]=(staffNotes[st]||0)+1;}));
+    const clientsWithNotes=all.filter(c=>(c.session_notes||[]).some(n=>inMonth(n.date))).length;
+    const topStaff=Object.entries(staffNotes).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+    const highBraden=all.filter(c=>{const b=calcBradenSummary(c.braden_assessments);return b&&b.score<=14;}).length;
+    const activeWounds=all.filter(c=>{const w=calcWoundSummary(c.wound_assessments);return w&&w.activeSites.length>0;}).length;
+    const highPain=all.filter(c=>{const p=calcPainSummary(c.pain_assessments);return p&&p.latestScore>=7;}).length;
+    const highNutr=all.filter(c=>{const n=calcNutritionSummary(c.nutrition_assessments);return n&&n.score>=2;}).length;
+    const modCog=all.filter(c=>{const cg=calcCognitiveSummary(c.cognitive_assessments);return cg&&(cg.level.label.includes("Moderate")||cg.level.label.includes("Severe"));}).length;
+
+    const bar=(n,tot,col="#6366f1")=>{const p=tot>0?Math.round((n/tot)*100):0;return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px"><div style="flex:1;height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden"><div style="height:100%;width:${p}%;background:${col};border-radius:4px"></div></div><span style="font-size:10px;font-weight:700;min-width:22px">${n}</span><span style="font-size:9px;color:#94a3b8">${p}%</span></div>`;};
+
+    const CSS2=BASE_CSS+`.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.stat-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center}.stat-num{font-size:32px;font-weight:800;font-family:Georgia,serif}.stat-lbl{font-size:11px;color:#64748b;margin-top:2px}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}.sb{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:12px}.sl{font-size:10px;font-weight:800;text-transform:uppercase;color:#6366f1;letter-spacing:.5px;margin-bottom:8px}.fr{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #f0f0f0;font-size:11px}.fn{font-weight:800;font-size:13px}.cf{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center}.cfc{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px 6px}`;
+
+    let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Census Report — ${monthName} ${year}</title><style>${CSS2}</style></head><body><div class="page">`;
+    h+=`<div class="header-bar"><div><div class="header-title">Census Report</div><div class="header-meta">${companyName} &nbsp;·&nbsp; ${monthName} ${year}<br>Generated: ${generatedOn} &nbsp;·&nbsp; By: ${currentUser.displayName||currentUser.email}</div></div><div style="text-align:right"><div style="font-size:32px;font-weight:800;color:white">${all.length}</div><div class="header-meta">clients on file</div></div></div>`;
+
+    // Status strip
+    h+=`<div class="stat-grid"><div class="stat-card"><div class="stat-num" style="color:#16a34a">${byStatus.Active||0}</div><div class="stat-lbl">Active</div></div><div class="stat-card"><div class="stat-num" style="color:#ca8a04">${byStatus.Inactive||0}</div><div class="stat-lbl">Inactive</div></div><div class="stat-card"><div class="stat-num" style="color:#7c3aed">${byStatus.Discharged||0}</div><div class="stat-lbl">Discharged</div></div></div>`;
+
+    // Age + Fall Risk
+    h+=`<div class="two">`;
+    h+=`<div class="sb"><div class="sl">Age Distribution</div>`;
+    ageBands.forEach(b=>{if(b.n===0)return;const col=b.mn>=85?"#dc2626":b.mn>=75?"#f59e0b":"#6366f1";h+=`<div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:1px"><span>${b.l}</span><span style="font-weight:700">${b.n}</span></div>${bar(b.n,all.length,col)}</div>`;});
+    h+=`</div>`;
+    h+=`<div class="sb"><div class="sl">Fall Risk Distribution</div>`;
+    [["High","#dc2626"],["Medium","#f59e0b"],["Low","#16a34a"]].forEach(([lv,col])=>{h+=`<div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:1px"><span>${lv} Risk</span><span style="font-weight:700">${frCount[lv]||0}</span></div>${bar(frCount[lv]||0,all.length,col)}</div>`;});
+    h+=`</div></div>`;
+
+    // Top diagnoses + Locations
+    h+=`<div class="two">`;
+    h+=`<div class="sb"><div class="sl">Top Diagnoses</div>`;
+    if(topDiags.length===0)h+=`<div class="no-data">None recorded.</div>`;
+    topDiags.forEach(([d,n])=>{h+=`<div style="margin-bottom:4px"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:1px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">${d}</span><span style="font-weight:700">${n}</span></div>${bar(n,all.length,"#6366f1")}</div>`;});
+    h+=`</div>`;
+    h+=`<div class="sb"><div class="sl">Room / Location</div>`;
+    topLocs.forEach(([loc,n])=>{h+=`<div class="fr"><span style="overflow:hidden;text-overflow:ellipsis;max-width:120px;white-space:nowrap">${loc}</span><span class="fn">${n}</span></div>`;});
+    h+=`</div></div>`;
+
+    // Clinical flags
+    h+=`<div class="sb"><div class="sl">Clinical Flags — All Clients</div><div class="cf">`;
+    [{icon:"🛏",lbl:"Braden ≤14",n:highBraden,col:"#7c3aed"},{icon:"🩺",lbl:"Active Wounds",n:activeWounds,col:"#ef4444"},{icon:"🩹",lbl:"Severe Pain ≥7",n:highPain,col:"#f59e0b"},{icon:"🥗",lbl:"MUST High",n:highNutr,col:"#10b981"},{icon:"🧠",lbl:"Mod/Sev Cog.",n:modCog,col:"#06b6d4"}].forEach(f=>{h+=`<div class="cfc"><div style="font-size:16px">${f.icon}</div><div style="font-size:20px;font-weight:800;color:${f.col}">${f.n}</div><div style="font-size:9px;color:#64748b;margin-top:2px">${f.lbl}</div></div>`;});
+    h+=`</div></div>`;
+
+    // Medication safety + Notes activity
+    h+=`<div class="two"><div class="sb"><div class="sl">Medication Safety</div><div class="fr"><span>Polypharmacy (5+ meds)</span><span class="fn" style="color:#ca8a04">${polyClients.length}</span></div><div class="fr"><span>Rate</span><span class="fn">${all.length>0?Math.round((polyClients.length/all.length)*100):0}%</span></div></div>`;
+    h+=`<div class="sb"><div class="sl">Notes Activity — ${monthName} ${year}</div><div class="fr"><span>Total notes written</span><span class="fn">${totalNotes}</span></div><div class="fr"><span>Clients with notes</span><span class="fn">${clientsWithNotes}</span></div>`;
+    if(topStaff.length>0){h+=`<div style="margin-top:6px;font-size:9px;color:#64748b;font-weight:700">Top staff:</div>`;topStaff.forEach(([st,n])=>{h+=`<div class="fr"><span>${st}</span><span style="font-size:11px;font-weight:700">${n}</span></div>`;});}
+    h+=`</div></div>`;
+
+    h+=`<div class="footer">CONFIDENTIAL — CareManager &nbsp;·&nbsp; ${companyName} &nbsp;·&nbsp; Census Report ${monthName} ${year} &nbsp;·&nbsp; Generated ${generatedOn}</div></div></body></html>`;
+    openPrint(h);
+    setGenerating(false);
+  };
+
+  const REPORTS=[
+    {id:"monthly",icon:"📋",title:"Monthly Client Summary",desc:"Complete clinical summary for one client — notes, vitals, meds, appointments, incidents, care plan, and clinical scores.",col:"#6366f1"},
+    {id:"mar",    icon:"💊",title:"Medication Administration Record",desc:"Pre-printed blank MAR for bedside use — one row per medication per timing slot, 31-day grid, landscape A4.",col:"#ef4444"},
+    {id:"census", icon:"📊",title:"Census Report",desc:"Company-wide snapshot — client counts, age/fall risk distribution, top diagnoses, clinical flags, medication safety.",col:"#10b981"},
+  ];
+  const needsClient=report==="monthly"||report==="mar";
+  const canGenerate=!!report&&(report==="census"||(needsClient&&clientId))&&!generating;
+  const activeCol=REPORTS.find(r=>r.id===report)?.col||"#6366f1";
+  const MONTHS=MONTH_NAMES;
+
+  return(
+    <div style={{maxWidth:780,margin:"0 auto"}}>
+      <div style={{fontFamily:"Playfair Display,serif",fontSize:26,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>Reports & Exports</div>
+      <div style={{fontSize:13,color:"#64748b",marginBottom:28}}>Generate PDF reports for clinical review, compliance, and operational planning.</div>
+
+      {/* Report type selector */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:28}} className="g4">
+        {REPORTS.map(r=>(
+          <div key={r.id} onClick={()=>{setReport(r.id);setClientId("");}}
+            style={{background:"#1c1f2e",border:"2px solid "+(report===r.id?r.col:"#334155"),borderRadius:14,padding:"18px 16px",cursor:"pointer",transition:"border-color .2s",boxShadow:report===r.id?`0 0 0 1px ${r.col}35`:"6px 6px 14px rgba(0,0,0,.45),-3px -3px 8px rgba(255,255,255,.04)"}}>
+            <div style={{fontSize:28,marginBottom:8}}>{r.icon}</div>
+            <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:5}}>{r.title}</div>
+            <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>{r.desc}</div>
+          </div>
+        ))}
+      </div>
+
+      {report&&(
+        <div style={{background:"#1c1f2e",border:"1px solid "+activeCol+"55",borderRadius:14,padding:24,boxShadow:"6px 6px 14px rgba(0,0,0,.5),-3px -3px 8px rgba(255,255,255,.04)"}}>
+          <div style={{fontWeight:700,color:"#f1f5f9",fontSize:15,marginBottom:18}}>
+            {REPORTS.find(r=>r.id===report)?.icon} Configure: {REPORTS.find(r=>r.id===report)?.title}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:needsClient?"1fr 1fr 1fr":"1fr 1fr",gap:12,marginBottom:16}}>
+            <div>
+              <label style={LBL}>Month</label>
+              <select style={INP} value={month} onChange={e=>setMonth(Number(e.target.value))}>
+                {MONTHS.map((m,i)=><option key={i+1} value={i+1}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={LBL}>Year</label>
+              <select style={INP} value={year} onChange={e=>setYear(Number(e.target.value))}>
+                {[now.getFullYear(),now.getFullYear()-1,now.getFullYear()-2].map(y=><option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            {needsClient&&(
+              <div>
+                <label style={LBL}>Client *</label>
+                <select style={INP} value={clientId} onChange={e=>setClientId(e.target.value)}>
+                  <option value="">— Select client —</option>
+                  {activeClients.sort((a,b)=>a.name.localeCompare(b.name)).map(c=>(
+                    <option key={c.id} value={c.id}>{c.name}{c.room_or_address?" ("+c.room_or_address+")":""}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Info banner */}
+          <div style={{background:activeCol+"12",border:"1px solid "+activeCol+"30",borderRadius:8,padding:"10px 14px",marginBottom:18,fontSize:12,color:"#cdd5e0"}}>
+            {report==="monthly"&&<>📋 Covers all data from <strong>{MONTHS[month-1]} {year}</strong>: session notes, vitals, appointments, incidents — plus current medications, diagnoses, care plan, and all clinical scores.</>}
+            {report==="mar"&&<>💊 Blank MAR for <strong>{MONTHS[month-1]} {year}</strong> ({daysInMonth} days). Prints landscape A4. Staff initial each cell after administering; circle if dose withheld.</>}
+            {report==="census"&&<>📊 Snapshot of all <strong>{clients.filter(c=>!c.archived).length} clients</strong> on file. Note activity is counted for <strong>{MONTHS[month-1]} {year}</strong>.</>}
+          </div>
+
+          <div style={{display:"flex",alignItems:"center",gap:14}}>
+            <button onClick={report==="monthly"?genMonthly:report==="mar"?genMAR:genCensus} disabled={!canGenerate}
+              style={{padding:"12px 28px",borderRadius:10,border:"none",background:canGenerate?activeCol:"#334155",color:canGenerate?"#fff":"#64748b",fontWeight:700,fontSize:14,cursor:canGenerate?"pointer":"not-allowed",transition:"background .2s"}}>
+              {generating?"Generating PDF…":report==="monthly"?"📋 Generate Summary PDF":report==="mar"?"💊 Print MAR":"📊 Generate Census PDF"}
+            </button>
+            {needsClient&&!clientId&&<span style={{fontSize:12,color:"#64748b"}}>← Select a client to continue</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function UserProfile({currentUser,onUpdate,onClose,t}){
   const [tab,setTab]=useState("profile"); // profile | password | history | sessions
   const [form,setForm]=useState({displayName:currentUser.displayName||"",username:currentUser.username||""});
@@ -6150,6 +6485,10 @@ export default function App(){
                 {t.auditTrail}
               </button>
             )}
+            <button onClick={()=>{setView("reports");setSelected(null);setSidebarOpen(false);}}
+              style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="reports"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="reports"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="reports"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+              📊 Reports
+            </button>
             {can(currentUser.role,"company")&&(
               <button onClick={()=>{setView("company");setSelected(null);setSidebarOpen(false);}}
                 style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="company"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="company"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="company"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
@@ -6297,6 +6636,7 @@ export default function App(){
           {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#ef4444",fontSize:14}}>{error}</div>}
           {loading&&view==="dashboard"&&<div style={{color:"#475569",textAlign:"center",padding:"60px 0"}}>Loading...</div>}
           {!loading&&view==="audit"&&can(currentUser.role,"audit")&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
+          {!loading&&view==="reports"&&<ReportsView clients={clients} company={company} currentUser={currentUser} t={t}/>}
           {!loading&&view==="company"&&can(currentUser.role,"company")&&(
             <CompanyView company={company} onUpdate={updated=>{setCompany(updated);}} currentUser={currentUser} t={t}/>
           )}
