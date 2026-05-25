@@ -1,22 +1,26 @@
-import { useState, useEffect, useCallback, useRef, Fragment } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://kpwzeawgrqdsezflvjkm.supabase.co";
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwd3plYXdncnFkc2V6Zmx2amttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1Mzc1MzIsImV4cCI6MjA5NTExMzUzMn0.-fvmwgZqwyddWyq1IJ4vcHvsTVMpPmhI72p4hyCtC6E";
-const SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY || "";
-
 const supabase = createClient(SUPABASE_URL, ANON_KEY);
-const supabaseAdmin = SERVICE_KEY
-  ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
-  : supabase;
+// supabaseAdmin: auth.admin.createUser() requires a service role key, which must NOT be a VITE_ env var
+// (VITE_ vars are baked into the JS bundle and visible to anyone). Until an Edge Function is set up,
+// createUser falls back to supabase (anon key) and will receive a 401 from Supabase Auth Admin API.
+// TODO: move createUser to a Supabase Edge Function that holds the service key as a server secret.
+const supabaseAdmin = supabase;
 const GCSS = [
   "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap');",
   "* { box-sizing: border-box; margin: 0; padding: 0; }",
-  "body { font-family: Inter, sans-serif; background: #0f172a; color: #e2e8f0; }",
+  "body { font-family: Inter, sans-serif; background: #1c1f2e; color: #cdd5e0; }",
   "input, textarea, select { font-family: inherit; }",
-  "input:focus, textarea:focus, select:focus { outline: none; border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }",
+  "input:focus, textarea:focus, select:focus { outline: none; border-color: #7dd3fc !important; box-shadow: 0 0 0 3px rgba(125,211,252,0.12); }",
   "button { font-family: inherit; cursor: pointer; } button:hover { opacity: 0.88; }",
-  "::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }",
+  "::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #2a2e42; border-radius: 3px; }",
+  ".client-row { transition: transform 0.2s ease, box-shadow 0.2s ease !important; }",
+  ".client-row:hover { transform: translateX(4px) !important; box-shadow: 4px 4px 12px rgba(0,0,0,0.6), -2px -2px 6px rgba(255,255,255,0.04) !important; }",
+  ".dash-row { transition: transform 0.18s ease, box-shadow 0.18s ease !important; }",
+  ".dash-row:hover { transform: translateX(3px) !important; box-shadow: 3px 3px 10px rgba(0,0,0,0.55) !important; }",
   ".sidebar { transition: transform 0.25s ease; }",
   "@media (max-width: 768px) {",
   "  .sidebar { position: fixed !important; left: 0; top: 0; height: 100vh; z-index: 200; transform: translateX(-100%); }",
@@ -32,7 +36,7 @@ const GCSS = [
   "  .overlay { display: none !important; }",
   "  .mob-hdr { display: none !important; }",
   "}",
-  ".mob-hdr { display: none; align-items: center; justify-content: space-between; padding: 14px 20px; background: #1e293b; border-bottom: 1px solid #334155; position: sticky; top: 0; z-index: 100; }",
+  ".mob-hdr { display: none; align-items: center; justify-content: space-between; padding: 14px 20px; background: #1a1d2b; border-bottom: 1px solid rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 100; }",
   ".overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 199; }",
   ".overlay.show { display: block; }",
   "@media print {",
@@ -534,7 +538,7 @@ function SearchDrop({value,onChange,options,placeholder}){
         onFocus={()=>setOpen(true)}/>
       <span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:"#475569",fontSize:10,pointerEvents:"none"}}>v</span>
       {open&&filtered.length>0&&(
-        <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#1e293b",border:"1px solid #334155",borderRadius:8,zIndex:999,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",maxHeight:220,overflowY:"auto"}}>
+        <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#1c1f2e",border:"1px solid #334155",borderRadius:8,zIndex:999,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",maxHeight:220,overflowY:"auto"}}>
           {filtered.map(opt=>(
             <div key={opt} onMouseDown={()=>pick(opt)}
               style={{padding:"9px 12px",cursor:"pointer",fontSize:13,color:"#cbd5e1",borderBottom:"1px solid #0f172a"}}>
@@ -555,7 +559,7 @@ function SearchDrop({value,onChange,options,placeholder}){
 function Sec({icon,title,accent,children,defaultOpen=true}){
   const [open,setOpen]=useState(defaultOpen);
   return(
-    <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,marginBottom:16,overflow:"visible"}}>
+    <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,marginBottom:16,overflow:"visible"}}>
       <button onClick={()=>setOpen(o=>!o)}
         style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"14px 18px",background:"none",border:"none",borderBottom:open?"1px solid #334155":"none"}}>
         <span style={{fontSize:18}}>{icon}</span>
@@ -1275,7 +1279,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
   const scols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6"};
   return(
     <div style={{paddingBottom:40}}>
-      <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
+      <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
         <PhotoUp value={d.photo_url} onChange={v=>s("photo_url",v)} clientId={d.id} t={t}/>
         <Sec icon="👤" title={t.personalInfo} defaultOpen={true}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -1354,7 +1358,7 @@ function EmergCard({client,onClose,t}){
   };
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}}>
-      <div style={{background:"#1e293b",borderRadius:16,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",border:"1px solid #334155"}}>
+      <div style={{background:"#1c1f2e",borderRadius:16,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",border:"1px solid #334155"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid #334155"}}>
           <span style={{fontWeight:700,color:"#ef4444",fontSize:16}}>Emergency Card</span>
           <div style={{display:"flex",gap:8}}>
@@ -1457,7 +1461,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
         {client.archived?(
           <>
             <span style={{fontSize:12,fontWeight:700,padding:"8px 14px",borderRadius:8,background:"rgba(239,68,68,0.1)",color:"#f87171",border:"1px solid rgba(239,68,68,0.25)",alignSelf:"center"}}>📦 Archived</span>
-            {onRestore&&<button onClick={onRestore} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#10b981",color:"#fff",fontWeight:600,fontSize:13}}>♻️ Restore</button>}
+            {onRestore&&canEdit&&<button onClick={onRestore} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#10b981",color:"#fff",fontWeight:600,fontSize:13}}>♻️ Restore</button>}
             {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #ef4444",background:"rgba(239,68,68,0.1)",color:"#ef4444",fontWeight:600,fontSize:13}}>🗑️ Delete Permanently</button>}
           </>
         ):(
@@ -1476,7 +1480,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           <div style={{fontSize:22,fontWeight:700,color:"#1e293b",fontFamily:"serif"}}>CareManager - Client Profile</div>
           <div style={{fontSize:11,color:"#64748b",marginTop:4}}>Printed on {new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</div>
         </div>
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,marginBottom:16}}>
           <div style={{display:"flex",alignItems:"center",gap:18,padding:20}}>
             <div style={{width:72,height:72,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,fontWeight:800,color:"#fff",flexShrink:0,overflow:"hidden"}}>
               {client.photo_url?<img src={client.photo_url} alt={client.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(client.name)}
@@ -1516,13 +1520,13 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {fa.length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:10}}>ALLERGIES</div>
             {fa.map(a=><span key={a.id} style={{display:"inline-block",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:20,padding:"3px 10px",fontSize:12,color:"#f59e0b",fontWeight:600,margin:2}}>{a.value}</span>)}
           </div>
         )}
         {fd.length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:10}}>DIAGNOSES</div>
             {fd.map(d=><span key={d.id} style={{display:"inline-block",background:"rgba(6,182,212,0.1)",border:"1px solid rgba(6,182,212,0.2)",borderRadius:20,padding:"3px 10px",fontSize:12,color:"#06b6d4",fontWeight:600,margin:2}}>{d.value}</span>)}
           </div>
@@ -1531,7 +1535,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           const sched=TSLOTS.map(slot=>({...slot,meds:fm.filter(m=>m.timing&&m.timing[slot.key])})).filter(s=>s.meds.length>0);
           const labs={morning:t.morning,afternoon:t.afternoon,evening:t.evening,night:t.night};
           return(
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
               <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:12}}>MEDICATIONS</div>
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:sched.length>0?16:0}}>
                 {fm.map(m=><div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"#0f172a",borderRadius:8}}>
@@ -1557,7 +1561,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           );
         })()}
         {(client.inventory||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <div style={{fontWeight:700,color:"#10b981",fontSize:13}}>INVENTORY</div>
               <div style={{fontSize:12,color:"#64748b"}}>{(client.inventory||[]).length} items{(client.inventory||[]).reduce((s,i)=>s+(parseFloat(i.value)||0),0)>0&&" - AWG "+(client.inventory||[]).reduce((s,i)=>s+(parseFloat(i.value)||0),0).toFixed(2)}</div>
@@ -1567,8 +1571,8 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
                 const cc={Excellent:"#10b981",Good:"#06b6d4",Fair:"#f59e0b",Poor:"#ef4444"};
                 const c=cc[item.condition]||"#64748b";
                 return(
-                  <div key={item.id} style={{background:"#0f172a",borderRadius:8,overflow:"hidden",border:"1px solid #334155"}}>
-                    {item.photo_url?<img src={item.photo_url} alt={item.name} style={{width:"100%",height:90,objectFit:"cover",display:"block"}}/>:<div style={{width:"100%",height:90,background:"#1e293b",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"#475569"}}>+</div>}
+                  <div key={item.id} style={{background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,overflow:"hidden",border:"1px solid #334155"}}>
+                    {item.photo_url?<img src={item.photo_url} alt={item.name} style={{width:"100%",height:90,objectFit:"cover",display:"block"}}/>:<div style={{width:"100%",height:90,background:"#1c1f2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"#475569"}}>+</div>}
                     <div style={{padding:"8px 10px"}}>
                       <div style={{fontWeight:700,fontSize:12,color:"#f1f5f9",marginBottom:4}}>{item.name||"Item"}</div>
                       <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
@@ -1584,7 +1588,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {(client.documents||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>DOCUMENTS</div>
             {(client.documents||[]).map(doc=>{
               const days=daysUntil(doc.expiry);
@@ -1602,7 +1606,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {(client.care_plan||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>CARE PLAN</div>
             {(client.care_plan||[]).map(item=>{
               const gs=GSTATUSES.find(s=>s.value===item.status)||GSTATUSES[0];
@@ -1619,12 +1623,12 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {(client.vitals||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <VitalsTracker vitals={client.vitals||[]} onChange={()=>{}} t={t}/>
           </div>
         )}
         {fn.length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:12}}>SESSION NOTES</div>
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               {fn.map(n=>(
@@ -1642,7 +1646,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
       </div>
         {/* Family Contacts */}
         {(client.family_contacts||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#ec4899",fontSize:13,marginBottom:12}}>👨‍👩‍👧 FAMILY CONTACTS</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {(client.family_contacts||[]).map(c=>(
@@ -1659,26 +1663,75 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
         )}
         {/* Appointments */}
         {(client.appointments||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>📅 APPOINTMENTS</div>
             <AppointmentLog items={client.appointments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("appointments",v):()=>{}}/>
           </div>
         )}
         {/* Incidents */}
         {(client.incidents||[]).length>0&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:12}}>⚠️ INCIDENT REPORTS</div>
             <IncidentReports items={client.incidents||[]} onChange={onInlineUpdate?v=>onInlineUpdate("incidents",v):()=>{}} currentUser={currentUser}/>
           </div>
         )}
         {/* Intake Checklist */}
         {(()=>{const ic=client.intake_checklist||[];return(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
             <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>✅ INTAKE CHECKLIST</div>
             <IntakeChecklist items={ic} onChange={onInlineUpdate?v=>onInlineUpdate("intake_checklist",v):()=>{}} currentUser={currentUser}/>
           </div>
         );})()}
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
+    </div>
+  );
+}
+
+function TiltCard({icon,label,value,color}){
+  const ref=useRef(null);
+  useEffect(()=>{
+    const el=ref.current;if(!el)return;
+    const base="6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)";
+    const hot="10px 10px 20px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05)";
+    const onMove=e=>{
+      const r=el.getBoundingClientRect();
+      const x=(e.clientX-r.left)/r.width-0.5;
+      const y=(e.clientY-r.top)/r.height-0.5;
+      el.style.transform=`rotateX(${-y*18}deg) rotateY(${x*18}deg) translateZ(24px) scale(1.04)`;
+      el.style.boxShadow=hot;
+    };
+    const onLeave=()=>{el.style.transform="";el.style.boxShadow=base;};
+    el.addEventListener("mousemove",onMove);
+    el.addEventListener("mouseleave",onLeave);
+    return()=>{el.removeEventListener("mousemove",onMove);el.removeEventListener("mouseleave",onLeave);};
+  },[]);
+  return(
+    <div ref={ref} style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:18,padding:"20px 24px",display:"flex",alignItems:"center",gap:16,transition:"transform 0.15s ease, box-shadow 0.15s ease",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:"50%",background:"linear-gradient(180deg,rgba(255,255,255,0.06),transparent)",pointerEvents:"none",borderRadius:"inherit"}}/>
+      <div style={{width:48,height:48,borderRadius:12,background:color+"25",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,boxShadow:"3px 3px 8px rgba(0,0,0,0.5), -1px -1px 4px rgba(255,255,255,0.04)"}}>{icon}</div>
+      <div>
+        <div style={{fontSize:28,fontWeight:800,color:"#cdd5e0",lineHeight:1}}>{value}</div>
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.35)",marginTop:4}}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function FlipCard({frontIcon,frontLabel,backValue,backSub,backGradient}){
+  const [flipped,setFlipped]=useState(false);
+  return(
+    <div style={{height:130,perspective:"600px"}} onMouseEnter={()=>setFlipped(true)} onMouseLeave={()=>setFlipped(false)}>
+      <div style={{position:"relative",width:"100%",height:"100%",transformStyle:"preserve-3d",transition:"transform 0.45s cubic-bezier(0.4,0,0.2,1)",transform:flipped?"rotateY(180deg)":"rotateY(0deg)"}}>
+        <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:18,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,overflow:"hidden"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:"50%",background:"linear-gradient(180deg,rgba(255,255,255,0.06),transparent)",pointerEvents:"none"}}/>
+          <div style={{fontSize:32}}>{frontIcon}</div>
+          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.35)",letterSpacing:0.5,textTransform:"uppercase"}}>{frontLabel}</div>
+        </div>
+        <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",background:backGradient,boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:18,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,transform:"rotateY(180deg)"}}>
+          <div style={{fontSize:36,fontWeight:800,color:"#fff",lineHeight:1}}>{backValue}</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.72)",textAlign:"center",padding:"0 16px",lineHeight:1.5}}>{backSub}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1719,12 +1772,14 @@ function Dashboard({clients,onSelect,t,currentUser}){
   const ag={"60-69":0,"70-79":0,"80-89":0,"90+":0,"Unknown":0};
   clients.forEach(c=>{const a=c.date_of_birth?calcAge(c.date_of_birth):null;if(a===null)ag["Unknown"]++;else if(a<70)ag["60-69"]++;else if(a<80)ag["70-79"]++;else if(a<90)ag["80-89"]++;else ag["90+"]++;});
   const sc={Active:clients.filter(c=>(c.status||"Active")==="Active").length,Inactive:clients.filter(c=>c.status==="Inactive").length,Discharged:clients.filter(c=>c.status==="Discharged").length};
-  const scard=(icon,label,value,color)=>(
-    <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"20px 24px",display:"flex",alignItems:"center",gap:16}}>
-      <div style={{width:48,height:48,borderRadius:12,background:color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{icon}</div>
-      <div><div style={{fontSize:28,fontWeight:800,color:"#f1f5f9",lineHeight:1}}>{value}</div><div style={{fontSize:13,color:"#64748b",marginTop:4}}>{label}</div></div>
-    </div>
-  );
+  // Flip card data
+  const _now7=new Date();_now7.setDate(_now7.getDate()-7);
+  const incidentLast7=clients.reduce((s,c)=>s+(c.incidents||[]).filter(inc=>inc.date&&new Date(inc.date)>=_now7).length,0);
+  const intakeItems=clients.flatMap(c=>c.intake_checklist||[]);
+  const intakeDone=intakeItems.filter(i=>i.done).length;
+  const intakeTotal=intakeItems.length;
+  const intakePct=intakeTotal>0?Math.round(intakeDone/intakeTotal*100):0;
+  const highRiskMedsCount=clients.reduce((s,c)=>s+getMedFlags(c).highRisk.length,0);
   return(
     <div>
       <div style={{marginBottom:24}}>
@@ -1733,23 +1788,28 @@ function Dashboard({clients,onSelect,t,currentUser}){
           {Object.entries(sc).map(([s,c])=>{const cols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6"};const col=cols[s];return <span key={s} style={{fontSize:12,fontWeight:700,padding:"4px 12px",borderRadius:20,background:col+"20",color:col,border:"1px solid "+col+"40"}}>{s}: {c}</span>;})}
         </div>
       </div>
-      <div className="g4" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:20}}>
-        {scard("👥",t.totalClients,total,"#6366f1")}
-        {scard("💊",t.totalMeds,totalMeds,"#ef4444")}
-        {scard("⚠️",t.allergyAlerts,totalAllergies,"#f59e0b")}
-        {scard("🩺",t.diagnosesLogged,totalDiag,"#06b6d4")}
+      <div className="g4" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:20,perspective:"800px"}}>
+        <TiltCard icon="👥" label={t.totalClients} value={total} color="#6366f1"/>
+        <TiltCard icon="💊" label={t.totalMeds} value={totalMeds} color="#ef4444"/>
+        <TiltCard icon="⚠️" label={t.allergyAlerts} value={totalAllergies} color="#f59e0b"/>
+        <TiltCard icon="🩺" label={t.diagnosesLogged} value={totalDiag} color="#06b6d4"/>
+      </div>
+      <div className="g4" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,marginBottom:20}}>
+        <FlipCard frontIcon="💊" frontLabel="Medications" backValue={highRiskMedsCount} backSub="High-risk medication flags across all clients" backGradient="linear-gradient(135deg,#7f1d1d,#ef4444)"/>
+        <FlipCard frontIcon="📋" frontLabel="Intake Progress" backValue={intakePct+"%"} backSub={intakeDone+" of "+intakeTotal+" intake items completed"} backGradient="linear-gradient(135deg,#065f46,#10b981)"/>
+        <FlipCard frontIcon="⚠️" frontLabel="Incidents" backValue={incidentLast7} backSub="Incidents reported in the last 7 days" backGradient="linear-gradient(135deg,#78350f,#f59e0b)"/>
       </div>
       <div className="g2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
           <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:14}}>ALLERGY ALERTS</div>
           {allergyClients.length===0?<div style={{color:"#475569",fontSize:13}}>{t.noAllergies}</div>:allergyClients.map(c=>(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
               <div style={{flex:1}}><div style={{fontWeight:600,fontSize:13,color:"#f1f5f9"}}>{c.name}</div><div style={{fontSize:12,color:"#f59e0b"}}>{(c.allergies||[]).filter(a=>a.value&&a.value.trim()).map(a=>a.value).join(", ")}</div></div>
             </div>
           ))}
         </div>
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
           <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:14}}>AGE DISTRIBUTION</div>
           {total===0?<div style={{color:"#475569",fontSize:13}}>{t.noClients}</div>:Object.entries(ag).filter(([,v])=>v>0).map(([group,count])=>(
             <div key={group} style={{marginBottom:10}}>
@@ -1764,10 +1824,10 @@ function Dashboard({clients,onSelect,t,currentUser}){
         </div>
       </div>
       {expiring.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:14}}>DOCUMENT EXPIRY ALERTS</div>
           {expiring.map((d,i)=>{const badge=expiryBadge(d.days);return(
-            <div key={i} onClick={()=>onSelect(d.client)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+            <div key={i} onClick={()=>onSelect(d.client)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(d.clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(d.clientName)}</div>
               <div style={{flex:1}}><span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{d.clientName}</span><span style={{fontSize:12,color:"#64748b"}}> - {d.name}</span></div>
               {badge&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:badge.bg,color:badge.color,whiteSpace:"nowrap"}}>{d.days<0?"Expired":d.days+"d left"}</span>}
@@ -1776,10 +1836,10 @@ function Dashboard({clients,onSelect,t,currentUser}){
         </div>
       )}
       {flagged.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:14}}>MEDICATION FLAGS</div>
           {flagged.map(c=>{const {highRisk,polypharmacy,medCount}=getMedFlags(c);return(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(c.name)}</div>
               <div style={{flex:1}}>
                 <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{c.name}</div>
@@ -1794,13 +1854,13 @@ function Dashboard({clients,onSelect,t,currentUser}){
       )}
       {/* ── Birthdays ── */}
       {birthdays.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#ec4899",fontSize:13,marginBottom:14}}>🎂 UPCOMING BIRTHDAYS</div>
           {birthdays.map(c=>{
             const thisWeek=c.bDays<=7;
             const age=calcAge(c.date_of_birth);
             return(
-              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
                 <div style={{flex:1}}>
                   <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{c.name}</span>
@@ -1817,10 +1877,10 @@ function Dashboard({clients,onSelect,t,currentUser}){
 
       {/* ── Abnormal Vitals ── */}
       {abnormalVitals.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:14}}>🩺 ABNORMAL VITALS</div>
           {abnormalVitals.map(({client:c,clientName,date,flags})=>(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(clientName)}</div>
               <div style={{flex:1}}>
                 <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{clientName} <span style={{fontSize:11,color:"#475569",fontWeight:400}}>— recorded {new Date(date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></div>
@@ -1839,7 +1899,7 @@ function Dashboard({clients,onSelect,t,currentUser}){
 
       {/* ── Allergy ↔ Med Conflicts ── */}
       {allergyMedAlerts.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #ef4444",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",border:"1px solid #ef4444",borderRadius:12,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:4}}>⚠️ ALLERGY — MEDICATION CONFLICTS</div>
           <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>A prescribed medication matches a known allergy. Review immediately.</div>
           {allergyMedAlerts.map(({client:c,clientName,conflicts})=>(
@@ -1863,11 +1923,11 @@ function Dashboard({clients,onSelect,t,currentUser}){
 
       {/* ── Care Plan Staleness ── */}
       {stalePlans.length>0&&(
-        <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:4}}>📋 CARE PLAN REVIEW OVERDUE</div>
           <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Care plan items not reviewed in 90+ days.</div>
           {stalePlans.map(c=>(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
               <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{c.name}</div></div>
               <span style={{fontSize:11,fontWeight:700,padding:"2px 10px",borderRadius:20,background:"rgba(139,92,246,0.15)",color:"#a78bfa",whiteSpace:"nowrap"}}>{c.stalestDays}d since review</span>
@@ -1876,10 +1936,10 @@ function Dashboard({clients,onSelect,t,currentUser}){
         </div>
       )}
 
-      <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+      <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
         <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:14}}>RECENT SESSION NOTES</div>
         {rn.length===0?<div style={{color:"#475569",fontSize:13}}>{t.noNotes}</div>:rn.map((n,i)=>(
-          <div key={i} onClick={()=>onSelect(n.client)} style={{display:"flex",gap:12,padding:"10px 14px",background:"#0f172a",borderRadius:8,cursor:"pointer",marginBottom:8}}>
+          <div key={i} onClick={()=>onSelect(n.client)} style={{display:"flex",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
             <div style={{width:36,height:36,borderRadius:"50%",background:avatarColor(n.clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(n.clientName)}</div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
@@ -1903,12 +1963,13 @@ function AuditTrail({t,companyId,currentUser}){
   const [fS,setFS]=useState("");
   const [fA,setFA]=useState("");
   const [fCo,setFCo]=useState("");
+  const [fSec,setFSec]=useState("");
   const [fFrom,setFFrom]=useState("");
   const [fTo,setFTo]=useState("");
+  const [expandedRow,setExpandedRow]=useState(null);
 
   useEffect(()=>{
     setLoading(true);
-    // Superadmin sees all companies; others scoped to their company
     const isSA=currentUser?.role==="superadmin";
     const q=supabase.from("audit_log").select("*").order("performed_at",{ascending:false}).limit(1000);
     ((!isSA)&&companyId?q.eq("company_id",companyId):q).then(({data})=>{
@@ -1920,7 +1981,7 @@ function AuditTrail({t,companyId,currentUser}){
   const coName=id=>companies.find(c=>c.id===id)?.name||"—";
   const sl=[...new Set(logs.map(l=>l.performed_by))].filter(Boolean).sort();
   const al=[...new Set(logs.map(l=>l.action))].filter(Boolean).sort();
-  // Only show companies that actually appear in the log
+  const secList=[...new Set(logs.map(l=>l.section))].filter(Boolean).sort();
   const coIds=[...new Set(logs.map(l=>l.company_id))].filter(Boolean);
   const filterCos=companies.filter(c=>coIds.includes(c.id));
 
@@ -1928,19 +1989,31 @@ function AuditTrail({t,companyId,currentUser}){
     if(fS&&l.performed_by!==fS)return false;
     if(fA&&l.action!==fA)return false;
     if(fCo&&l.company_id!==fCo)return false;
+    if(fSec&&l.section!==fSec)return false;
     const d=l.performed_at?l.performed_at.slice(0,10):"";
     if(fFrom&&d<fFrom)return false;
     if(fTo&&d>fTo)return false;
     return true;
   });
 
-  const hasFilter=fS||fA||fCo||fFrom||fTo;
-  const clearFilters=()=>{setFS("");setFA("");setFCo("");setFFrom("");setFTo("");};
+  const hasFilter=fS||fA||fCo||fSec||fFrom||fTo;
+  const clearFilters=()=>{setFS("");setFA("");setFCo("");setFSec("");setFFrom("");setFTo("");};
+
+  // Section badge colours
+  const sectionColor={
+    "Client Profile":"#34d399","User Management":"#f59e0b","Appointments":"#60a5fa",
+    "Incidents":"#f87171","Medications":"#a78bfa","Documents":"#fb923c",
+    "Vitals":"#2dd4bf","Notes":"#94a3b8","Intake":"#fbbf24",
+  };
+  const secColor=s=>sectionColor[s]||"#64748b";
+
+  // Role label color
+  const roleColor={superadmin:"#f59e0b",admin:"#a78bfa",power_user:"#34d399",user:"#64748b",inactive:"#ef4444"};
 
   const doExport=()=>{
-    const rows=filtered.map(l=>"<tr><td>"+new Date(l.performed_at).toLocaleString("en-US")+"</td><td>"+(l.performed_by||"-")+"</td><td>"+(l.action||"-")+"</td><td>"+(l.client_name||"-")+"</td><td>"+coName(l.company_id)+"</td></tr>").join("");
-    const style="body{font-family:Arial,sans-serif;padding:24px}h1{font-size:20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f8f9fa;padding:8px;text-align:left;border-bottom:2px solid #dee2e6}td{padding:7px 8px;border-bottom:1px solid #f0f0f0}";
-    const html="<!DOCTYPE html><html><head><title>Audit Trail</title><style>"+style+"</style></head><body><h1>Audit Trail</h1><p style='color:#6c757d;font-size:12px'>Exported "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})+" — "+filtered.length+" records"+(fFrom||fTo?" — "+( fFrom||"start")+" → "+(fTo||"now"):"")+"</p><table><thead><tr><th>Date & Time</th><th>Staff</th><th>Action</th><th>Client</th><th>Company</th></tr></thead><tbody>"+rows+"</tbody></table></body></html>";
+    const rows=filtered.map(l=>"<tr><td>"+new Date(l.performed_at).toLocaleString("en-US")+"</td><td>"+(l.performed_by||"-")+(l.performed_role?" ("+l.performed_role+")":"")+"</td><td>"+(l.section?l.section+" — ":"")+(l.action||"-")+"</td><td>"+(l.details||"-")+"</td><td>"+(l.client_name||"-")+"</td><td>"+coName(l.company_id)+"</td></tr>").join("");
+    const style="body{font-family:Arial,sans-serif;padding:24px}h1{font-size:20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f8f9fa;padding:8px;text-align:left;border-bottom:2px solid #dee2e6}td{padding:7px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}";
+    const html="<!DOCTYPE html><html><head><title>Audit Trail</title><style>"+style+"</style></head><body><h1>Audit Trail</h1><p style='color:#6c757d;font-size:12px'>Exported "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})+" — "+filtered.length+" records"+(fFrom||fTo?" — "+(fFrom||"start")+" → "+(fTo||"now"):"")+"</p><table><thead><tr><th>Date & Time</th><th>Staff</th><th>Action</th><th>Details</th><th>Client</th><th>Company</th></tr></thead><tbody>"+rows+"</tbody></table></body></html>";
     const blob=new Blob([html],{type:"text/html"});
     const url=URL.createObjectURL(blob);
     const w=window.open(url,"_blank");
@@ -1959,8 +2032,8 @@ function AuditTrail({t,companyId,currentUser}){
         {hasFilter&&<button onClick={clearFilters} style={{padding:"3px 10px",borderRadius:6,border:"1px solid #334155",background:"transparent",color:"#f59e0b",fontSize:11,fontWeight:700}}>✕ Clear filters</button>}
       </div>
 
-      {/* Filters — row 1: staff / action / company */}
-      <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:10}}>
+      {/* Filters — row 1: staff / action / section / company */}
+      <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12,marginBottom:10}}>
         <div><label style={LBL}>{t.filterStaff}</label>
           <select style={{...INP,cursor:"pointer"}} value={fS} onChange={e=>setFS(e.target.value)}>
             <option value="">{t.allStaff}</option>
@@ -1971,6 +2044,12 @@ function AuditTrail({t,companyId,currentUser}){
           <select style={{...INP,cursor:"pointer"}} value={fA} onChange={e=>setFA(e.target.value)}>
             <option value="">{t.allActions}</option>
             {al.map(a=><option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+        <div><label style={LBL}>Section</label>
+          <select style={{...INP,cursor:"pointer"}} value={fSec} onChange={e=>setFSec(e.target.value)}>
+            <option value="">All Sections</option>
+            {secList.map(s=><option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div><label style={LBL}>Company</label>
@@ -1999,33 +2078,62 @@ function AuditTrail({t,companyId,currentUser}){
         </div>
       )}
 
-      <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflowX:"auto"}}>
+      <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
         {loading
           ?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.loadingAudit}</div>
           :filtered.length===0
             ?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.noAudit}</div>
-            :<table style={{width:"100%",borderCollapse:"collapse",minWidth:650}}>
-              <thead>
-                <tr style={{borderBottom:"1px solid #334155"}}>
-                  {["Date & Time","Staff","Action","Client","Company"].map(h=>(
-                    <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,whiteSpace:"nowrap"}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((l,i)=>(
-                  <tr key={l.id} style={{borderBottom:"1px solid #1e293b",background:i%2===0?"transparent":"rgba(255,255,255,0.02)"}}>
-                    <td style={{padding:"10px 16px",fontSize:12,color:"#64748b",whiteSpace:"nowrap"}}>{new Date(l.performed_at).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}</td>
-                    <td style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{l.performed_by||"—"}</td>
-                    <td style={{padding:"10px 16px",fontSize:13}}>
-                      <span style={{background:"rgba(99,102,241,0.1)",color:"#a5b4fc",borderRadius:6,padding:"2px 8px",fontSize:12,fontWeight:600}}>{l.action||"—"}</span>
-                    </td>
-                    <td style={{padding:"10px 16px",fontSize:13,color:"#94a3b8"}}>{l.client_name||"—"}</td>
-                    <td style={{padding:"10px 16px",fontSize:12,color:"#475569"}}>{coName(l.company_id)}</td>
+            :<div style={{overflow:"auto",maxHeight:"65vh",WebkitOverflowScrolling:"touch"}}>
+              <table style={{borderCollapse:"collapse",minWidth:820,width:"100%"}}>
+                <thead style={{position:"sticky",top:0,zIndex:2}}>
+                  <tr style={{background:"#161927",borderBottom:"1px solid #334155"}}>
+                    {["Date & Time","Staff","Action & Details","Client","Company"].map(h=>(
+                      <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,whiteSpace:"nowrap"}}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>}
+                </thead>
+                <tbody>
+                  {filtered.map((l,i)=>{
+                    const isExpanded=expandedRow===l.id;
+                    const hasDevice=!!l.device;
+                    return(
+                      <Fragment key={l.id}>
+                        <tr style={{borderBottom:isExpanded?"none":"1px solid #1e293b",background:i%2===0?"transparent":"rgba(255,255,255,0.02)",cursor:hasDevice?"pointer":"default"}}
+                          onClick={()=>hasDevice&&setExpandedRow(isExpanded?null:l.id)}>
+                          <td style={{padding:"10px 16px",fontSize:12,color:"#64748b",whiteSpace:"nowrap",verticalAlign:"top"}}>
+                            {new Date(l.performed_at).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}
+                          </td>
+                          <td style={{padding:"10px 16px",verticalAlign:"top",whiteSpace:"nowrap"}}>
+                            <div style={{fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{l.performed_by||"—"}</div>
+                            {l.performed_role&&<div style={{fontSize:11,color:roleColor[l.performed_role]||"#64748b",marginTop:2,fontWeight:600,textTransform:"capitalize"}}>{l.performed_role.replace(/_/g," ")}</div>}
+                          </td>
+                          <td style={{padding:"10px 16px",verticalAlign:"top",minWidth:260,maxWidth:360}}>
+                            <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:l.details?4:0}}>
+                              <span style={{background:"rgba(99,102,241,0.12)",color:"#a5b4fc",borderRadius:6,padding:"2px 8px",fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>{l.action||"—"}</span>
+                              {l.section&&<span style={{background:"rgba(0,0,0,0.25)",color:secColor(l.section),border:"1px solid "+secColor(l.section)+"44",borderRadius:5,padding:"1px 7px",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>{l.section}</span>}
+                              {hasDevice&&<span style={{fontSize:10,color:"#334155",marginLeft:"auto"}}>▾</span>}
+                            </div>
+                            {l.details&&<div style={{fontSize:12,color:"#64748b",lineHeight:1.5,marginTop:2}}>{l.details}</div>}
+                          </td>
+                          <td style={{padding:"10px 16px",fontSize:13,color:"#94a3b8",verticalAlign:"top",whiteSpace:"nowrap"}}>{l.client_name||"—"}</td>
+                          <td style={{padding:"10px 16px",fontSize:12,color:"#475569",verticalAlign:"top",whiteSpace:"nowrap"}}>{coName(l.company_id)}</td>
+                        </tr>
+                        {isExpanded&&hasDevice&&(
+                          <tr style={{borderBottom:"1px solid #1e293b",background:"rgba(99,102,241,0.04)"}}>
+                            <td colSpan={5} style={{padding:"6px 16px 10px 48px"}}>
+                              <div style={{fontSize:11,color:"#475569",display:"flex",alignItems:"flex-start",gap:8}}>
+                                <span style={{color:"#334155",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>🖥 Device:</span>
+                                <span style={{wordBreak:"break-all",lineHeight:1.6}}>{l.device}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>}
       </div>
     </div>
   );
@@ -2034,7 +2142,7 @@ function AuditTrail({t,companyId,currentUser}){
 function LangPicker({onSelect}){
   return(
     <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{background:"#1e293b",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid #334155",textAlign:"center"}}>
+      <div style={{background:"#1c1f2e",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid #334155",textAlign:"center"}}>
         <div style={{fontSize:52,marginBottom:16}}>+</div>
         <div style={{fontFamily:"Playfair Display,serif",fontSize:28,fontWeight:700,color:"#f1f5f9",marginBottom:6}}>CareManager</div>
         <div style={{fontSize:13,color:"#64748b",marginBottom:32}}>Select your language / Selecta bo idioma</div>
@@ -2079,12 +2187,23 @@ function Login({onLogin,t}){
         supabase.from("user_roles").update({login_history:updated}).eq("user_id",data.user.id).eq("company_id",rd.company_id).then(()=>{});
       }catch(_){}
     }
+    // Audit: sign-in event
+    supabase.from("audit_log").insert({
+      action:"User signed in",
+      client_name:"",
+      performed_by:rd?.name||loginEmail,
+      performed_role:rd?.role||"",
+      company_id:rd?.company_id||null,
+      section:"Auth",
+      details:`Signed in from ${navigator.userAgent.includes("Mobile")?"mobile":"desktop"}`,
+      device:navigator.userAgent.slice(0,220),
+    }).then(()=>{});
     onLogin({...data.user,role:rd?.role||"staff",displayName:rd?.name||loginEmail.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
     setLoading(false);
   };
   return(
     <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{background:"#1e293b",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid #334155"}}>
+      <div style={{background:"#1c1f2e",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid #334155"}}>
         <div style={{textAlign:"center",marginBottom:32}}>
           <div style={{fontSize:48,marginBottom:12}}>🔐</div>
           <div style={{fontFamily:"Playfair Display,serif",fontSize:26,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>CareManager</div>
@@ -2193,7 +2312,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
       <form onSubmit={onSave}>
         {tab==="info"&&(
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>🖼 Company Logo</div>
               <div style={{display:"flex",gap:16,alignItems:"center"}}>
                 <div style={{width:120,height:120,border:"2px dashed #334155",borderRadius:12,background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
@@ -2212,7 +2331,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
                 </div>
               </div>
             </div>
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>🏢 Basic Information</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 {fld("Company Name *","name")}
@@ -2229,7 +2348,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
                   style={{...inp,resize:"vertical",lineHeight:1.5}}/>
               </div>
             </div>
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>👤 Director / Contact</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 {fld("Director Name","director_name","text","e.g. Maria Johnson")}
@@ -2239,7 +2358,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
           </div>
         )}
         {tab==="hours"&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
             <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:16,fontWeight:700}}>🕐 Hours of Operation</div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {DAYS.map(day=>(
@@ -2253,7 +2372,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
           </div>
         )}
         {tab==="emergency"&&(
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
             <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>🚨 Emergency Contact</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               {fld("Emergency Contact Name","emergency_contact","text","e.g. Emergency Hotline")}
@@ -2272,7 +2391,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
   );
 }
 
-function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
+function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const [users,setUsers]=useState([]);
   const [companies,setCompanies]=useState([]);
   const [allAuthUsers,setAllAuthUsers]=useState([]);
@@ -2299,6 +2418,10 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   const [activityDateFrom,setActivityDateFrom]=useState("");
   const [activityDateTo,setActivityDateTo]=useState("");
   const [expandedStaff,setExpandedStaff]=useState(null);
+  const [showArchived,setShowArchived]=useState(false);
+  const [archiveConfirmCompany,setArchiveConfirmCompany]=useState(null);
+  const [deleteConfirmCompany,setDeleteConfirmCompany]=useState(null);
+  const [deleteCompanyInput,setDeleteCompanyInput]=useState("");
 
   const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
 
@@ -2312,7 +2435,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
     const {data:cd}=await supabase.from("companies").select("*").order("name");
     setCompanies(cd||[]);
     // Load ALL users across all companies for existing user picker + stats
-    const {data:au}=await supabase.from("user_roles").select("user_id,name,company_id").order("name");
+    const {data:au}=await supabase.from("user_roles").select("user_id,name,company_id,role,email").order("name");
     setAllUserRoles(au||[]);
     const seen=new Set();
     const unique=(au||[]).filter(u=>{if(seen.has(u.user_id))return false;seen.add(u.user_id);return true;});
@@ -2409,16 +2532,15 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
     }
     setSaving(true);
     try{
-      // Duplicate email check
+      // Pre-flight duplicate checks (fast, before hitting the edge function)
       const {data:existingEmail}=await supabase.from("user_roles").select("user_id").eq("email",userForm.email.toLowerCase().trim()).limit(1).maybeSingle();
       if(existingEmail){showToast("error","A user with this email already exists");setSaving(false);return;}
-      // Duplicate username check (if provided)
       if(userForm.username.trim()){
         const {data:existingUsername}=await supabase.from("user_roles").select("user_id").eq("username",userForm.username.toLowerCase().trim()).limit(1).maybeSingle();
         if(existingUsername){showToast("error","This username is already taken");setSaving(false);return;}
       }
+      // Call the Edge Function — it creates the auth user AND inserts all user_roles rows
       const {data:{session}}=await supabase.auth.getSession();
-      // Step 1: Create the auth user via edge function (pass first company so edge fn is happy)
       const res=await fetch(`${SUPABASE_URL}/functions/v1/create-user`,{
         method:"POST",
         headers:{
@@ -2431,27 +2553,14 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
           password:userForm.password,
           name:userForm.name,
           role:userForm.role,
-          company_id:userForm.company_ids[0],
+          username:userForm.username.trim()||null,
+          company_ids:userForm.company_ids,
         }),
       });
       const result=await res.json();
       if(!res.ok)throw new Error(result.error||"Failed to create user");
-      const newUserId=result.user_id;
-      // Step 2: Wipe the single user_roles row the edge function inserted
-      await supabase.from("user_roles").delete().eq("user_id",newUserId);
-      // Step 3: Insert one row per selected company
-      for(const company_id of userForm.company_ids){
-        const {error:roleErr}=await supabase.from("user_roles").insert({
-          user_id:newUserId,
-          name:userForm.name,
-          email:userForm.email.toLowerCase().trim(),
-          username:userForm.username.toLowerCase().trim()||null,
-          role:userForm.role,
-          company_id,
-        });
-        if(roleErr)console.error("Failed inserting role for company",company_id,":",roleErr.message);
-      }
-      showToast("success","User created successfully!");
+      if(result.anyFailed)showToast("warning","User created but some company assignments failed");
+      else showToast("success","User created successfully!");
       setUserForm({name:"",email:"",password:"",username:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
       setShowUserForm(false);
       await loadData();
@@ -2482,34 +2591,115 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
     setSaving(false);
   };
 
+  const archiveCompany=async(company)=>{
+    setSaving(true);
+    const {error}=await supabase.from("companies").update({archived_at:new Date().toISOString()}).eq("id",company.id);
+    if(error){showToast("error","Failed to archive: "+error.message);setSaving(false);return;}
+    setArchiveConfirmCompany(null);
+    showToast("success",`"${company.name}" archived`);
+    await logAudit("Company archived",company.name,{section:"User Management",details:`Company "${company.name}" archived`});
+    await loadData();
+    setSaving(false);
+  };
+
+  const unarchiveCompany=async(company)=>{
+    setSaving(true);
+    const {error}=await supabase.from("companies").update({archived_at:null}).eq("id",company.id);
+    if(error){showToast("error","Failed to restore: "+error.message);setSaving(false);return;}
+    showToast("success",`"${company.name}" restored`);
+    await loadData();
+    setSaving(false);
+  };
+
+  const deleteCompany=async(company)=>{
+    const st=companyStats[company.id]||{clients:0,archivedClients:0,users:0};
+    if((st.clients+st.archivedClients)>0||st.users>0){
+      showToast("error","Remove all clients and users before deleting");setSaving(false);return;
+    }
+    setSaving(true);
+    const {error}=await supabase.from("companies").delete().eq("id",company.id);
+    if(error){showToast("error","Failed to delete: "+error.message);setSaving(false);return;}
+    setDeleteConfirmCompany(null);setDeleteCompanyInput("");
+    showToast("success",`"${company.name}" permanently deleted`);
+    await logAudit("Company deleted",company.name,{section:"User Management",details:`Company "${company.name}" permanently deleted`});
+    await loadData();
+    setSaving(false);
+  };
+
+  // Helper: call manage-user edge function
+  const callManageUser=async(action,targetUserId)=>{
+    const {data:{session}}=await supabase.auth.getSession();
+    if(!session)return{ok:false,error:"No session"};
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/manage-user`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":`Bearer ${session.access_token}`,"apikey":ANON_KEY},
+      body:JSON.stringify({action,targetUserId}),
+    });
+    const json=await res.json();
+    return res.ok?{ok:true}:{ok:false,error:json.error||"Edge function error"};
+  };
+
   const updateRole=async(userId,newRole)=>{
+    const target=users.find(x=>x.user_id===userId);
+    const oldRole=target?.role||"unknown";
+    // Role elevation ceiling: only superadmin can grant superadmin
+    if(newRole==="superadmin"&&currentUser.role!=="superadmin"){
+      showToast("error","Only a superadmin can grant superadmin role");return;
+    }
+    // Update all rows for this user so role is consistent across companies
     const {error}=await supabase.from("user_roles").update({role:newRole}).eq("user_id",userId);
     if(error){showToast("error","Failed to update role");return;}
     setUsers(u=>u.map(x=>x.user_id===userId?{...x,role:newRole}:x));
     showToast("success","Role updated");
+    await logAudit("Role changed",target?.name||target?.email||userId,{section:"User Management",details:`Role changed from "${oldRole.replace(/_/g," ")}" → "${newRole.replace(/_/g," ")}" for ${target?.name||target?.email||userId} (all companies)`});
+    // If reactivating (old role was inactive), unban in auth
+    if(oldRole==="inactive"&&newRole!=="inactive"){
+      await callManageUser("unban",userId);
+    }
     if(userId===currentUser.id&&onRoleChange)await onRoleChange();
   };
 
   const deactivateUser=async(userId)=>{
+    const target=users.find(x=>x.user_id===userId);
+    // Prevent acting on equal or higher role (admin cannot deactivate admin/superadmin)
+    const RORD={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+    if((RORD[target?.role]??9)<=(RORD[currentUser.role]??9)&&currentUser.role!=="superadmin"){
+      showToast("error","You cannot deactivate a user with an equal or higher role");return;
+    }
     const {error}=await supabase.from("user_roles").update({role:"inactive"}).eq("user_id",userId);
     if(error){showToast("error","Failed to deactivate");return;}
     setUsers(u=>u.map(x=>x.user_id===userId?{...x,role:"inactive"}:x));
-    showToast("success","User deactivated");
+    // Ban in auth so existing sessions are invalidated
+    const {ok,error:banErr}=await callManageUser("ban",userId);
+    if(!ok)console.warn("Auth ban failed (user_roles updated):",banErr);
+    showToast("success","User deactivated and session revoked");
+    await logAudit("User deactivated",target?.name||target?.email||userId,{section:"User Management",details:`Account deactivated and auth session revoked`});
   };
 
   const removeFromCompany=async(userId,companyId)=>{
     const userRows=allUserRoles.filter(r=>r.user_id===userId);
     if(userRows.length<=1){showToast("error","Cannot remove — user must belong to at least one company");return;}
+    const target=users.find(x=>x.user_id===userId);
     const {error}=await supabase.from("user_roles").delete().eq("user_id",userId).eq("company_id",companyId);
     if(error){showToast("error","Failed: "+error.message);return;}
     showToast("success","Removed from company");
+    await logAudit("User removed from company",target?.name||target?.email||userId,{section:"User Management",details:`Removed from company ID ${companyId}`});
     await loadData();
   };
 
   const addToCompany=async(userId,companyId)=>{
-    const u=allUserRoles.find(r=>r.user_id===userId);
+    const existingRows=allUserRoles.filter(r=>r.user_id===userId);
+    // Use top role so the new company row matches the user's global role
+    const RORDER={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+    const topRow=existingRows.slice().sort((a,b)=>(RORDER[a.role]??9)-(RORDER[b.role]??9))[0];
+    const emailRow=existingRows.find(r=>r.email)||topRow;
     const {error}=await supabase.from("user_roles").insert({
-      user_id:userId,name:u?.name||"",email:u?.email||"",role:u?.role||"user",company_id:companyId,
+      user_id:userId,
+      name:topRow?.name||"",
+      email:emailRow?.email||"",
+      role:topRow?.role||"user",
+      company_id:companyId,
+      username:null,
     });
     if(error){showToast("error","Failed: "+error.message);return;}
     showToast("success","Added to company");
@@ -2548,10 +2738,16 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   };
 
   const deleteUser=async(userId)=>{
+    // Only superadmin can delete users
+    if(currentUser.role!=="superadmin"){showToast("error","Only superadmins can permanently delete users");return;}
     setSaving(true);
+    // Delete user_roles first (FK constraint; auth deletion also cascades but explicit is safer)
     const {error}=await supabase.from("user_roles").delete().eq("user_id",userId);
     if(error){showToast("error","Failed to delete: "+error.message);setSaving(false);return;}
-    showToast("success","User removed from all companies");
+    // Delete the auth.users record via Edge Function
+    const {ok,error:authErr}=await callManageUser("delete",userId);
+    if(!ok)console.warn("Auth user deletion failed (user_roles already removed):",authErr);
+    showToast("success","User permanently deleted");
     setDeleteConfirmUser(null);
     await loadData();
     setSaving(false);
@@ -2586,8 +2782,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
   return(
     <div style={{maxWidth:1050}}>
       {toast&&(
-        <div style={{position:"fixed",top:24,right:24,zIndex:999,padding:"12px 20px",borderRadius:10,background:toast.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
-          {toast.type==="success"?"✓ ":"✗ "}{toast.msg}
+        <div style={{position:"fixed",top:24,right:24,zIndex:999,padding:"12px 20px",borderRadius:10,background:toast.type==="success"?"#059669":toast.type==="warning"?"#b45309":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
+          {toast.type==="success"?"✓ ":toast.type==="warning"?"⚠ ":"✗ "}{toast.msg}
         </div>
       )}
 
@@ -2611,10 +2807,18 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
             </>
           )}
           {mainTab==="companies"&&(
-            <button onClick={()=>{setShowCompanyForm(s=>!s);setShowUserForm(false);setShowExistingForm(false);}}
-              style={{padding:"10px 20px",borderRadius:10,border:"none",background:"#10b981",color:"#fff",fontWeight:700,fontSize:14}}>
-              {showCompanyForm?"Cancel":"+ New Company"}
-            </button>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <button onClick={()=>setShowArchived(s=>!s)}
+                style={{padding:"10px 16px",borderRadius:10,border:"1px solid "+(showArchived?"#f59e0b":"#334155"),background:showArchived?"rgba(245,158,11,0.12)":"transparent",color:showArchived?"#f59e0b":"#64748b",fontWeight:600,fontSize:13}}>
+                {showArchived?"Hide Archived":"Show Archived"}
+              </button>
+              {currentUser?.role==="superadmin"&&(
+                <button onClick={()=>{setShowCompanyForm(s=>!s);setShowUserForm(false);setShowExistingForm(false);}}
+                  style={{padding:"10px 20px",borderRadius:10,border:"none",background:"#10b981",color:"#fff",fontWeight:700,fontSize:14}}>
+                  {showCompanyForm?"Cancel":"+ New Company"}
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -2634,7 +2838,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
         <>
           {/* Add Existing User Form */}
           {showExistingForm&&(
-            <div style={{background:"#1e293b",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
+            <div style={{background:"#1c1f2e",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:16,color:"#f1f5f9",fontWeight:700,marginBottom:6}}>Add Existing User to Company</div>
               <div style={{fontSize:12,color:"#64748b",marginBottom:16}}>For users who already have an account — give them access to this company.</div>
               <form onSubmit={addExistingUser}>
@@ -2657,7 +2861,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                       <option value="user">User</option>
                       <option value="power_user">Power User</option>
                       <option value="admin">Admin</option>
-                      <option value="superadmin">Super Admin</option>
+                      {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
                     </select>
                   </div>
                   <div style={{gridColumn:"1/-1"}}>
@@ -2682,7 +2886,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
 
           {/* Create New User Form */}
           {showUserForm&&(
-            <div style={{background:"#1e293b",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
+            <div style={{background:"#1c1f2e",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:16,color:"#f1f5f9",fontWeight:700,marginBottom:16}}>Create New User</div>
               <form onSubmit={createUser}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
@@ -2695,7 +2899,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                       <option value="user">User</option>
                       <option value="power_user">Power User</option>
                       <option value="admin">Admin</option>
-                      <option value="superadmin">Super Admin</option>
+                      {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
                     </select>
                   </div>
                   <div style={{gridColumn:"1/-1"}}>
@@ -2736,7 +2940,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
 
           {/* User List */}
           {loading?<div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflowX:"auto"}}>
+            <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflowX:"auto"}}>
               {filteredUsers.length===0?(
                 <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>No users found</div>
               ):(
@@ -2782,12 +2986,20 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                         </td>
                         {/* Role cell */}
                         <td style={{padding:"10px 16px"}}>
-                          <select value={u.role} onChange={e=>{const nr=e.target.value;if(nr===u.role)return;setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});}}
+                          <select value={u.role} onChange={e=>{
+                              const nr=e.target.value;if(nr===u.role)return;
+                              // Ceiling: only superadmin can grant superadmin
+                              if(nr==="superadmin"&&currentUser.role!=="superadmin"){showToast("error","Only a superadmin can grant the superadmin role");return;}
+                              // Cannot act on a user of equal or higher role (unless superadmin)
+                              const RORD={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+                              if(currentUser.role!=="superadmin"&&(RORD[u.role]??9)<=(RORD[currentUser.role]??9)){showToast("error","You cannot change the role of a user with an equal or higher role");return;}
+                              setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});
+                            }}
                             style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"#64748b",border:"1px solid "+(roleColor[u.role]||"#334155"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
                             <option value="user">User</option>
                             <option value="power_user">Power User</option>
                             <option value="admin">Admin</option>
-                            <option value="superadmin">Super Admin</option>
+                            {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
                             <option value="inactive">Inactive</option>
                           </select>
                         </td>
@@ -2851,16 +3063,22 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
                                     style={{padding:"4px 9px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontSize:12}}>
                                     ✏️
                                   </button>
-                                  <button onClick={()=>{setDeleteConfirmUser(u.user_id);setEditingUser(null);setExpandedUser(null);}} title="Delete user"
-                                    style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(220,38,38,0.3)",background:"transparent",color:"#f87171",fontSize:12}}>
-                                    🗑️
-                                  </button>
-                                  {u.role!=="inactive"&&(
-                                    <button onClick={()=>setPendingAction({type:"deactivate",userId:u.user_id,userName:u.name||u.email,meta:{}})}
-                                      style={{padding:"4px 12px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
-                                      Deactivate
+                                  {currentUser.role==="superadmin"&&(
+                                    <button onClick={()=>{setDeleteConfirmUser(u.user_id);setEditingUser(null);setExpandedUser(null);}} title="Delete user (superadmin only)"
+                                      style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(220,38,38,0.3)",background:"transparent",color:"#f87171",fontSize:12}}>
+                                      🗑️
                                     </button>
                                   )}
+                                  {(()=>{
+                                    const RORD={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+                                    const canDeactivate=u.role!=="inactive"&&(currentUser.role==="superadmin"||(RORD[u.role]??9)>(RORD[currentUser.role]??9));
+                                    return canDeactivate?(
+                                      <button onClick={()=>setPendingAction({type:"deactivate",userId:u.user_id,userName:u.name||u.email,meta:{}})}
+                                        style={{padding:"4px 12px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
+                                        Deactivate
+                                      </button>
+                                    ):null;
+                                  })()}
                                 </>
                               )}
                               {isMe&&<span style={{fontSize:11,color:"#475569",fontStyle:"italic"}}>You</span>}
@@ -2906,7 +3124,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
           ):activityData.length===0?(
             <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>No activity recorded in this period.</div>
           ):(
-            <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
+            <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
               <table style={{width:"100%",borderCollapse:"collapse"}}>
                 <thead>
                   <tr style={{borderBottom:"1px solid #334155"}}>
@@ -2989,7 +3207,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
         <>
           {/* Create Company Form */}
           {showCompanyForm&&(
-            <div style={{background:"#1e293b",border:"1px solid #10b981",borderRadius:12,padding:20,marginBottom:20}}>
+            <div style={{background:"#1c1f2e",border:"1px solid #10b981",borderRadius:12,padding:20,marginBottom:20}}>
               <div style={{fontFamily:"Playfair Display,serif",fontSize:16,color:"#f1f5f9",fontWeight:700,marginBottom:16}}>Create New Company</div>
               <form onSubmit={createCompany}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
@@ -3012,64 +3230,165 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t}){
           )}
 
           {/* Company List */}
-          {loading?<div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              {companies.length===0?(
-                <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>No companies yet. Create your first one.</div>
-              ):companies.map((c)=>{
-                const st=companyStats[c.id]||{clients:0,archivedClients:0,users:0,lastActivity:null};
-                const lastAct=st.lastActivity?new Date(st.lastActivity).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"No activity";
-                return(
-                  <div key={c.id} style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:20}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
-                      <div style={{flex:1,minWidth:200}}>
-                        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
-                          {c.logo_url&&(
-                            <div style={{background:"#fff",borderRadius:8,padding:"4px 6px",flexShrink:0}}>
-                              <img src={c.logo_url} alt={c.name} style={{height:32,maxWidth:80,objectFit:"contain",display:"block"}}/>
+          {loading?<div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(()=>{
+            const visibleCompanies=companies.filter(c=>showArchived?true:!c.archived_at);
+            return(
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                {visibleCompanies.length===0?(
+                  <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>
+                    {showArchived?"No archived companies.":" No companies yet. Create your first one."}
+                  </div>
+                ):visibleCompanies.map((c)=>{
+                  const st=companyStats[c.id]||{clients:0,archivedClients:0,users:0,lastActivity:null};
+                  const lastAct=st.lastActivity?new Date(st.lastActivity).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"No activity";
+                  const isArchived=!!c.archived_at;
+                  const isSuperAdmin=currentUser?.role==="superadmin";
+                  const totalClients=(st.clients||0)+(st.archivedClients||0);
+                  return(
+                    <div key={c.id} style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,opacity:isArchived?0.72:1,border:isArchived?"1px solid rgba(245,158,11,0.25)":"1px solid transparent"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
+                        <div style={{flex:1,minWidth:200}}>
+                          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
+                            {c.logo_url&&(
+                              <div style={{background:"#fff",borderRadius:8,padding:"4px 6px",flexShrink:0}}>
+                                <img src={c.logo_url} alt={c.name} style={{height:32,maxWidth:80,objectFit:"contain",display:"block"}}/>
+                              </div>
+                            )}
+                            <div>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <div style={{fontFamily:"Playfair Display,serif",fontSize:17,fontWeight:700,color:isArchived?"#94a3b8":"#f1f5f9"}}>{c.name}</div>
+                                {isArchived&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>ARCHIVED</span>}
+                              </div>
+                              {c.mission_statement&&<div style={{fontSize:11,color:"#64748b",fontStyle:"italic",marginTop:2}}>"{c.mission_statement}"</div>}
+                            </div>
+                          </div>
+                          <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8}}>
+                            {c.address&&<span style={{fontSize:12,color:"#94a3b8"}}>📍 {c.address}</span>}
+                            {c.phone&&<span style={{fontSize:12,color:"#94a3b8"}}>📞 {c.phone}</span>}
+                            {c.email&&<span style={{fontSize:12,color:"#94a3b8"}}>✉️ {c.email}</span>}
+                            {c.website&&<span style={{fontSize:12,color:"#94a3b8"}}>🌐 {c.website}</span>}
+                          </div>
+                          {/* Superadmin action buttons */}
+                          {isSuperAdmin&&(
+                            <div style={{display:"flex",gap:8,marginTop:14,flexWrap:"wrap"}}>
+                              {isArchived?(
+                                <>
+                                  <button onClick={()=>unarchiveCompany(c)} disabled={saving}
+                                    style={{padding:"5px 14px",borderRadius:8,border:"1px solid #10b981",background:"rgba(16,185,129,0.1)",color:"#10b981",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                                    ↩ Restore
+                                  </button>
+                                  <button onClick={()=>{setDeleteConfirmCompany(c);setDeleteCompanyInput("");}}
+                                    style={{padding:"5px 14px",borderRadius:8,border:"1px solid rgba(239,68,68,0.4)",background:"rgba(239,68,68,0.08)",color:"#f87171",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                                    🗑 Delete Permanently
+                                  </button>
+                                </>
+                              ):(
+                                <button onClick={()=>setArchiveConfirmCompany(c)}
+                                  style={{padding:"5px 14px",borderRadius:8,border:"1px solid rgba(245,158,11,0.4)",background:"rgba(245,158,11,0.08)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                                  📦 Archive
+                                </button>
+                              )}
                             </div>
                           )}
-                          <div>
-                            <div style={{fontFamily:"Playfair Display,serif",fontSize:17,fontWeight:700,color:"#f1f5f9"}}>{c.name}</div>
-                            {c.mission_statement&&<div style={{fontSize:11,color:"#64748b",fontStyle:"italic",marginTop:2}}>"{c.mission_statement}"</div>}
+                        </div>
+                        {/* Stats */}
+                        <div style={{display:"flex",gap:8,flexShrink:0,flexWrap:"wrap"}}>
+                          <div style={{textAlign:"center",background:"rgba(16,185,129,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
+                            <div style={{fontSize:22,fontWeight:700,color:"#10b981"}}>{st.clients}</div>
+                            <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>CLIENTS</div>
+                            {st.archivedClients>0&&<div style={{fontSize:9,color:"#475569",marginTop:2}}>{st.archivedClients} archived</div>}
                           </div>
-                        </div>
-                        <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8}}>
-                          {c.address&&<span style={{fontSize:12,color:"#94a3b8"}}>📍 {c.address}</span>}
-                          {c.phone&&<span style={{fontSize:12,color:"#94a3b8"}}>📞 {c.phone}</span>}
-                          {c.email&&<span style={{fontSize:12,color:"#94a3b8"}}>✉️ {c.email}</span>}
-                          {c.website&&<span style={{fontSize:12,color:"#94a3b8"}}>🌐 {c.website}</span>}
-                        </div>
-                      </div>
-                      {/* Stats */}
-                      <div style={{display:"flex",gap:8,flexShrink:0,flexWrap:"wrap"}}>
-                        <div style={{textAlign:"center",background:"rgba(16,185,129,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
-                          <div style={{fontSize:22,fontWeight:700,color:"#10b981"}}>{st.clients}</div>
-                          <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>CLIENTS</div>
-                          {st.archivedClients>0&&<div style={{fontSize:9,color:"#475569",marginTop:2}}>{st.archivedClients} archived</div>}
-                        </div>
-                        <div style={{textAlign:"center",background:"rgba(99,102,241,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
-                          <div style={{fontSize:22,fontWeight:700,color:"#6366f1"}}>{st.users}</div>
-                          <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>USERS</div>
-                        </div>
-                        <div style={{textAlign:"center",background:"rgba(71,85,105,0.2)",borderRadius:10,padding:"10px 16px",minWidth:80}}>
-                          <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",lineHeight:1.3}}>{lastAct}</div>
-                          <div style={{fontSize:10,color:"#64748b",fontWeight:600,marginTop:4}}>LAST ACTIVITY</div>
+                          <div style={{textAlign:"center",background:"rgba(99,102,241,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
+                            <div style={{fontSize:22,fontWeight:700,color:"#6366f1"}}>{st.users}</div>
+                            <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>USERS</div>
+                          </div>
+                          <div style={{textAlign:"center",background:"rgba(71,85,105,0.2)",borderRadius:10,padding:"10px 16px",minWidth:80}}>
+                            <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",lineHeight:1.3}}>{lastAct}</div>
+                            <div style={{fontSize:10,color:"#64748b",fontWeight:600,marginTop:4}}>LAST ACTIVITY</div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* ── Archive Company Confirmation ── */}
+          {archiveConfirmCompany&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+              <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+                <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>📦</div>
+                <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#f1f5f9",textAlign:"center",marginBottom:10}}>Archive Company</div>
+                <div style={{fontSize:13,color:"#94a3b8",textAlign:"center",lineHeight:1.7,marginBottom:28}}>
+                  Archive <strong style={{color:"#f1f5f9"}}>{archiveConfirmCompany.name}</strong>? It will be hidden from the company picker and all active lists. No data is deleted. You can restore it at any time.
+                </div>
+                <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                  <button onClick={()=>setArchiveConfirmCompany(null)}
+                    style={{padding:"10px 28px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                    Cancel
+                  </button>
+                  <button disabled={saving} onClick={()=>archiveCompany(archiveConfirmCompany)}
+                    style={{padding:"10px 28px",borderRadius:9,border:"none",background:"#f59e0b",color:"#000",fontWeight:700,fontSize:14,cursor:"pointer",opacity:saving?0.6:1}}>
+                    {saving?"Archiving…":"Archive"}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
+
+          {/* ── Delete Company Confirmation (type to confirm) ── */}
+          {deleteConfirmCompany&&(()=>{
+            const st=companyStats[deleteConfirmCompany.id]||{clients:0,archivedClients:0,users:0};
+            const totalClients=(st.clients||0)+(st.archivedClients||0);
+            const hasData=totalClients>0||st.users>0;
+            const confirmWord=deleteConfirmCompany.name;
+            const canConfirm=!hasData&&deleteCompanyInput===confirmWord;
+            return(
+              <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.80)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+                <div style={{background:"#1c1f2e",border:"1px solid #ef4444",borderRadius:16,padding:36,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+                  <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>🗑</div>
+                  <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#ef4444",textAlign:"center",marginBottom:10}}>Delete Company Permanently</div>
+                  {hasData?(
+                    <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"14px 16px",marginBottom:20,fontSize:13,color:"#fca5a5",textAlign:"center",lineHeight:1.6}}>
+                      ⛔ Cannot delete — <strong>{deleteConfirmCompany.name}</strong> still has{totalClients>0?` ${totalClients} client${totalClients!==1?"s":""}`:""}{totalClients>0&&st.users>0?" and":""}{st.users>0?` ${st.users} user${st.users!==1?"s":""}`:""} assigned. Remove them first.
+                    </div>
+                  ):(
+                    <div style={{fontSize:13,color:"#94a3b8",textAlign:"center",lineHeight:1.7,marginBottom:20}}>
+                      This action <strong style={{color:"#f1f5f9"}}>cannot be undone</strong>. All company settings and history will be permanently removed.<br/><br/>
+                      Type <strong style={{color:"#f1f5f9",fontFamily:"monospace"}}>{confirmWord}</strong> to confirm:
+                    </div>
+                  )}
+                  {!hasData&&(
+                    <input
+                      value={deleteCompanyInput}
+                      onChange={e=>setDeleteCompanyInput(e.target.value)}
+                      placeholder={`Type "${confirmWord}" to confirm`}
+                      style={{width:"100%",padding:"10px 14px",borderRadius:9,border:"1px solid "+(canConfirm?"#ef4444":"#334155"),background:"#161927",color:"#f1f5f9",fontSize:14,marginBottom:20,outline:"none"}}
+                    />
+                  )}
+                  <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                    <button onClick={()=>{setDeleteConfirmCompany(null);setDeleteCompanyInput("");}}
+                      style={{padding:"10px 28px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                      Cancel
+                    </button>
+                    <button disabled={saving||!canConfirm} onClick={()=>deleteCompany(deleteConfirmCompany)}
+                      style={{padding:"10px 28px",borderRadius:9,border:"none",background:canConfirm?"#dc2626":"#334155",color:canConfirm?"#fff":"#475569",fontWeight:700,fontSize:14,cursor:canConfirm?"pointer":"not-allowed",opacity:saving?0.6:1}}>
+                      {saving?"Deleting…":"Delete Permanently"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
 
       {/* ═══════════════ CONFIRM ACTION MODAL ═══════════════ */}
       {pendingAction&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+          <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
             <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>
               {pendingAction.type==="deactivate"?"🔒":pendingAction.type==="role_change"?"🔄":"🏢"}
             </div>
@@ -3114,13 +3433,13 @@ function CompanyPicker({onSelect,currentUser,t}){
     // For superadmin load all companies, for others load only their assigned companies
     const isSuperAdmin=currentUser?.allRoles?.some(r=>r.role==="superadmin");
     if(isSuperAdmin){
-      supabase.from("companies").select("*").order("name")
+      supabase.from("companies").select("*").is("archived_at",null).order("name")
         .then(({data})=>{setCompanies(data||[]);setLoading(false);});
     } else {
-      // Load only companies this user belongs to
+      // Load only companies this user belongs to (non-archived)
       const companyIds=(currentUser?.allRoles||[]).map(r=>r.company_id).filter(Boolean);
       if(companyIds.length===0){setLoading(false);return;}
-      supabase.from("companies").select("*").in("id",companyIds).order("name")
+      supabase.from("companies").select("*").in("id",companyIds).is("archived_at",null).order("name")
         .then(({data})=>{setCompanies(data||[]);setLoading(false);});
     }
   },[currentUser]);
@@ -3149,7 +3468,7 @@ function CompanyPicker({onSelect,currentUser,t}){
               const rc=roleColors[roleForCompany?.role]||"#64748b";
               return(
                 <button key={c.id} onClick={()=>handleSelect(c.id)}
-                  style={{display:"flex",alignItems:"center",gap:16,padding:"20px 24px",borderRadius:16,border:"1px solid #334155",background:"#1e293b",cursor:"pointer",textAlign:"left",width:"100%"}}>
+                  style={{display:"flex",alignItems:"center",gap:16,padding:"20px 24px",borderRadius:16,border:"1px solid #334155",background:"#1c1f2e",cursor:"pointer",textAlign:"left",width:"100%"}}>
                   {c.logo_url?(
                     <div style={{background:"#fff",borderRadius:10,padding:"6px 8px",flexShrink:0}}>
                       <img src={c.logo_url} alt={c.name} style={{height:48,maxWidth:120,objectFit:"contain",display:"block"}}/>
@@ -3239,12 +3558,13 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
   const saveChanges=async()=>{
     if(Object.keys(pendingChanges).length===0){showToast("error","No changes to save");return;}
     setSaving(true);
+    const changeCount=Object.keys(pendingChanges).length;
     try{
       for(const [key,allowed] of Object.entries(pendingChanges)){
         const isCompany=key.startsWith("c_");
         const withoutPrefix=key.slice(2);
-        const ROLES=["superadmin","admin","power_user","user","inactive"];
-        const matchedRole=ROLES.find(r=>withoutPrefix.startsWith(r+"_"));
+        const PARSE_ROLES=["superadmin","admin","power_user","user","inactive"];
+        const matchedRole=PARSE_ROLES.find(r=>withoutPrefix.startsWith(r+"_"));
         const role=matchedRole||withoutPrefix.split("_")[0];
         const action=withoutPrefix.slice(role.length+1);
         if(isCompany&&activeCompanyId){
@@ -3253,6 +3573,16 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
           await supabase.from("permissions").update({allowed,updated_at:new Date().toISOString()}).eq("role",role).eq("action",action);
         }
       }
+      // Audit log
+      await supabase.from("audit_log").insert({
+        action:"Permissions updated",client_name:"",
+        performed_by:currentUser?.displayName||currentUser?.email||"",
+        performed_role:currentUser?.role||"",
+        company_id:activeCompanyId||null,
+        section:"Permissions",
+        details:`Changed ${changeCount} permission${changeCount!==1?"s":""} (${tab==="company"?"company override":"global defaults"})`,
+        device:navigator.userAgent.slice(0,220),
+      }).then(()=>{});
       // Reload permissions cache
       if(applyMode==="now")await loadPermissions(activeCompanyId);
       setPendingChanges({});
@@ -3316,7 +3646,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
       </div>
 
       {tab==="company"&&!activeCompanyId&&(
-        <div style={{padding:20,background:"#1e293b",borderRadius:12,color:"#64748b",textAlign:"center"}}>
+        <div style={{padding:20,background:"#1c1f2e",borderRadius:12,color:"#64748b",textAlign:"center"}}>
           Select a company first to manage company-specific overrides.
         </div>
       )}
@@ -3338,9 +3668,9 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
               <table style={{width:"100%",borderCollapse:"collapse",minWidth:600}}>
                 <thead>
                   <tr>
-                    <th style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,background:"#1e293b",borderRadius:"8px 0 0 0"}}>ACTION</th>
+                    <th style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,background:"#1c1f2e",borderRadius:"8px 0 0 0"}}>ACTION</th>
                     {ROLES.map(role=>(
-                      <th key={role} style={{padding:"12px 16px",textAlign:"center",fontSize:11,fontWeight:700,color:ROLE_COLORS[role],letterSpacing:0.5,background:"#1e293b"}}>
+                      <th key={role} style={{padding:"12px 16px",textAlign:"center",fontSize:11,fontWeight:700,color:ROLE_COLORS[role],letterSpacing:0.5,background:"#1c1f2e"}}>
                         {ROLE_LABELS[role].toUpperCase()}
                       </th>
                     ))}
@@ -3391,7 +3721,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
           {viewMode==="table"&&(
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               {ROLES.map(role=>(
-                <div key={role} style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
+                <div key={role} style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
                   <div style={{padding:"12px 16px",borderBottom:"1px solid #334155",display:"flex",alignItems:"center",gap:10}}>
                     <span style={{fontWeight:700,color:ROLE_COLORS[role],fontSize:14}}>{ROLE_LABELS[role]}</span>
                     <span style={{fontSize:11,color:"#475569"}}>
@@ -3432,7 +3762,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
 function UserProfile({currentUser,onUpdate,onClose,t}){
   const [tab,setTab]=useState("profile"); // profile | password | history | sessions
   const [form,setForm]=useState({displayName:currentUser.displayName||"",username:currentUser.username||""});
-  const [pwForm,setPwForm]=useState({current:"",newPw:"",confirm:""});
+  const [pwForm,setPwForm]=useState({newPw:"",confirm:""});
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState(null);
   const [uploading,setUploading]=useState(false);
@@ -3442,7 +3772,8 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
   useEffect(()=>{loadHistory();},[]);
 
   const loadHistory=async()=>{
-    const {data}=await supabase.from("user_roles").select("login_history").eq("user_id",currentUser.id).eq("company_id",currentUser.company_id).single();
+    // Use maybeSingle + order to safely handle multi-company users (multiple rows)
+    const {data}=await supabase.from("user_roles").select("login_history").eq("user_id",currentUser.id).not("login_history","is",null).order("company_id").limit(1).maybeSingle();
     setLoginHistory(data?.login_history||[]);
   };
 
@@ -3457,7 +3788,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
     const {error}=await supabase.from("user_roles").update({
       name:form.displayName.trim(),
       username:form.username?form.username.toLowerCase().trim():null,
-    }).eq("user_id",currentUser.id).eq("company_id",currentUser.company_id);
+    }).eq("user_id",currentUser.id); // update all company rows so name is consistent
     if(error){setMsg({type:"error",text:error.message});}
     else{
       setMsg({type:"success",text:"Profile updated!"});
@@ -3492,7 +3823,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
     setSaving(true);setMsg(null);
     const {error}=await supabase.auth.updateUser({password:pwForm.newPw});
     if(error){setMsg({type:"error",text:error.message});}
-    else{setMsg({type:"success",text:"Password changed!"});setPwForm({current:"",newPw:"",confirm:""});}
+    else{setMsg({type:"success",text:"Password changed!"});setPwForm({newPw:"",confirm:""});}
     setSaving(false);
   };
 
@@ -3521,7 +3852,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
       {msg&&<div style={{padding:"10px 14px",borderRadius:8,marginBottom:16,background:msg.type==="error"?"rgba(239,68,68,0.1)":"rgba(34,197,94,0.1)",border:`1px solid ${msg.type==="error"?"#ef4444":"#22c55e"}`,color:msg.type==="error"?"#ef4444":"#22c55e",fontSize:13}}>{msg.text}</div>}
 
       {/* Tabs */}
-      <div style={{display:"flex",gap:4,marginBottom:20,background:"#1e293b",borderRadius:10,padding:4}}>
+      <div style={{display:"flex",gap:4,marginBottom:20,background:"#1c1f2e",borderRadius:10,padding:4}}>
         {TABS.map(tb=>(
           <button key={tb.id} onClick={()=>{setTab(tb.id);setMsg(null);}}
             style={{flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:tab===tb.id?"#6366f1":"transparent",color:tab===tb.id?"#fff":"#64748b",fontWeight:600,fontSize:12,cursor:"pointer"}}>
@@ -3532,7 +3863,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Profile Tab */}
       {tab==="profile"&&(
-        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
           {/* Avatar */}
           <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
             <div style={{position:"relative"}}>
@@ -3576,7 +3907,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Password Tab */}
       {tab==="password"&&(
-        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             <div>
               <label style={LB}>New Password</label>
@@ -3595,7 +3926,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Login History Tab */}
       {tab==="history"&&(
-        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
           {loginHistory.length===0?
             <div style={{color:"#475569",textAlign:"center",padding:"24px 0"}}>No login history yet</div>:
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -3615,7 +3946,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Sessions Tab */}
       {tab==="sessions"&&(
-        <div style={{background:"#1e293b",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
           <div style={{background:"#0f172a",borderRadius:8,padding:"14px",border:"1px solid #22c55e",marginBottom:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
@@ -3664,6 +3995,8 @@ export default function App(){
   const [recentClients,setRecentClients]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-recent")||"[]");}catch{return [];}});
   const [dashNote,setDashNote]=useState(()=>localStorage.getItem("cm-dash-note")||"");
   const [emailPrefs,setEmailPrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-email-prefs")||"{}") ;}catch{return {};}});
+  const [appMsg,setAppMsg]=useState(null); // {type:"success"|"error", text:string}
+  const showAppMsg=(type,text)=>{setAppMsg({type,text});setTimeout(()=>setAppMsg(null),3200);};
 
   const t=T[lang]||T["en"];
   const selectLang=code=>{localStorage.setItem("cm-lang",code);setLang(code);};
@@ -3697,23 +4030,27 @@ export default function App(){
     return()=>window.removeEventListener("keydown",handler);
   },[currentUser]);
 
+  const ROLE_PRIORITY={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+  const pickTopRole=(roles)=>(roles||[]).slice().sort((a,b)=>(ROLE_PRIORITY[a.role]||9)-(ROLE_PRIORITY[b.role]||9))[0];
+
   useEffect(()=>{
     supabase.auth.getSession().then(async({data:{session}})=>{
       if(session){
         const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",session.user.id);
-        const rd=roles?.[0];
+        const rd=pickTopRole(roles);
         setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
       }
       setAuthChecked(true);
     });
-    supabase.auth.onAuthStateChange(async(event,session)=>{if(!session)setCurrentUser(null);});
+    const {data:{subscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{if(!session)setCurrentUser(null);});
+    return()=>subscription.unsubscribe();
   },[]);
 
   const refreshCurrentUser=useCallback(async()=>{
     const {data:{session}}=await supabase.auth.getSession();
     if(session){
       const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",session.user.id);
-      const rd=roles?.[0];
+      const rd=pickTopRole(roles);
       setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
     }
   },[]);
@@ -3746,15 +4083,19 @@ export default function App(){
 
   const activeCompanyId=selectedCompany||currentUser?.company_id;
 
-  const logAudit=async(action,clientName)=>{
+  const logAudit=async(action,clientName,{details="",clientId=null,section=""}={})=>{
     if(!currentUser)return;
     const payload={
       action,
       client_name:clientName||"",
       performed_by:currentUser.displayName||currentUser.email,
+      performed_role:currentUser.role||"",
       company_id:activeCompanyId||null,
+      details:details||"",
+      client_id:clientId||null,
+      section:section||"",
+      device:navigator.userAgent.slice(0,220),
     };
-    console.log("Writing Audit:",payload);
     const {error}=await supabase.from("audit_log").insert(payload);
     if(error)console.error("Audit insert failed:",error.message);
   };
@@ -3765,7 +4106,7 @@ export default function App(){
     const row={...toDb(data),company_id:activeCompanyId||null};
     const {error:err}=exists?await supabase.from("clients").update(row).eq("id",data.id):await supabase.from("clients").insert(row);
     if(err){setError(err.message);setSaving(false);return;}
-    await logAudit(exists?"Edited client":"Added new client",data.name);
+    await logAudit(exists?"Edited client":"Added new client",data.name,{clientId:data.id,section:"Client Profile",details:exists?`Updated client record`:`New client added — DOB: ${data.date_of_birth||"—"}, Status: ${data.status||"Active"}`});
     await loadClients();
     setSelected(data);setView("detail");setSaving(false);trackRecent(data);
   };
@@ -3773,7 +4114,7 @@ export default function App(){
   const archiveClient=async()=>{
     const {error:err}=await supabase.from("clients").update({archived:true}).eq("id",selected.id);
     if(err){setError(err.message);return;}
-    await logAudit("Archived client",selected.name);
+    await logAudit("Archived client",selected.name,{clientId:selected.id,section:"Client Profile",details:"Client moved to archived state"});
     await loadClients();
     setSelected(null);setView("dashboard");setDeleteConfirm(false);
   };
@@ -3781,24 +4122,30 @@ export default function App(){
   const restoreClient=async(client)=>{
     const {error:err}=await supabase.from("clients").update({archived:false}).eq("id",client.id);
     if(err){setError(err.message);return;}
-    await logAudit("Restored client",client.name);
+    await logAudit("Restored client",client.name,{clientId:client.id,section:"Client Profile",details:"Client restored from archived state"});
     await loadClients();
     setSelected(null);setView("dashboard");
   };
 
   const inlineUpdate=async(field,value)=>{
     if(!selected)return;
+    if(!can(currentUser?.role,"edit")){setError("You do not have permission to edit client data");return;}
     const{error}=await supabase.from("clients").update({[field]:JSON.stringify(value)}).eq("id",selected.id);
-    if(!error){
-      setClients(cs=>cs.map(c=>c.id===selected.id?{...c,[field]:value}:c));
-      setSelected(s=>({...s,[field]:value}));
-    }
+    if(error){setError("Failed to save "+field+": "+error.message);return;}
+    setClients(cs=>cs.map(c=>c.id===selected.id?{...c,[field]:value}:c));
+    setSelected(s=>({...s,[field]:value}));
   };
 
+  const [bulkArchiveConfirm,setBulkArchiveConfirm]=useState(false);
   const bulkArchive=async()=>{
     const ids=[...bulkSelected];
-    await Promise.all(ids.map(id=>supabase.from("clients").update({archived:true}).eq("id",id)));
-    await loadClients();setBulkSelected(new Set());setBulkMode(false);
+    const results=await Promise.allSettled(ids.map(id=>supabase.from("clients").update({archived:true}).eq("id",id)));
+    const failed=results.filter(r=>r.status==="rejected"||r.value?.error);
+    const succeeded=ids.length-failed.length;
+    await logAudit("Bulk archived clients","",{section:"Client Profile",details:`${succeeded} client${succeeded!==1?"s":""} archived${failed.length>0?` (${failed.length} failed)`:""}`});
+    await loadClients();
+    setBulkSelected(new Set());setBulkMode(false);setBulkArchiveConfirm(false);
+    if(failed.length)setError(`${failed.length} client${failed.length!==1?"s":""} failed to archive — rest were archived successfully.`);
   };
 
   const bulkExportCSV=()=>{
@@ -3815,9 +4162,10 @@ export default function App(){
   const hardDeleteClient=async()=>{
     const {error:err}=await supabase.from("clients").delete().eq("id",selected.id);
     if(err){setError(err.message);return;}
-    await logAudit("Permanently deleted client",selected.name);
+    await logAudit("Permanently deleted client",selected.name,{section:"Client Profile",details:"Client record permanently removed from system"});
     setClients(c=>c.filter(x=>x.id!==selected.id));
     setSelected(null);setView("dashboard");setDeleteConfirm(false);
+    showAppMsg("success","Client permanently deleted");
   };
 
   const exportCSV=()=>{
@@ -3884,22 +4232,25 @@ export default function App(){
 
   const handleLogout=async()=>{await supabase.auth.signOut();setCurrentUser(null);};
 
-  const filtered=clients.filter(c=>{
+  const notifications=useMemo(()=>buildNotifications(clients),[clients]);
+
+  const filtered=useMemo(()=>clients.filter(c=>{
     const q=search.toLowerCase();
     const ms=c.name.toLowerCase().includes(q)||(c.room_or_address||"").toLowerCase().includes(q)||(c.azv_number||"").toLowerCase().includes(q)||(searchAllCompanies&&(companiesMap[c.company_id]||"").toLowerCase().includes(q));
     if(statusFilter==="Archived")return ms&&c.archived===true;
     const mst=statusFilter==="All"||(c.status||"Active")===statusFilter;
     return ms&&mst&&!c.archived;
-  });
+  }),[clients,search,statusFilter,searchAllCompanies,companiesMap]);
 
-  const noteResults=search.trim().length>1&&searchMode==="notes"
+  const noteResults=useMemo(()=>search.trim().length>1&&searchMode==="notes"
     ?clients.flatMap(c=>(c.session_notes||[]).filter(n=>n.text&&n.text.toLowerCase().includes(search.toLowerCase())).map(n=>({...n,clientName:c.name,client:c}))).sort((a,b)=>b.date.localeCompare(a.date))
-    :[];
+    :[]
+  ,[clients,search,searchMode]);
 
-  if(!authChecked)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0f172a",color:"#6366f1",fontSize:18,fontFamily:"serif"}}>Loading...</div>;
+  if(!authChecked)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#1c1f2e",color:"#6366f1",fontSize:18,fontFamily:"serif"}}>Loading...</div>;
   if(!currentUser)return lang?<Login onLogin={setCurrentUser} t={t}/>:<LangPicker onSelect={selectLang}/>;
   if(!lang)return <LangPicker onSelect={selectLang}/>;
-  if(currentUser.role==="superadmin"&&!selectedCompany||currentUser?.allRoles?.length>1&&!selectedCompany){
+  if((currentUser.role==="superadmin"||currentUser?.allRoles?.length>1)&&!selectedCompany){
     return <CompanyPicker currentUser={currentUser} onSelect={(cid,role)=>{
       setSelectedCompany(cid);
       setCurrentUser(u=>({...u,role:role||u.role}));
@@ -3907,8 +4258,13 @@ export default function App(){
   }
 
   return(
-    <div style={{minHeight:"100vh",background:"#0f172a",fontFamily:"Inter,Helvetica Neue,sans-serif"}}>
+    <div style={{minHeight:"100vh",background:"#1c1f2e",fontFamily:"Inter,Helvetica Neue,sans-serif"}}>
       <style dangerouslySetInnerHTML={{__html:GCSS}}/>
+      {appMsg&&(
+        <div style={{position:"fixed",top:20,right:24,zIndex:1200,padding:"12px 20px",borderRadius:10,background:appMsg.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)",animation:"slideIn 0.2s ease"}}>
+          {appMsg.type==="success"?"✓ ":"✗ "}{appMsg.text}
+        </div>
+      )}
       <div className="mob-hdr">
         <button onClick={()=>setSidebarOpen(o=>!o)} style={{background:"none",border:"none",color:"#94a3b8",fontSize:22}}>=</button>
         <span style={{fontFamily:"Playfair Display,serif",fontSize:16,fontWeight:700,color:"#f1f5f9"}}>CareManager</span>
@@ -3916,20 +4272,20 @@ export default function App(){
       </div>
       <div className={"overlay"+(sidebarOpen?" show":"")} onClick={()=>setSidebarOpen(false)}/>
       <div style={{display:"flex",minHeight:"100vh"}}>
-        <div className={"sidebar"+(sidebarOpen?" open":"")} style={{width:280,background:"#1e293b",borderRight:"1px solid #334155",display:"flex",flexDirection:"column",flexShrink:0}}>
-          <div style={{padding:"20px 20px 14px",borderBottom:"1px solid #334155"}}>
+        <div className={"sidebar"+(sidebarOpen?" open":"")} style={{width:280,background:"#1a1d2b",boxShadow:"6px 0 18px rgba(0,0,0,0.45)",display:"flex",flexDirection:"column",flexShrink:0}}>
+          <div style={{padding:"20px 20px 14px",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
             <div style={{fontFamily:"Playfair Display,serif",fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:2}}>CareManager</div>
             <div style={{fontSize:11,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:12}}>Elder Care Platform</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div onClick={()=>{if(["admin","superadmin"].includes(currentUser.role)){setView("profile");setSelected(null);setSidebarOpen(false);}}} style={{cursor:["admin","superadmin"].includes(currentUser.role)?"pointer":"default",display:"flex",alignItems:"center",gap:8}}>
+              <div onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
                 {currentUser.avatar_url?<img src={currentUser.avatar_url} alt="avatar" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",border:"2px solid #6366f1"}}/>:<div style={{width:32,height:32,borderRadius:"50%",background:"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff"}}>{(currentUser.displayName||"?")[0].toUpperCase()}</div>}
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{currentUser.displayName}</div>
-                  <div style={{fontSize:11,color:currentUser.role==="superadmin"?"#f59e0b":"#64748b"}}>{currentUser.role==="superadmin"?"Super Admin":"Staff"}</div>
+                  <div style={{fontSize:11,color:currentUser.role==="superadmin"?"#f59e0b":currentUser.role==="admin"?"#a78bfa":currentUser.role==="power_user"?"#34d399":"#64748b"}}>{currentUser.role==="superadmin"?"Super Admin":currentUser.role==="admin"?"Admin":currentUser.role==="power_user"?"Power User":currentUser.role==="inactive"?"Inactive":"Staff"}</div>
                 </div>
               </div>
               <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                {(()=>{const notifs=buildNotifications(clients);const unread=notifs.filter(n=>!readNotifIds.has(n.id)).length;return(
+                {(()=>{const notifs=notifications;const unread=notifs.filter(n=>!readNotifIds.has(n.id)).length;return(
                   <button onClick={()=>setNotifOpen(o=>!o)} title="Notifications (b)" style={{position:"relative",background:"none",border:"1px solid #334155",borderRadius:7,padding:"4px 9px",color:"#64748b",fontSize:14}}>
                     🔔{unread>0&&<span style={{position:"absolute",top:-5,right:-5,background:"#ef4444",color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{unread>9?"9+":unread}</span>}
                   </button>
@@ -3940,7 +4296,7 @@ export default function App(){
             </div>
           </div>
           {company?.logo_url&&(
-            <div style={{padding:"14px 20px 10px",borderBottom:"1px solid #1e293b",textAlign:"center",background:"#1e293b"}}>
+            <div style={{padding:"14px 20px 10px",borderBottom:"1px solid #1e293b",textAlign:"center",background:"#1c1f2e"}}>
               <div style={{background:"#fff",borderRadius:12,padding:"10px 12px",display:"inline-block",boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>
                 <img src={company.logo_url} alt={company.name||"Company logo"} style={{maxHeight:72,maxWidth:200,objectFit:"contain",display:"block"}}/>
               </div>
@@ -3958,30 +4314,30 @@ export default function App(){
           )}
           <div style={{padding:"12px 12px 6px"}}>
             <button onClick={()=>{setView("dashboard");setSelected(null);setSidebarOpen(false);}}
-              style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="dashboard"?"rgba(99,102,241,0.15)":"transparent",color:view==="dashboard"?"#6366f1":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+              style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="dashboard"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="dashboard"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="dashboard"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
               Dashboard
             </button>
             {can(currentUser.role,"audit")&&(
               <button onClick={()=>{setView("audit");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="audit"?"rgba(99,102,241,0.15)":"transparent",color:view==="audit"?"#6366f1":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="audit"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="audit"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="audit"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
                 {t.auditTrail}
               </button>
             )}
             {can(currentUser.role,"company")&&(
               <button onClick={()=>{setView("company");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="company"?"rgba(99,102,241,0.15)":"transparent",color:view==="company"?"#6366f1":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="company"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="company"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="company"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
                 🏢 Company Settings
               </button>
             )}
             {can(currentUser.role,"users")&&(
               <button onClick={()=>{setView("users");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="users"?"rgba(99,102,241,0.15)":"transparent",color:view==="users"?"#6366f1":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="users"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="users"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="users"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
                 👥 User Management
               </button>
             )}
             {can(currentUser.role,"permissions")&&(
               <button onClick={()=>{setView("permissions");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="permissions"?"rgba(99,102,241,0.15)":"transparent",color:view==="permissions"?"#6366f1":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
+                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="permissions"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="permissions"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="permissions"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
                 🔐 Permissions
               </button>
             )}
@@ -4039,7 +4395,7 @@ export default function App(){
                     setSelected(c);setView("detail");setDeleteConfirm(false);setSidebarOpen(false);trackRecent(c);
                   }
                 }}
-                  style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 8px",borderRadius:10,border:"none",background:isChecked?"rgba(99,102,241,0.15)":isActive?"rgba(99,102,241,0.12)":c.archived?"rgba(239,68,68,0.04)":"transparent",cursor:"pointer",marginBottom:2,textAlign:"left"}}>
+                  className="client-row" style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 8px",borderRadius:10,border:"none",background:isChecked?"rgba(99,102,241,0.15)":isActive?"rgba(99,102,241,0.12)":c.archived?"rgba(239,68,68,0.04)":"transparent",cursor:"pointer",marginBottom:2,textAlign:"left"}}>
                   {bulkMode&&(
                     <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(isChecked?"#6366f1":"#475569"),background:isChecked?"#6366f1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:10,color:"#fff",fontWeight:700}}>{isChecked?"✓":""}</div>
                   )}
@@ -4070,7 +4426,7 @@ export default function App(){
                     ⬇ Export
                   </button>
                   {can(currentUser.role,"delete")&&statusFilter!=="Archived"&&(
-                    <button onClick={bulkArchive}
+                    <button onClick={()=>setBulkArchiveConfirm(true)}
                       style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid #f59e0b",background:"rgba(245,158,11,0.1)",color:"#f59e0b",fontSize:11,fontWeight:700}}>
                       📦 Archive
                     </button>
@@ -4110,14 +4466,14 @@ export default function App(){
             {clients.length} {t.clients} - {t.synced}
           </div>
         </div>
-        <div className="main-pad" style={{flex:1,overflowY:"auto",padding:"28px 32px"}}>
+        <div className="main-pad" style={{flex:1,minWidth:0,overflowY:"auto",padding:"28px 32px"}}>
           {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#ef4444",fontSize:14}}>{error}</div>}
           {loading&&view==="dashboard"&&<div style={{color:"#475569",textAlign:"center",padding:"60px 0"}}>Loading...</div>}
-          {!loading&&view==="audit"&&currentUser.role==="superadmin"&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
-          {!loading&&view==="company"&&currentUser.role==="superadmin"&&(
+          {!loading&&view==="audit"&&can(currentUser.role,"audit")&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
+          {!loading&&view==="company"&&can(currentUser.role,"company")&&(
             <CompanyView company={company} onUpdate={updated=>{setCompany(updated);}} currentUser={currentUser} t={t}/>
           )}
-          {!loading&&view==="profile"&&["admin","superadmin"].includes(currentUser.role)&&(
+          {!loading&&view==="profile"&&(
             <UserProfile
               currentUser={currentUser}
               onUpdate={updated=>setCurrentUser(updated)}
@@ -4126,7 +4482,7 @@ export default function App(){
             />
           )}
           {!loading&&view==="users"&&can(currentUser.role,"users")&&(
-            <UserManagement currentUser={currentUser} onRoleChange={refreshCurrentUser} activeCompanyId={activeCompanyId} t={t}/>
+            <UserManagement currentUser={currentUser} onRoleChange={refreshCurrentUser} activeCompanyId={activeCompanyId} t={t} logAudit={logAudit}/>
           )}
           {!loading&&view==="permissions"&&can(currentUser.role,"permissions")&&(
             <PermissionsPanel activeCompanyId={activeCompanyId} currentUser={currentUser} t={t}/>
@@ -4138,8 +4494,8 @@ export default function App(){
               {noteResults.length===0?<div style={{color:"#475569",fontSize:14,textAlign:"center",padding:"40px 0"}}>{t.noNoteResults} "{search}"</div>:(
                 <div style={{display:"flex",flexDirection:"column",gap:12}}>
                   {noteResults.map((n,i)=>(
-                    <div key={i} onClick={()=>{setSelected(n.client);setView("detail");setSearch("");setSearchMode("clients");setSidebarOpen(false);trackRecent(n.client);}}
-                      style={{background:"#1e293b",border:"1px solid #334155",borderRadius:12,padding:"14px 18px",cursor:"pointer"}}>
+                    <div key={`${n.clientName}-${n.date}-${i}`} onClick={()=>{setSelected(n.client);setView("detail");setSearch("");setSearchMode("clients");setSidebarOpen(false);trackRecent(n.client);}}
+                      style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,padding:"14px 18px",cursor:"pointer"}}>
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                         <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(n.clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(n.clientName)}</div>
                         <div>
@@ -4171,7 +4527,7 @@ export default function App(){
                       const full=clients.find(c=>c.id===rc.id);
                       return(
                         <button key={rc.id} onClick={()=>{const c=full||rc;setSelected(c);setView("detail");trackRecent(c);}}
-                          style={{display:"flex",alignItems:"center",gap:8,background:"#1e293b",border:"1px solid #334155",borderRadius:10,padding:"7px 12px",cursor:"pointer",maxWidth:180}}>
+                          className="client-row" style={{display:"flex",alignItems:"center",gap:8,background:"#1c1f2e",boxShadow:"4px 4px 10px rgba(0,0,0,0.45), -2px -2px 6px rgba(255,255,255,0.03)",borderRadius:10,padding:"7px 12px",cursor:"pointer",maxWidth:180,border:"none"}}>
                           <div style={{width:28,height:28,borderRadius:"50%",background:avatarColor(rc.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,overflow:"hidden"}}>
                             {rc.photo_url?<img src={rc.photo_url} alt={rc.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(rc.name)}
                           </div>
@@ -4184,7 +4540,7 @@ export default function App(){
               )}
               <div style={{marginBottom:20}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:8}}>📝 Quick Note</div>
-                <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:10,overflow:"hidden"}}>
+                <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:10,overflow:"hidden"}}>
                   <textarea value={dashNote} onChange={e=>{setDashNote(e.target.value);localStorage.setItem("cm-dash-note",e.target.value);}}
                     placeholder="Jot a reminder, task, or note... (auto-saved)"
                     rows={3}
@@ -4217,7 +4573,7 @@ export default function App(){
                 <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser}/>
                 {deleteConfirm&&(
                   <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400}}>
-                    <div style={{background:"#1e293b",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid #334155"}}>
+                    <div style={{background:"#1c1f2e",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid #334155"}}>
                       {fresh.archived?(
                         <>
                           <div style={{fontFamily:"Playfair Display,serif",fontSize:20,marginBottom:10,color:"#f1f5f9"}}>🗑️ Permanently Delete</div>
@@ -4248,9 +4604,24 @@ export default function App(){
         </div>
       </div>
 
+      {/* ═══ BULK ARCHIVE CONFIRM ═══ */}
+      {bulkArchiveConfirm&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:32,maxWidth:400,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+            <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>📦</div>
+            <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#f1f5f9",textAlign:"center",marginBottom:10}}>Archive {bulkSelected.size} Client{bulkSelected.size!==1?"s":""}?</div>
+            <div style={{fontSize:13,color:"#94a3b8",textAlign:"center",lineHeight:1.7,marginBottom:28}}>They will be hidden from the active list. All data is preserved and can be restored from the Archived filter.</div>
+            <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+              <button onClick={()=>setBulkArchiveConfirm(false)} style={{padding:"10px 28px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:14}}>Cancel</button>
+              <button onClick={bulkArchive} style={{padding:"10px 28px",borderRadius:9,border:"none",background:"#f59e0b",color:"#fff",fontWeight:700,fontSize:14}}>📦 Archive All</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ NOTIFICATION PANEL ═══ */}
       {notifOpen&&(()=>{
-        const notifs=buildNotifications(clients);
+        const notifs=notifications;
         const markAllRead=()=>{
           const all=new Set([...readNotifIds,...notifs.map(n=>n.id)]);
           setReadNotifIds(all);
@@ -4259,7 +4630,7 @@ export default function App(){
         const urgColor={high:"#ef4444",medium:"#f59e0b",low:"#6366f1"};
         const EPREF_LABELS=[["doc_expiry","Document expiry alerts"],["fall_risk","High fall risk alerts"],["incidents","New incident reports"],["appointments","Appointment reminders"]];
         return(
-          <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:360,height:"100vh",background:"#1e293b",borderLeft:"1px solid #334155",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
+          <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:360,height:"100vh",background:"#1c1f2e",borderLeft:"1px solid #334155",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
             <div style={{padding:"18px 20px",borderBottom:"1px solid #334155",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{fontFamily:"Playfair Display,serif",fontSize:17,fontWeight:700,color:"#f1f5f9"}}>🔔 Notifications</div>
@@ -4317,7 +4688,7 @@ export default function App(){
       {/* ═══ KEYBOARD SHORTCUTS MODAL ═══ */}
       {showShortcuts&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:16,padding:32,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
+          <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:32,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
             <div style={{fontFamily:"Playfair Display,serif",fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>⌨️ Keyboard Shortcuts</div>
             <div style={{fontSize:12,color:"#475569",marginBottom:20}}>Works when no input is focused</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
