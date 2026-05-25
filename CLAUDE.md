@@ -47,7 +47,7 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - **Inline save**: `inlineUpdate(field, value)` saves a single JSON field without full edit flow
 - **Fall risk**: `calcFallRisk(client)` — weighted score from age, diagnoses (FALL_RISK_DIAG), medications (FALL_RISK_MEDS), polypharmacy
 - **Notifications**: `buildNotifications(clients)` — client-side, scans expiring docs / upcoming appointments / high fall risk / recent incidents
-- **Recent clients**: tracked in localStorage key `cm-recent` (array of {id, name, photo_url}, max 5)
+- **Recent clients**: tracked in localStorage key `cm-recent` (array of {id, name, photo_url}, max 5). **Never pass a partial localStorage object to ClientForm** — always resolve `clients.find(c=>c.id===rc.id)` first.
 - **Dark/light mode**: `html.cm-light { filter: invert(1) hue-rotate(180deg) }` in GCSS; images/video get double-invert `filter: invert(1) hue-rotate(180deg)` to restore correct colours; toggled via `darkMode` state + `useEffect` on `document.documentElement`; persisted in `cm-dark` localStorage. **Do NOT add `filter: none` to `html.cm-light` in index.css — it breaks the toggle.**
 - **GCSS**: string array of CSS rules joined with `\n`, injected via `<style dangerouslySetInnerHTML={{__html:GCSS}}/>` in the App return. Primary global CSS mechanism alongside `src/index.css`.
 - **Keyboard shortcuts**: global `keydown` listener in App; inactive when input/textarea/select is focused
@@ -56,6 +56,13 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - **Bulk selection**: React `Set` state, toggled on sidebar client click when `bulkMode` is true
 - **User profile**: accessed by clicking the avatar or display name in the sidebar footer → sets `view="profile"`
 - **User edit (inline)**: clicking ✏️ on a user row in UserManagement sets `editingUser` state; row cells flip to inputs in-place; saved via `saveUserEdit(userId)`
+- **Edit view guard**: IIFE in edit view resolves `clients.find(c=>c.id===selected.id)||selected`; returns `null` if `!editClient.diagnoses` (partial object guard). Detail view also returns `null` if `!fresh`.
+- **Adding a JSONB field**: (1) `ALTER TABLE clients ADD COLUMN ... TEXT` on both DBs, (2) add to `fromDb()` with default, (3) add to `toDb()`, (4) add UI.
+
+## Documentation
+- `docs/staff-guide.md` — end-user guide: login, navigation, all client sections, notifications, bulk actions
+- `docs/admin-guide.md` — admin guide: user management, permissions, audit trail, company settings
+- `docs/technical-guide.md` — developer guide: architecture, CSS layers, JSONB pattern, light mode, gotchas, deploy
 
 ## Completed Features
 
@@ -90,6 +97,15 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - [x] Incident reports (falls, behavioral events, severity levels)
 - [x] Client intake checklist / onboarding workflow (progress bar, auto-stamp)
 
+### Clinical Assessments
+- [x] ADL tracking (bathing, dressing, toileting, eating — daily checklist with trends)
+- [x] Pain assessment (numeric/FACES scale, frequency + effectiveness log)
+- [x] Wound & skin assessment (photo-based, measurements, healing timeline)
+- [x] Pressure ulcer risk — Braden Scale (auto-score + turning schedule)
+- [x] Cognitive screening (MMSE/MoCA with periodic re-assessment alerts)
+- [x] Continence monitoring (incontinence log, patterns, product tracking)
+- [x] Nutritional risk screening (appetite changes, swallowing flags, dietary alerts)
+
 ### Dashboard
 - [x] Stats & age distribution chart
 - [x] Recent clients strip (last 5 visited, localStorage)
@@ -112,6 +128,11 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - [x] Company Settings view
 - [x] Permissions panel (global + per-company overrides)
 
+### Documentation
+- [x] Staff guide (`docs/staff-guide.md`)
+- [x] Admin guide (`docs/admin-guide.md`)
+- [x] Technical guide (`docs/technical-guide.md`)
+
 ## Migration Scripts
 - `migrateClient.js` — migrates a single client + their company between Supabase projects. Searches source DB by client name, fetches company record, prompts for approval, then upserts company + client into target DB.
 
@@ -131,33 +152,6 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - [ ] Two-factor authentication
 - [ ] IP-based login alerts
 
-### Reports
-- [ ] Monthly client summary PDF
-- [ ] MAR (Medication Administration Record) export
-- [ ] Census report
-
-### Clinical
-- [ ] Weight trend alert (flag rapid gain/loss from vitals history)
-- [ ] Missed appointment tracker
-
-### Company / Admin
-- [ ] Staff scheduling
-- [ ] Custom fields per company
-- [ ] Data retention policy
-- [ ] Company-wide announcement banner
-
-### Notifications (backend)
-- [ ] Actual email delivery (requires edge function + email provider)
-
-### Clinical Assessments
-- [x] ADL tracking (bathing, dressing, toileting, eating — daily checklist with trends)
-- [x] Pain assessment (numeric/FACES scale, frequency + effectiveness log)
-- [x] Wound & skin assessment (photo-based, measurements, healing timeline)
-- [x] Pressure ulcer risk — Braden Scale (auto-score + turning schedule)
-- [x] Cognitive screening (MMSE/MoCA with periodic re-assessment alerts)
-- [x] Continence monitoring (incontinence log, patterns, product tracking)
-- [x] Nutritional risk screening (appetite changes, swallowing flags, dietary alerts)
-
 ### Medication Safety
 - [ ] PRN (as-needed) medication justification log
 - [ ] Drug interaction checker (flag conflicts when adding new meds)
@@ -168,6 +162,11 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - [ ] Family portal — read-only view for family members per client
 - [ ] Shift handover notes (structured template, sign-off verification)
 - [ ] Care team push alerts for critical events (falls, vital anomalies)
+
+### Reports
+- [ ] Monthly client summary PDF
+- [ ] MAR (Medication Administration Record) export
+- [ ] Census report
 
 ### Analytics
 - [ ] Readmission / hospitalization risk dashboard
@@ -185,3 +184,16 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - [ ] Root cause analysis workflow on incidents (corrective action tracking)
 - [ ] Care plan review signatures (patient/family sign-off, reassessment scheduling)
 - [ ] Regulatory inspection checklist generator
+
+### Clinical
+- [ ] Weight trend alert (flag rapid gain/loss from vitals history)
+- [ ] Missed appointment tracker
+
+### Company / Admin
+- [ ] Staff scheduling
+- [ ] Custom fields per company
+- [ ] Data retention policy
+- [ ] Company-wide announcement banner
+
+### Notifications (backend)
+- [ ] Actual email delivery (requires edge function + email provider)
