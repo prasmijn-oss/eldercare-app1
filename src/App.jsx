@@ -2694,7 +2694,7 @@ function IntakeChecklist({items,onChange,currentUser}){
 function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
   const [d,setD]=useState(()=>JSON.parse(JSON.stringify(client)));
   const s=(f,v)=>setD(prev=>({...prev,[f]:v}));
-  const valid=d.name.trim().length>0;
+  const valid=(d.name||"").trim().length>0;
   const scols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6"};
   return(
     <div style={{paddingBottom:40}}>
@@ -2716,14 +2716,14 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
           </div>
         </Sec>
       </div>
-      <Sec icon="🩺" title={t.diagnoses} accent="#06b6d4"><DiagList items={d.diagnoses} onChange={v=>s("diagnoses",v)} t={t}/></Sec>
-      <Sec icon="💊" title={t.medications} accent="#ef4444"><MedList items={d.medications} onChange={v=>s("medications",v)} t={t}/></Sec>
-      <Sec icon="⚠️" title={t.allergies} accent="#f59e0b"><TagList items={d.allergies} onChange={v=>s("allergies",v)} placeholder="e.g. Penicillin..." addLabel={t.add}/></Sec>
+      <Sec icon="🩺" title={t.diagnoses} accent="#06b6d4"><DiagList items={d.diagnoses||[]} onChange={v=>s("diagnoses",v)} t={t}/></Sec>
+      <Sec icon="💊" title={t.medications} accent="#ef4444"><MedList items={d.medications||[]} onChange={v=>s("medications",v)} t={t}/></Sec>
+      <Sec icon="⚠️" title={t.allergies} accent="#f59e0b"><TagList items={d.allergies||[]} onChange={v=>s("allergies",v)} placeholder="e.g. Penicillin..." addLabel={t.add}/></Sec>
       <Sec icon="📦" title={t.inventory} accent="#10b981" defaultOpen={false}><Inventory items={d.inventory||[]} onChange={v=>s("inventory",v)} t={t}/></Sec>
       <Sec icon="📄" title={t.documents} accent="#06b6d4" defaultOpen={false}><DocTracker items={d.documents||[]} onChange={v=>s("documents",v)} t={t}/></Sec>
       <Sec icon="📋" title={t.carePlan} accent="#8b5cf6" defaultOpen={false}><CarePlan items={d.care_plan||[]} onChange={v=>s("care_plan",v)} t={t}/></Sec>
       <Sec icon="📊" title={t.vitals} accent="#6366f1" defaultOpen={false}><VitalsTracker vitals={d.vitals||[]} onChange={v=>s("vitals",v)} t={t}/></Sec>
-      <Sec icon="📝" title={t.notes} accent="#7c3aed"><NotesList items={d.session_notes} onChange={v=>s("session_notes",v)} t={t}/></Sec>
+      <Sec icon="📝" title={t.notes} accent="#7c3aed"><NotesList items={d.session_notes||[]} onChange={v=>s("session_notes",v)} t={t}/></Sec>
       <Sec icon="👨‍👩‍👧" title="Family Contacts" accent="#ec4899" defaultOpen={false}><FamilyContacts items={d.family_contacts||[]} onChange={v=>s("family_contacts",v)}/></Sec>
       <Sec icon="📅" title="Appointments & Transport" accent="#06b6d4" defaultOpen={false}><AppointmentLog items={d.appointments||[]} onChange={v=>s("appointments",v)}/></Sec>
       <Sec icon="⚠️" title="Incident Reports" accent="#ef4444" defaultOpen={false}><IncidentReports items={d.incidents||[]} onChange={v=>s("incidents",v)} currentUser={currentUser}/></Sec>
@@ -6809,8 +6809,8 @@ export default function App(){
                     {recentClients.map(rc=>{
                       const full=clients.find(c=>c.id===rc.id);
                       return(
-                        <button key={rc.id} onClick={()=>{const c=full||rc;setSelected(c);setView("detail");trackRecent(c);}}
-                          className="client-row" style={{display:"flex",alignItems:"center",gap:8,background:"#111427",boxShadow:"4px 4px 10px rgba(0,0,0,0.45), -2px -2px 6px rgba(255,255,255,0.03)",borderRadius:10,padding:"7px 12px",cursor:"pointer",maxWidth:180,border:"none"}}>
+                        <button key={rc.id} onClick={()=>{if(!full)return;setSelected(full);setView("detail");trackRecent(full);}}
+                          className="client-row" style={{display:"flex",alignItems:"center",gap:8,background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"7px 12px",cursor:full?"pointer":"not-allowed",maxWidth:180,opacity:full?1:0.5}}>
                           <div style={{width:28,height:28,borderRadius:"50%",background:avatarColor(rc.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,overflow:"hidden"}}>
                             {rc.photo_url?<img src={rc.photo_url} alt={rc.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(rc.name)}
                           </div>
@@ -6830,14 +6830,19 @@ export default function App(){
               <ClientForm client={emptyClient()} onSave={saveClient} onCancel={()=>setView(selected?"detail":"dashboard")} saving={saving} t={t} currentUser={currentUser}/>
             </div>
           )}
-          {view==="edit"&&selected&&can(currentUser.role,"edit")&&(
+          {view==="edit"&&selected&&can(currentUser.role,"edit")&&(()=>{
+            const editClient=clients.find(c=>c.id===selected.id)||selected;
+            if(!editClient.diagnoses)return null; // partial object guard
+            return(
             <div>
-              <div style={{fontSize:17,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px",marginBottom:20}}>Edit — {selected.name}</div>
-              <ClientForm client={selected} onSave={saveClient} onCancel={()=>setView("detail")} saving={saving} t={t} currentUser={currentUser}/>
+              <div style={{fontSize:17,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px",marginBottom:20}}>Edit — {editClient.name}</div>
+              <ClientForm client={editClient} onSave={saveClient} onCancel={()=>setView("detail")} saving={saving} t={t} currentUser={currentUser}/>
             </div>
-          )}
+            );
+          })()}
           {view==="detail"&&selected&&(()=>{
-            const fresh=clients.find(c=>c.id===selected.id)||selected;
+            const fresh=clients.find(c=>c.id===selected.id);
+            if(!fresh)return null; // client not loaded yet — wait for clients state
             return(
               <>
                 <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser}/>
