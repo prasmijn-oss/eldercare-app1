@@ -3,7 +3,7 @@
 ## Project Overview
 Full-stack eldercare client management app built with React 19 + Vite.  
 Backend: Supabase (auth, Postgres, storage).  
-Entire frontend lives in **`src/App.jsx`** (single-file architecture, ~4341 lines).
+Entire frontend lives in **`src/App.jsx`** (single-file architecture, ~6500+ lines).
 
 ## Tech Stack
 - React 19, Vite 8
@@ -48,20 +48,26 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - **Fall risk**: `calcFallRisk(client)` — weighted score from age, diagnoses (FALL_RISK_DIAG), medications (FALL_RISK_MEDS), polypharmacy
 - **Notifications**: `buildNotifications(clients)` — client-side, scans expiring docs / upcoming appointments / high fall risk / recent incidents
 - **Recent clients**: tracked in localStorage key `cm-recent` (array of {id, name, photo_url}, max 5)
-- **Dark/light mode**: CSS `filter: invert(1) hue-rotate(180deg)` toggled via `html.cm-light` class; images double-inverted
+- **Dark/light mode**: `html.cm-light { filter: invert(1) hue-rotate(180deg) }` in GCSS; images/video get double-invert `filter: invert(1) hue-rotate(180deg)` to restore correct colours; toggled via `darkMode` state + `useEffect` on `document.documentElement`; persisted in `cm-dark` localStorage. **Do NOT add `filter: none` to `html.cm-light` in index.css — it breaks the toggle.**
+- **GCSS**: string array of CSS rules joined with `\n`, injected via `<style dangerouslySetInnerHTML={{__html:GCSS}}/>` in the App return. Primary global CSS mechanism alongside `src/index.css`.
 - **Keyboard shortcuts**: global `keydown` listener in App; inactive when input/textarea/select is focused
 - **PWA**: `public/manifest.json` + `public/sw.js` (cache-first for static assets); registered in `index.html`
-- **React import**: only named hooks imported — `import { useState, useEffect, useCallback, useRef, Fragment } from "react"`. Never use `React.Fragment` or `React.*` — use `Fragment` or `<>` shorthand
+- **React import**: only named hooks imported — `import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react"`. Never use `React.Fragment` or `React.*` — use `Fragment` or `<>` shorthand
 - **Bulk selection**: React `Set` state, toggled on sidebar client click when `bulkMode` is true
+- **User profile**: accessed by clicking the avatar or display name in the sidebar footer → sets `view="profile"`
+- **User edit (inline)**: clicking ✏️ on a user row in UserManagement sets `editingUser` state; row cells flip to inputs in-place; saved via `saveUserEdit(userId)`
 
 ## Completed Features
 
 ### Visual / Theme
-- [x] Neumorphic dark theme — bg `#1c1f2e`, sidebar `#1a1d2b`, extruded + inset shadow system
-- [x] TiltCard — mouse-tracked 3D rotation on 4 dashboard stat cards (useRef + useEffect)
+- [x] **Full UI redesign** — DM Sans + DM Mono typography; three-layer token system (Primitive → Semantic → Component) in `src/index.css`; dark palette `#07091c` base / `#0c0f1f` surface / `#111427` cards
+- [x] **Flat design** — all neumorphic inset/extruded shadows removed; resting `0 1px 3px rgba(0,0,0,0.3)`, hover `0 12px 32px rgba(0,0,0,0.4)`
+- [x] New sidebar — grouped nav (Main / Management / Admin), SVG stroke icons, 3px left accent bar for active state, user footer with avatar + bell + theme toggle + sign-out
+- [x] Sticky topbar — personalized greeting, DM Mono date + active client count, gradient New Client button
+- [x] TiltCard — mouse-tracked 3D rotation on dashboard stat cards; ambient glow `radial-gradient` overlay; flat shadows
 - [x] FlipCard row — 3 cards (Medications, Intake Progress, Incidents) hover-to-flip with gradient back face
-- [x] Lift-on-hover — `.client-row` CSS class on sidebar list + recent clients strip (translateX + shadow)
-- [x] Sidebar nav active state — inset shadow + `#7dd3fc` accent
+- [x] Login / LangPicker / ForcePasswordChange — gradient logo mark SVG, gradient CTA buttons, `#07091c` page background
+- [x] `.client-row` + `.dash-row` CSS hover tint (no translateX); `.card-hover` lift utility
 
 ### Core / Auth
 - [x] Multi-language UI (EN, Papiamento, NL, ES)
@@ -114,7 +120,7 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - Staging Supabase has test companies ("Test Company", "Test 2") and test clients (test3–test9)
 - `p.rasmijn@gmail.com` is `superadmin` on "Test Company" in staging — logs straight to dashboard (single company)
 - Staging RLS gotcha: `get_my_role()` uses `LIMIT 1` on user_roles — if a user has multiple rows, the first one's role is used. Keep superadmin row as the only/first row for that user to avoid RLS blocking company reads.
-- Neumorphic theme is on `staging` branch — **not yet merged to `main`**
+- Full UI redesign is on `staging` branch — **not yet merged to `main`**
 
 ## Pending Features
 
@@ -144,13 +150,13 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - [ ] Actual email delivery (requires edge function + email provider)
 
 ### Clinical Assessments
-- [ ] ADL tracking (bathing, dressing, toileting, eating — daily checklist with trends)
-- [ ] Pain assessment (numeric/FACES scale, frequency + effectiveness log)
-- [ ] Wound & skin assessment (photo-based, measurements, healing timeline)
-- [ ] Pressure ulcer risk — Braden Scale (auto-score + turning schedule)
-- [ ] Cognitive screening (MMSE/MoCA with periodic re-assessment alerts)
-- [ ] Continence monitoring (incontinence log, patterns, product tracking)
-- [ ] Nutritional risk screening (appetite changes, swallowing flags, dietary alerts)
+- [x] ADL tracking (bathing, dressing, toileting, eating — daily checklist with trends)
+- [x] Pain assessment (numeric/FACES scale, frequency + effectiveness log)
+- [x] Wound & skin assessment (photo-based, measurements, healing timeline)
+- [x] Pressure ulcer risk — Braden Scale (auto-score + turning schedule)
+- [x] Cognitive screening (MMSE/MoCA with periodic re-assessment alerts)
+- [x] Continence monitoring (incontinence log, patterns, product tracking)
+- [x] Nutritional risk screening (appetite changes, swallowing flags, dietary alerts)
 
 ### Medication Safety
 - [ ] PRN (as-needed) medication justification log
