@@ -81,6 +81,11 @@ function buildNotifications(clients){
       if(pain.latestScore>=7)notifs.push({id:`pain-${c.id}`,type:"pain",urgency:"high",icon:"🩹",title:"Severe pain reported",body:`${c.name} — score ${pain.latestScore}/10 (${pain.latest.location||"unspecified location"})`,clientId:c.id,clientName:c.name});
       else if(pain.persistent)notifs.push({id:`pain-${c.id}`,type:"pain",urgency:"medium",icon:"🩹",title:"Persistent moderate pain",body:`${c.name} — ${pain.recentModerateCount} assessments ≥4/10 in last 7 days`,clientId:c.id,clientName:c.name});
     }
+    const braden=calcBradenSummary(c.braden_assessments);
+    if(braden){
+      if(braden.score<=12)notifs.push({id:`braden-${c.id}`,type:"braden",urgency:"high",icon:"🛏",title:`${braden.risk.label} — pressure ulcer`,body:`${c.name} — Braden score ${braden.score}/${BRADEN_MAX} · ${braden.risk.turning}`,clientId:c.id,clientName:c.name});
+      else if(braden.score<=14)notifs.push({id:`braden-${c.id}`,type:"braden",urgency:"medium",icon:"🛏",title:"Moderate pressure ulcer risk",body:`${c.name} — Braden score ${braden.score}/${BRADEN_MAX}`,clientId:c.id,clientName:c.name});
+    }
     const ws=calcWoundSummary(c.wound_assessments);
     if(ws){
       if(ws.deteriorating.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"high",icon:"🩺",title:"Deteriorating wound",body:`${c.name} — ${ws.deteriorating.map(w=>w.site).join(", ")}`,clientId:c.id,clientName:c.name});
@@ -551,6 +556,46 @@ function calcWoundSummary(assessments){
   return{activeSites,healedCount,deteriorating,highStage,totalSites:Object.keys(bySite).length};
 }
 
+// ─── Braden Scale helper ──────────────────────────────────────────────────────
+// 6 subscales → total score 6-23 (lower = higher pressure ulcer risk)
+// Subscales: sensory_perception, moisture, activity, mobility, nutrition (1-4)
+//            friction_shear (1-3)
+// Risk levels: ≤9 Very High · 10-12 High · 13-14 Moderate · 15-18 Mild · ≥19 No Risk
+const BRADEN_SUBSCALES=[
+  {key:"sensory_perception",label:"Sensory Perception",max:4,options:["Completely Limited","Very Limited","Slightly Limited","No Impairment"]},
+  {key:"moisture",         label:"Moisture",            max:4,options:["Constantly Moist","Very Moist","Occasionally Moist","Rarely Moist"]},
+  {key:"activity",         label:"Activity",            max:4,options:["Bedfast","Chairfast","Walks Occasionally","Walks Frequently"]},
+  {key:"mobility",         label:"Mobility",            max:4,options:["Completely Immobile","Very Limited","Slightly Limited","No Limitation"]},
+  {key:"nutrition",        label:"Nutrition",           max:4,options:["Very Poor","Probably Inadequate","Adequate","Excellent"]},
+  {key:"friction_shear",   label:"Friction & Shear",   max:3,options:["Problem","Potential Problem","No Apparent Problem"]},
+];
+const BRADEN_MAX=23; // 4+4+4+4+4+3
+function bradenRisk(score){
+  if(score<=9) return{label:"Very High Risk",color:"#dc2626",turning:"Every 1-2 hours"};
+  if(score<=12)return{label:"High Risk",     color:"#ef4444",turning:"Every 2 hours"};
+  if(score<=14)return{label:"Moderate Risk", color:"#f59e0b",turning:"Every 2-3 hours"};
+  if(score<=18)return{label:"Mild Risk",     color:"#06b6d4",turning:"Every 4 hours"};
+  return          {label:"No Risk",          color:"#10b981",turning:"Routine repositioning"};
+}
+function bradenScore(entry){
+  return BRADEN_SUBSCALES.reduce((s,sub)=>s+(Number(entry[sub.key]??sub.max)),0);
+}
+function calcBradenSummary(assessments){
+  if(!assessments||assessments.length===0)return null;
+  const sorted=[...assessments].sort((a,b)=>b.date.localeCompare(a.date));
+  const latest=sorted[0];
+  const score=bradenScore(latest);
+  const risk=bradenRisk(score);
+  let trend=null;
+  if(sorted.length>=2){
+    const prev=bradenScore(sorted[1]);
+    if(score>prev)trend="improving";   // higher score = lower risk
+    else if(score<prev)trend="declining";
+    else trend="stable";
+  }
+  return{latest,score,risk,trend,count:sorted.length};
+}
+
 function expiryBadge(d){
   if(d===null)return null;
   if(d<0)return{label:"EXPIRED",color:"#ef4444",bg:"rgba(239,68,68,0.1)"};
@@ -651,6 +696,7 @@ function toDb(d){return{
   adl_logs:JSON.stringify(d.adl_logs||[]),
   pain_assessments:JSON.stringify(d.pain_assessments||[]),
   wound_assessments:JSON.stringify(d.wound_assessments||[]),
+  braden_assessments:JSON.stringify(d.braden_assessments||[]),
 };}
 
 function fromDb(row){
@@ -670,6 +716,7 @@ function fromDb(row){
     adl_logs:p(row.adl_logs,[]),
     pain_assessments:p(row.pain_assessments,[]),
     wound_assessments:p(row.wound_assessments,[]),
+    braden_assessments:p(row.braden_assessments,[]),
   };
 }
 
@@ -1517,6 +1564,151 @@ function PainAssessment({items,onChange}){
   );
 }
 
+// ─── Braden Scale ────────────────────────────────────────────────────────────
+function BradenScale({items,onChange}){
+  const [showForm,setShowForm]=useState(false);
+  const [entry,setEntry]=useState(null);
+  const blank=()=>{
+    const e={id:uid(),date:tod(),recorded_by:"",turning_schedule:"",notes:""};
+    BRADEN_SUBSCALES.forEach(sub=>{e[sub.key]=sub.max;});
+    return e;
+  };
+  const openNew=()=>{setEntry(blank());setShowForm(true);};
+  const openEdit=row=>{setEntry({...row});setShowForm(true);};
+  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
+  const rm=id=>onChange(items.filter(i=>i.id!==id));
+  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
+  const summary=calcBradenSummary(items);
+  const liveScore=entry?bradenScore(entry):null;
+  const liveRisk=liveScore!=null?bradenRisk(liveScore):null;
+
+  // Score bar fill: score/23 but lower is worse, so invert for visual
+  const scoreBar=s=>Math.round((s/BRADEN_MAX)*100);
+
+  return(
+    <div>
+      {/* Latest summary */}
+      {summary&&(
+        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
+            <span style={{fontWeight:800,fontSize:22,color:summary.risk.color}}>{summary.score}</span>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:summary.risk.color}}>{summary.risk.label}</div>
+              <div style={{fontSize:11,color:"#64748b"}}>Score {summary.score}/{BRADEN_MAX} · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+            </div>
+            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"#64748b"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
+          </div>
+          {/* Score bar */}
+          <div style={{height:6,background:"#1e293b",borderRadius:3,overflow:"hidden",marginBottom:6}}>
+            <div style={{height:"100%",width:scoreBar(summary.score)+"%",background:summary.risk.color,borderRadius:3,transition:"width 0.3s"}}/>
+          </div>
+          <div style={{fontSize:11,color:"#475569"}}>🔄 Recommended repositioning: <strong style={{color:"#94a3b8"}}>{summary.latest.turning_schedule||summary.risk.turning}</strong></div>
+          {/* Subscale mini-badges */}
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
+            {BRADEN_SUBSCALES.map(sub=>{
+              const val=Number(summary.latest[sub.key]??sub.max);
+              const pct=val/sub.max;
+              const col=pct<=0.25?"#ef4444":pct<=0.5?"#f59e0b":pct<=0.75?"#06b6d4":"#10b981";
+              return<span key={sub.key} style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10,background:col+"18",color:col,border:"1px solid "+col+"35"}}>{sub.label.split(" ")[0]} {val}/{sub.max}</span>;
+            })}
+          </div>
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <span style={{fontSize:13,color:"#64748b"}}>{items.length} assessment{items.length!==1?"s":""}</span>
+        <button style={{...ABTN,borderStyle:"solid",borderColor:"#8b5cf6",color:"#8b5cf6"}} onClick={openNew}>+ Log Braden Assessment</button>
+      </div>
+      {showForm&&entry&&(
+        <div style={{background:"#0f172a",border:"1px solid #8b5cf6",borderRadius:10,padding:14,marginBottom:12}}>
+          {/* Live score header */}
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"#161929",borderRadius:8}}>
+            <span style={{fontWeight:800,fontSize:26,color:liveRisk.color}}>{liveScore}</span>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:liveRisk.color}}>{liveRisk.label}</div>
+              <div style={{fontSize:11,color:"#64748b"}}>of {BRADEN_MAX} · updates as you score</div>
+            </div>
+            <div style={{flex:1,height:6,background:"#1e293b",borderRadius:3,overflow:"hidden"}}>
+              <div style={{height:"100%",width:scoreBar(liveScore)+"%",background:liveRisk.color,borderRadius:3,transition:"width 0.2s"}}/>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
+            <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
+          </div>
+          {/* Subscale scoring */}
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:12}}>
+            {BRADEN_SUBSCALES.map(sub=>{
+              const val=Number(entry[sub.key]??sub.max);
+              return(
+                <div key={sub.key}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <label style={{...LBL,marginBottom:0}}>{sub.label}</label>
+                    <span style={{fontSize:11,fontWeight:700,color:(val/sub.max)<=0.25?"#ef4444":(val/sub.max)<=0.5?"#f59e0b":(val/sub.max)<=0.75?"#06b6d4":"#10b981"}}>{val}/{sub.max}</span>
+                  </div>
+                  <div style={{display:"flex",gap:4}}>
+                    {sub.options.map((opt,idx)=>{
+                      const score=idx+1;
+                      const active=val===score;
+                      const col=score/sub.max<=0.25?"#ef4444":score/sub.max<=0.5?"#f59e0b":score/sub.max<=0.75?"#06b6d4":"#10b981";
+                      return(
+                        <button key={score} onClick={()=>setEntry(v=>({...v,[sub.key]:score}))}
+                          title={opt}
+                          style={{flex:1,padding:"6px 4px",borderRadius:6,border:"1px solid "+(active?col:"#334155"),background:active?col+"25":"transparent",color:active?col:"#475569",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center",lineHeight:1.2}}>
+                          <div style={{fontWeight:700,fontSize:13}}>{score}</div>
+                          <div style={{fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Turning Schedule</label><input style={INP} value={entry.turning_schedule} onChange={e=>setEntry(v=>({...v,turning_schedule:e.target.value}))} placeholder={liveRisk.turning}/></div>
+            <div><label style={LBL}>Notes</label><input style={INP} value={entry.notes} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Additional observations..."/></div>
+          </div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
+            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#8b5cf6",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
+          </div>
+        </div>
+      )}
+      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No Braden assessments logged yet</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {sorted.map(row=>{
+          const sc=bradenScore(row);
+          const rk=bradenRisk(sc);
+          return(
+            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
+                  <span style={{fontWeight:800,fontSize:15,color:rk.color}}>{sc}</span>
+                  <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:rk.color+"20",color:rk.color}}>{rk.label}</span>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#8b5cf6",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:4}}>
+                {BRADEN_SUBSCALES.map(sub=>{
+                  const val=Number(row[sub.key]??sub.max);
+                  const col=val/sub.max<=0.25?"#ef4444":val/sub.max<=0.5?"#f59e0b":val/sub.max<=0.75?"#06b6d4":"#10b981";
+                  return<span key={sub.key} style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:10,background:col+"18",color:col}}>{sub.label.split(" ")[0]} {val}</span>;
+                })}
+              </div>
+              <div style={{fontSize:11,color:"#475569"}}>🔄 {row.turning_schedule||rk.turning}{row.recorded_by&&" · By: "+row.recorded_by}</div>
+              {row.notes&&<div style={{fontSize:12,color:"#475569",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Wound & Skin Assessment ─────────────────────────────────────────────────
 const WOUND_TYPES=["Pressure Ulcer","Skin Tear","Surgical","Laceration","Abrasion","Diabetic Ulcer","Venous Ulcer","Arterial Ulcer","Other"];
 const WOUND_STAGES=["Stage I","Stage II","Stage III","Stage IV","Unstageable","Deep Tissue","N/A"];
@@ -1957,6 +2149,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
       <Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
       <Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
       <Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>
+      <Sec icon="🛏" title="Braden Scale (Pressure Ulcer Risk)" accent="#8b5cf6" defaultOpen={false}><BradenScale items={d.braden_assessments||[]} onChange={v=>s("braden_assessments",v)}/></Sec>
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
         <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
         <button onClick={()=>valid&&!saving&&onSave(d)} disabled={!valid||saving}
@@ -2345,6 +2538,11 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🩺 WOUND & SKIN ASSESSMENT</div>
           <WoundAssessment items={client.wound_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("wound_assessments",v):()=>{}}/>
         </div>
+        {/* Braden Scale */}
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>🛏 BRADEN SCALE — PRESSURE ULCER RISK</div>
+          <BradenScale items={client.braden_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("braden_assessments",v):()=>{}}/>
+        </div>
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
     </div>
   );
@@ -2685,6 +2883,32 @@ function Dashboard({clients,onSelect,t,currentUser}){
                     })}
                     {ws.healedCount>0&&<span style={{fontSize:11,color:"#8b5cf6"}}>+{ws.healedCount} healed</span>}
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ── Braden Risk ── */}
+      {(()=>{
+        const bradenClients=clients.filter(c=>!c.archived).map(c=>({...c,bs:calcBradenSummary(c.braden_assessments)})).filter(({bs})=>bs&&bs.score<=14).sort((a,b)=>a.bs.score-b.bs.score);
+        if(bradenClients.length===0)return null;
+        return(
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+            <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:4}}>🛏 BRADEN SCALE — PRESSURE ULCER RISK</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients scored ≤14 (Moderate to Very High Risk). Lowest score shown first.</div>
+            {bradenClients.map(({bs,...c})=>(
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+bs.risk.color}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"#475569"}}>🔄 {bs.latest.turning_schedule||bs.risk.turning}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontWeight:800,fontSize:18,color:bs.risk.color}}>{bs.score}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}>/{BRADEN_MAX}</span></div>
+                  <div style={{fontSize:11,color:bs.risk.color,fontWeight:600}}>{bs.risk.label}</div>
+                  {bs.trend&&<div style={{fontSize:10,color:bs.trend==="improving"?"#10b981":bs.trend==="declining"?"#ef4444":"#64748b"}}>{bs.trend==="improving"?"↑":bs.trend==="declining"?"↓":"→"} {bs.trend}</div>}
                 </div>
               </div>
             ))}
