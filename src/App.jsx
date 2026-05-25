@@ -98,6 +98,16 @@ function buildNotifications(clients){
       else if(cog.level.label==="Moderate Impairment"||cog.trend==="declining")notifs.push({id:`cog-${c.id}`,type:"cognitive",urgency:"medium",icon:"🧠",title:`${cog.level.label==="Moderate Impairment"?"Moderate cognitive impairment":"Declining cognitive score"}`,body:`${c.name} — ${cog.latest.test_type||"MMSE"} score ${cog.score}/30`,clientId:c.id,clientName:c.name});
       if(cog.dueReassess)notifs.push({id:`cog-due-${c.id}`,type:"cognitive_due",urgency:"low",icon:"🧠",title:"Cognitive reassessment overdue",body:`${c.name} — last screened ${cog.daysSince} days ago`,clientId:c.id,clientName:c.name});
     }
+    const cont=calcContinenceSummary(c.continence_logs);
+    if(cont){
+      if(cont.skinIssue)notifs.push({id:`cont-skin-${c.id}`,type:"continence",urgency:"high",icon:"💧",title:"Continence-related skin breakdown",body:`${c.name} — skin integrity issue recorded in last 7 days`,clientId:c.id,clientName:c.name});
+      else if(cont.highFrequency)notifs.push({id:`cont-${c.id}`,type:"continence",urgency:"medium",icon:"💧",title:"High incontinence frequency",body:`${c.name} — avg ${cont.avgPerDay} episodes/day over last 7 days`,clientId:c.id,clientName:c.name});
+    }
+    const nutr=calcNutritionSummary(c.nutrition_assessments);
+    if(nutr){
+      if(nutr.score>=2)notifs.push({id:`nutr-${c.id}`,type:"nutrition",urgency:"medium",icon:"🥗",title:"High nutritional risk (MUST)",body:`${c.name} — MUST score ${nutr.score} · ${nutr.risk.action}`,clientId:c.id,clientName:c.name});
+      else if(nutr.score===1)notifs.push({id:`nutr-${c.id}`,type:"nutrition",urgency:"low",icon:"🥗",title:"Medium nutritional risk (MUST)",body:`${c.name} — MUST score 1 · ${nutr.risk.action}`,clientId:c.id,clientName:c.name});
+    }
     (c.incidents||[]).forEach(inc=>{
       if(!inc.date)return;
       const days=Math.ceil((now-new Date(inc.date))/86400000);
@@ -642,6 +652,51 @@ function calcCognitiveSummary(assessments){
   return{latest,score,level,trend,count:sorted.length,daysSince,dueReassess};
 }
 
+// ─── Continence Monitoring ────────────────────────────────────────────────────
+const CONTINENCE_TYPES=["Urinary Urgency","Urinary Stress","Urinary Overflow","Fecal","Mixed","Other"];
+const CONTINENCE_PRODUCTS=["None","Pad","Brief / Pull-up","Catheter","Bedpan / Commode","Other"];
+const CONTINENCE_VOLUME=["Small","Medium","Large"];
+const CONTINENCE_SKIN=["Intact","Redness","Maceration","Breakdown"];
+function calcContinenceSummary(logs){
+  if(!logs||logs.length===0)return null;
+  const sorted=[...logs].sort((a,b)=>b.date.localeCompare(a.date)||(b.time||"").localeCompare(a.time||""));
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);
+  const cutoffStr=cutoff.toISOString().slice(0,10);
+  const recent=sorted.filter(l=>l.date>=cutoffStr);
+  const dayMap={};recent.forEach(l=>{dayMap[l.date]=(dayMap[l.date]||0)+1;});
+  const days=Object.keys(dayMap).length;
+  const avgPerDay=days>0?(recent.length/days).toFixed(1):0;
+  const typeCount={};recent.forEach(l=>{typeCount[l.type||"Other"]=(typeCount[l.type||"Other"]||0)+1;});
+  const mostCommonType=Object.keys(typeCount).sort((a,b)=>typeCount[b]-typeCount[a])[0]||null;
+  const skinIssue=recent.some(l=>l.skin_condition==="Breakdown"||l.skin_condition==="Maceration");
+  const highFrequency=Number(avgPerDay)>=4;
+  return{sorted,recent,total:logs.length,recentCount:recent.length,avgPerDay,mostCommonType,skinIssue,highFrequency,days};
+}
+
+// ─── Nutritional Risk Screening (MUST) ────────────────────────────────────────
+function mustRisk(score){
+  const n=Number(score);
+  if(n===0)return{label:"Low Risk",   color:"#10b981",action:"Routine care — repeat screening weekly"};
+  if(n===1)return{label:"Medium Risk",color:"#f59e0b",action:"Observe — document 3-day dietary intake"};
+  return         {label:"High Risk",  color:"#ef4444",action:"Treat — refer to dietitian"};
+}
+function mustScore(entry){return(Number(entry.bmi_score??0))+(Number(entry.weight_loss_score??0))+(entry.acute_illness?2:0);}
+function calcNutritionSummary(assessments){
+  if(!assessments||assessments.length===0)return null;
+  const sorted=[...assessments].sort((a,b)=>b.date.localeCompare(a.date));
+  const latest=sorted[0];
+  const score=mustScore(latest);
+  const risk=mustRisk(score);
+  let trend=null;
+  if(sorted.length>=2){
+    const prev=mustScore(sorted[1]);
+    if(score<prev)trend="improving";
+    else if(score>prev)trend="worsening";
+    else trend="stable";
+  }
+  return{latest,score,risk,trend,count:sorted.length};
+}
+
 function expiryBadge(d){
   if(d===null)return null;
   if(d<0)return{label:"EXPIRED",color:"#ef4444",bg:"rgba(239,68,68,0.1)"};
@@ -744,6 +799,8 @@ function toDb(d){return{
   wound_assessments:JSON.stringify(d.wound_assessments||[]),
   braden_assessments:JSON.stringify(d.braden_assessments||[]),
   cognitive_assessments:JSON.stringify(d.cognitive_assessments||[]),
+  continence_logs:JSON.stringify(d.continence_logs||[]),
+  nutrition_assessments:JSON.stringify(d.nutrition_assessments||[]),
 };}
 
 function fromDb(row){
@@ -765,6 +822,8 @@ function fromDb(row){
     wound_assessments:p(row.wound_assessments,[]),
     braden_assessments:p(row.braden_assessments,[]),
     cognitive_assessments:p(row.cognitive_assessments,[]),
+    continence_logs:p(row.continence_logs,[]),
+    nutrition_assessments:p(row.nutrition_assessments,[]),
   };
 }
 
@@ -1905,6 +1964,274 @@ function CognitiveScreening({items,onChange}){
   );
 }
 
+// ─── Continence Monitoring ────────────────────────────────────────────────────
+function ContinenceLog({items,onChange}){
+  const [showForm,setShowForm]=useState(false);
+  const [entry,setEntry]=useState(null);
+  const blank=()=>({id:uid(),date:tod(),time:new Date().toTimeString().slice(0,5),type:"Urinary Urgency",product_used:"Pad",volume:"Medium",skin_condition:"Intact",notes:""});
+  const openNew=()=>{setEntry(blank());setShowForm(true);};
+  const openEdit=row=>{setEntry({...row});setShowForm(true);};
+  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)||(b.time||"").localeCompare(a.time||"")));setShowForm(false);setEntry(null);};
+  const rm=id=>onChange(items.filter(i=>i.id!==id));
+  const summary=calcContinenceSummary(items);
+  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date)||(b.time||"").localeCompare(a.time||""));
+
+  return(
+    <div>
+      {/* Summary strip */}
+      {summary&&summary.recentCount>0&&(
+        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+          <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"center"}}>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontWeight:800,fontSize:22,color:summary.highFrequency?"#ef4444":"#06b6d4"}}>{summary.avgPerDay}</div>
+              <div style={{fontSize:10,color:"#64748b"}}>avg/day (7d)</div>
+            </div>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontWeight:700,fontSize:16,color:"#94a3b8"}}>{summary.recentCount}</div>
+              <div style={{fontSize:10,color:"#64748b"}}>episodes (7d)</div>
+            </div>
+            {summary.mostCommonType&&<div style={{flex:1}}>
+              <div style={{fontSize:11,color:"#64748b"}}>Most common</div>
+              <div style={{fontWeight:600,fontSize:12,color:"#94a3b8"}}>{summary.mostCommonType}</div>
+            </div>}
+            {summary.skinIssue&&<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.3)"}}>⚠️ Skin breakdown</span>}
+            {summary.highFrequency&&!summary.skinIssue&&<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.3)"}}>High frequency</span>}
+          </div>
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <span style={{fontSize:13,color:"#64748b"}}>{items.length} episode{items.length!==1?"s":""} logged</span>
+        <button style={{...ABTN,borderStyle:"solid",borderColor:"#06b6d4",color:"#06b6d4"}} onClick={openNew}>+ Log Episode</button>
+      </div>
+      {showForm&&entry&&(
+        <div style={{background:"#0f172a",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
+            <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time||""} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Type</label>
+              <select style={INP} value={entry.type||""} onChange={e=>setEntry(v=>({...v,type:e.target.value}))}>
+                {CONTINENCE_TYPES.map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div><label style={LBL}>Volume</label>
+              <select style={INP} value={entry.volume||""} onChange={e=>setEntry(v=>({...v,volume:e.target.value}))}>
+                {CONTINENCE_VOLUME.map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Product Used</label>
+              <select style={INP} value={entry.product_used||""} onChange={e=>setEntry(v=>({...v,product_used:e.target.value}))}>
+                {CONTINENCE_PRODUCTS.map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div><label style={LBL}>Skin Condition</label>
+              <select style={INP} value={entry.skin_condition||"Intact"} onChange={e=>setEntry(v=>({...v,skin_condition:e.target.value}))}>
+                {CONTINENCE_SKIN.map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{marginBottom:10}}>
+            <label style={LBL}>Notes</label>
+            <textarea style={{...INP,height:56,resize:"vertical"}} value={entry.notes||""} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Triggering activity, odour, colour, care given..."/>
+          </div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
+            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#06b6d4",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
+          </div>
+        </div>
+      )}
+      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No continence episodes logged yet</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:7}}>
+        {sorted.map(row=>{
+          const skinCol=row.skin_condition==="Breakdown"?"#ef4444":row.skin_condition==="Maceration"?"#f59e0b":row.skin_condition==="Redness"?"#fb923c":"#10b981";
+          return(
+            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"9px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
+                  <span style={{fontWeight:700,fontSize:12,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}{row.time&&" "+row.time}</span>
+                  <span style={{fontSize:11,padding:"1px 8px",borderRadius:10,background:"rgba(6,182,212,0.12)",color:"#06b6d4",fontWeight:600}}>{row.type}</span>
+                  {row.volume&&<span style={{fontSize:11,color:"#64748b"}}>{row.volume}</span>}
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                  {row.product_used&&row.product_used!=="None"&&<span style={{fontSize:11,color:"#475569"}}>🛒 {row.product_used}</span>}
+                  <span style={{fontSize:11,fontWeight:600,color:skinCol}}>Skin: {row.skin_condition||"Intact"}</span>
+                  {row.notes&&<span style={{fontSize:11,color:"#64748b",fontStyle:"italic",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.notes}</span>}
+                </div>
+              </div>
+              <div style={{display:"flex",gap:6,flexShrink:0}}>
+                <button onClick={()=>openEdit(row)} style={{...IBTN}}>✏️</button>
+                <button onClick={()=>rm(row.id)} style={{...IBTN}}>🗑</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Nutritional Risk Screening (MUST) ────────────────────────────────────────
+function NutritionScreening({items,onChange}){
+  const [showForm,setShowForm]=useState(false);
+  const [entry,setEntry]=useState(null);
+  const blank=()=>({id:uid(),date:tod(),assessed_by:"",bmi_score:0,weight_loss_score:0,acute_illness:false,appetite:"Good",swallowing_difficulty:false,dietary_restrictions:"",supplement_use:"",notes:""});
+  const openNew=()=>{setEntry(blank());setShowForm(true);};
+  const openEdit=row=>{setEntry({...row});setShowForm(true);};
+  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
+  const rm=id=>onChange(items.filter(i=>i.id!==id));
+  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
+  const summary=calcNutritionSummary(items);
+  const liveScore=entry?mustScore(entry):null;
+  const liveRisk=liveScore!=null?mustRisk(liveScore):null;
+
+  const ScoreBtn=({field,val,label,desc,color})=>{
+    const active=entry&&Number(entry[field])===val;
+    return(
+      <button onClick={()=>setEntry(v=>({...v,[field]:val}))} title={desc}
+        style={{flex:1,padding:"7px 5px",borderRadius:7,border:"1px solid "+(active?color:"#334155"),background:active?color+"22":"transparent",color:active?color:"#475569",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center"}}>
+        <div style={{fontWeight:700,fontSize:15}}>{val}</div>
+        <div style={{fontSize:9,lineHeight:1.2}}>{label}</div>
+      </button>
+    );
+  };
+
+  return(
+    <div>
+      {/* Summary card */}
+      {summary&&(
+        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
+            <span style={{fontWeight:800,fontSize:22,color:summary.risk.color}}>{summary.score}</span>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:summary.risk.color}}>{summary.risk.label}</div>
+              <div style={{fontSize:11,color:"#64748b"}}>MUST Score · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+            </div>
+            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="worsening"?"#ef4444":"#64748b"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="worsening"?"↓ Worsening":"→ Stable"}</span>}
+          </div>
+          <div style={{height:6,background:"#1e293b",borderRadius:3,overflow:"hidden",marginBottom:8}}>
+            <div style={{height:"100%",width:Math.min(100,Math.round((summary.score/4)*100))+"%",background:summary.risk.color,borderRadius:3,transition:"width 0.3s"}}/>
+          </div>
+          <div style={{fontSize:11,color:"#475569"}}>📋 Action: <strong style={{color:"#94a3b8"}}>{summary.risk.action}</strong></div>
+          {(summary.latest.swallowing_difficulty||summary.latest.dietary_restrictions||summary.latest.supplement_use)&&(
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
+              {summary.latest.swallowing_difficulty&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:"rgba(239,68,68,0.1)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.25)"}}>⚠️ Swallowing difficulty</span>}
+              {summary.latest.dietary_restrictions&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:"rgba(245,158,11,0.1)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.25)"}}>🍽 {summary.latest.dietary_restrictions}</span>}
+              {summary.latest.supplement_use&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:"rgba(16,185,129,0.1)",color:"#10b981",border:"1px solid rgba(16,185,129,0.25)"}}>💊 {summary.latest.supplement_use}</span>}
+            </div>
+          )}
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <span style={{fontSize:13,color:"#64748b"}}>{items.length} screening{items.length!==1?"s":""}</span>
+        <button style={{...ABTN,borderStyle:"solid",borderColor:"#10b981",color:"#10b981"}} onClick={openNew}>+ Log Screening</button>
+      </div>
+      {showForm&&entry&&(
+        <div style={{background:"#0f172a",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
+          {/* Live score header */}
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"#161929",borderRadius:8}}>
+            <span style={{fontWeight:800,fontSize:26,color:liveRisk.color}}>{liveScore}</span>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:liveRisk.color}}>{liveRisk.label}</div>
+              <div style={{fontSize:11,color:"#64748b"}}>MUST Score · updates as you score</div>
+            </div>
+            <div style={{flex:1,height:6,background:"#1e293b",borderRadius:3,overflow:"hidden"}}>
+              <div style={{height:"100%",width:Math.min(100,Math.round((liveScore/4)*100))+"%",background:liveRisk.color,borderRadius:3,transition:"width 0.2s"}}/>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
+            <div><label style={LBL}>Assessed By</label><input style={INP} value={entry.assessed_by||""} onChange={e=>setEntry(v=>({...v,assessed_by:e.target.value}))} placeholder="Staff name..."/></div>
+          </div>
+          {/* MUST subscales */}
+          <div style={{marginBottom:10}}>
+            <label style={LBL}>BMI Score</label>
+            <div style={{display:"flex",gap:4}}>
+              <ScoreBtn field="bmi_score" val={0} label=">20" desc="BMI > 20 kg/m²" color="#10b981"/>
+              <ScoreBtn field="bmi_score" val={1} label="18.5–20" desc="BMI 18.5–20 kg/m²" color="#f59e0b"/>
+              <ScoreBtn field="bmi_score" val={2} label="<18.5" desc="BMI < 18.5 kg/m²" color="#ef4444"/>
+            </div>
+          </div>
+          <div style={{marginBottom:10}}>
+            <label style={LBL}>Unplanned Weight Loss Score (last 3–6 months)</label>
+            <div style={{display:"flex",gap:4}}>
+              <ScoreBtn field="weight_loss_score" val={0} label="<5%" desc="Weight loss < 5%" color="#10b981"/>
+              <ScoreBtn field="weight_loss_score" val={1} label="5–10%" desc="Weight loss 5–10%" color="#f59e0b"/>
+              <ScoreBtn field="weight_loss_score" val={2} label=">10%" desc="Weight loss > 10%" color="#ef4444"/>
+            </div>
+          </div>
+          <div style={{marginBottom:10}}>
+            <label style={LBL}>Acute Illness Effect (+2 points if acutely ill / no nutritional intake ≥5 days)</label>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <button onClick={()=>setEntry(v=>({...v,acute_illness:!v.acute_illness}))} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+(entry.acute_illness?"#ef4444":"#334155"),background:entry.acute_illness?"rgba(239,68,68,0.15)":"transparent",color:entry.acute_illness?"#ef4444":"#64748b",fontWeight:600,fontSize:13}}>
+                {entry.acute_illness?"Yes — +2 applied":"No"}
+              </button>
+              <span style={{fontSize:11,color:"#64748b"}}>Tap to toggle</span>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Appetite</label>
+              <select style={INP} value={entry.appetite||"Good"} onChange={e=>setEntry(v=>({...v,appetite:e.target.value}))}>
+                {["Good","Fair","Poor","None"].map(a=><option key={a}>{a}</option>)}
+              </select>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+              <label style={{...LBL,marginBottom:8}}>Swallowing Difficulty</label>
+              <button onClick={()=>setEntry(v=>({...v,swallowing_difficulty:!v.swallowing_difficulty}))} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(entry.swallowing_difficulty?"#ef4444":"#334155"),background:entry.swallowing_difficulty?"rgba(239,68,68,0.12)":"transparent",color:entry.swallowing_difficulty?"#ef4444":"#64748b",fontWeight:600,fontSize:13}}>
+                {entry.swallowing_difficulty?"Yes — Dysphagia":"No"}
+              </button>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Dietary Restrictions</label><input style={INP} value={entry.dietary_restrictions||""} onChange={e=>setEntry(v=>({...v,dietary_restrictions:e.target.value}))} placeholder="e.g. Diabetic, low-sodium..."/></div>
+            <div><label style={LBL}>Supplements / ONS</label><input style={INP} value={entry.supplement_use||""} onChange={e=>setEntry(v=>({...v,supplement_use:e.target.value}))} placeholder="e.g. Ensure 2x daily..."/></div>
+          </div>
+          <div style={{marginBottom:10}}>
+            <label style={LBL}>Notes</label>
+            <textarea style={{...INP,height:56,resize:"vertical"}} value={entry.notes||""} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Food preferences, feeding assistance, observations..."/>
+          </div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
+            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#10b981",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
+          </div>
+        </div>
+      )}
+      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No nutritional screenings logged yet</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {sorted.map(row=>{
+          const sc=mustScore(row);
+          const rk=mustRisk(sc);
+          return(
+            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
+                  {row.assessed_by&&<span style={{fontSize:11,color:"#475569"}}>By: {row.assessed_by}</span>}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontWeight:800,fontSize:17,color:rk.color}}>{sc}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}> MUST</span></span>
+                  <span style={{fontSize:11,color:rk.color,fontWeight:600}}>{rk.label}</span>
+                  <button onClick={()=>openEdit(row)} style={{...IBTN}}>✏️</button>
+                  <button onClick={()=>rm(row.id)} style={{...IBTN}}>🗑</button>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                <span style={{fontSize:11,color:"#64748b"}}>BMI:{row.bmi_score} WL:{row.weight_loss_score} Acute:{row.acute_illness?"+2":"0"}</span>
+                {row.appetite&&row.appetite!=="Good"&&<span style={{fontSize:11,fontWeight:600,color:row.appetite==="None"?"#ef4444":row.appetite==="Poor"?"#f59e0b":"#94a3b8"}}>Appetite: {row.appetite}</span>}
+                {row.swallowing_difficulty&&<span style={{fontSize:11,fontWeight:700,color:"#ef4444"}}>⚠️ Dysphagia</span>}
+                {row.dietary_restrictions&&<span style={{fontSize:11,color:"#475569"}}>🍽 {row.dietary_restrictions}</span>}
+              </div>
+              {row.notes&&<div style={{fontSize:12,color:"#64748b",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Wound & Skin Assessment ─────────────────────────────────────────────────
 const WOUND_TYPES=["Pressure Ulcer","Skin Tear","Surgical","Laceration","Abrasion","Diabetic Ulcer","Venous Ulcer","Arterial Ulcer","Other"];
 const WOUND_STAGES=["Stage I","Stage II","Stage III","Stage IV","Unstageable","Deep Tissue","N/A"];
@@ -2347,6 +2674,8 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
       <Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>
       <Sec icon="🛏" title="Braden Scale (Pressure Ulcer Risk)" accent="#8b5cf6" defaultOpen={false}><BradenScale items={d.braden_assessments||[]} onChange={v=>s("braden_assessments",v)}/></Sec>
       <Sec icon="🧠" title="Cognitive Screening (MMSE / MoCA)" accent="#a78bfa" defaultOpen={false}><CognitiveScreening items={d.cognitive_assessments||[]} onChange={v=>s("cognitive_assessments",v)}/></Sec>
+      <Sec icon="💧" title="Continence Monitoring" accent="#06b6d4" defaultOpen={false}><ContinenceLog items={d.continence_logs||[]} onChange={v=>s("continence_logs",v)}/></Sec>
+      <Sec icon="🥗" title="Nutritional Risk Screening (MUST)" accent="#10b981" defaultOpen={false}><NutritionScreening items={d.nutrition_assessments||[]} onChange={v=>s("nutrition_assessments",v)}/></Sec>
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
         <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
         <button onClick={()=>valid&&!saving&&onSave(d)} disabled={!valid||saving}
@@ -2745,6 +3074,16 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           <div style={{fontWeight:700,color:"#a78bfa",fontSize:13,marginBottom:12}}>🧠 COGNITIVE SCREENING — MMSE / MoCA</div>
           <CognitiveScreening items={client.cognitive_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("cognitive_assessments",v):()=>{}}/>
         </div>
+        {/* Continence Monitoring */}
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>💧 CONTINENCE MONITORING</div>
+          <ContinenceLog items={client.continence_logs||[]} onChange={onInlineUpdate?v=>onInlineUpdate("continence_logs",v):()=>{}}/>
+        </div>
+        {/* Nutritional Risk Screening */}
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>🥗 NUTRITIONAL RISK SCREENING — MUST</div>
+          <NutritionScreening items={client.nutrition_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("nutrition_assessments",v):()=>{}}/>
+        </div>
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
     </div>
   );
@@ -3137,6 +3476,57 @@ function Dashboard({clients,onSelect,t,currentUser}){
                   <div style={{fontWeight:800,fontSize:18,color:cog.level.color}}>{cog.score}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}>/30</span></div>
                   <div style={{fontSize:11,color:cog.level.color,fontWeight:600}}>{cog.level.label}</div>
                   {cog.trend&&<div style={{fontSize:10,color:cog.trend==="improving"?"#10b981":cog.trend==="declining"?"#ef4444":"#64748b"}}>{cog.trend==="improving"?"↑":cog.trend==="declining"?"↓":"→"} {cog.trend}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ── Continence Monitoring ── */}
+      {(()=>{
+        const contClients=clients.filter(c=>!c.archived).map(c=>({...c,cont:calcContinenceSummary(c.continence_logs)})).filter(({cont})=>cont&&(cont.skinIssue||cont.highFrequency||cont.recentCount>=2)).sort((a,b)=>(b.cont.skinIssue?1:0)-(a.cont.skinIssue?1:0)||(Number(b.cont.avgPerDay)-Number(a.cont.avgPerDay)));
+        if(contClients.length===0)return null;
+        return(
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:4}}>💧 CONTINENCE MONITORING</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with ≥2 episodes in last 7 days, high frequency, or skin breakdown. Skin issues shown first.</div>
+            {contClients.map(({cont,...c})=>(
+              <div key={c.id} onClick={()=>onSelect(c)} className="dash-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+(cont.skinIssue?"#ef4444":cont.highFrequency?"#f59e0b":"#06b6d4")}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"#475569"}}>{cont.mostCommonType||"Mixed"} · {cont.recentCount} ep in 7d</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontWeight:800,fontSize:18,color:cont.highFrequency?"#ef4444":"#06b6d4"}}>{cont.avgPerDay}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}>/day</span></div>
+                  {cont.skinIssue&&<div style={{fontSize:11,fontWeight:700,color:"#ef4444"}}>⚠️ Skin issue</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ── Nutritional Risk ── */}
+      {(()=>{
+        const nutrClients=clients.filter(c=>!c.archived).map(c=>({...c,nutr:calcNutritionSummary(c.nutrition_assessments)})).filter(({nutr})=>nutr&&nutr.score>=1).sort((a,b)=>b.nutr.score-a.nutr.score);
+        if(nutrClients.length===0)return null;
+        return(
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+            <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:4}}>🥗 NUTRITIONAL RISK (MUST)</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with MUST score ≥1. Highest risk shown first.</div>
+            {nutrClients.map(({nutr,...c})=>(
+              <div key={c.id} onClick={()=>onSelect(c)} className="dash-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+nutr.risk.color}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"#475569"}}>{nutr.risk.action}{nutr.latest.swallowing_difficulty?" · ⚠️ Dysphagia":""}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontWeight:800,fontSize:18,color:nutr.risk.color}}>{nutr.score}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}> MUST</span></div>
+                  <div style={{fontSize:11,color:nutr.risk.color,fontWeight:600}}>{nutr.risk.label}</div>
+                  {nutr.trend&&<div style={{fontSize:10,color:nutr.trend==="improving"?"#10b981":nutr.trend==="worsening"?"#ef4444":"#64748b"}}>{nutr.trend==="improving"?"↑":nutr.trend==="worsening"?"↓":"→"} {nutr.trend}</div>}
                 </div>
               </div>
             ))}
