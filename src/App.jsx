@@ -71,6 +71,9 @@ function buildNotifications(clients){
     if(fr.level==="High")notifs.push({id:`fr-${c.id}`,type:"fall_risk",urgency:"medium",icon:"🚶",title:"High fall risk",body:`${c.name} scores ${fr.score} — ${fr.factors.slice(0,2).join(", ")}`,clientId:c.id,clientName:c.name});
     const wt=calcWeightTrend(c.vitals);
     if(wt)notifs.push({id:`wt-${c.id}`,type:"weight_trend",urgency:wt.severity,icon:wt.direction==="gain"?"⚖️":"📉",title:`Rapid weight ${wt.direction}`,body:`${c.name} — ${wt.amount}kg ${wt.direction} in ${wt.days} day${wt.days!==1?"s":""} (${wt.fromKg}→${wt.toKg} kg)`,clientId:c.id,clientName:c.name});
+    const ma=getMissedAppointments(c.appointments);
+    if(ma.pattern)notifs.push({id:`ma-${c.id}`,type:"missed_appt",urgency:"high",icon:"📅",title:"Repeated missed appointments",body:`${c.name} — ${ma.recentMissed.length} missed/overdue in the last 30 days`,clientId:c.id,clientName:c.name});
+    else if(ma.overdue.length>0)notifs.push({id:`ma-${c.id}`,type:"missed_appt",urgency:"medium",icon:"📅",title:"Overdue appointment",body:`${c.name} — ${ma.overdue.length} scheduled appointment${ma.overdue.length!==1?"s":""} past due`,clientId:c.id,clientName:c.name});
     (c.incidents||[]).forEach(inc=>{
       if(!inc.date)return;
       const days=Math.ceil((now-new Date(inc.date))/86400000);
@@ -448,6 +451,23 @@ function calcWeightTrend(vitals){
     }
   }
   return bestFlag; // null = no alert
+}
+
+// ─── Missed Appointment Tracker ───────────────────────────────────────────────
+// Returns { noShows, overdue, recentMissed, pattern }
+// noShows:      appointments with status "No-Show"
+// overdue:      Scheduled appointments whose date is in the past
+// recentMissed: union of above within the last 30 days
+// pattern:      true when 2+ events in recentMissed (repeat-miss flag)
+function getMissedAppointments(appointments){
+  const today=tod();
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+  const cutoffStr=cutoff.toISOString().slice(0,10);
+  const noShows=(appointments||[]).filter(a=>a.status==="No-Show");
+  const overdue=(appointments||[]).filter(a=>a.status==="Scheduled"&&a.date&&a.date<today);
+  const recentMissed=[...noShows,...overdue].filter(a=>a.date&&a.date>=cutoffStr);
+  const pattern=recentMissed.length>=2;
+  return{noShows,overdue,recentMissed,pattern};
 }
 
 function expiryBadge(d){
@@ -1178,12 +1198,29 @@ function AppointmentLog({items,onChange}){
   const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
   const rm=id=>onChange(items.filter(i=>i.id!==id));
   const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
+  const ma=getMissedAppointments(items);
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <span style={{fontSize:13,color:"#64748b"}}>{items.length} appointment{items.length!==1?"s":""}</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#6366f1"}} onClick={openNew}>+ Log Appointment</button>
       </div>
+      {/* ── Missed appointment alert banner ── */}
+      {(ma.pattern||ma.overdue.length>0||ma.noShows.length>0)&&(
+        <div style={{background:ma.pattern?"rgba(239,68,68,0.08)":"rgba(245,158,11,0.07)",border:"1px solid "+(ma.pattern?"rgba(239,68,68,0.35)":"rgba(245,158,11,0.35)"),borderRadius:10,padding:"10px 14px",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:ma.pattern||ma.overdue.length>0?6:0}}>
+            <span style={{fontSize:15}}>{ma.pattern?"🚨":"⚠️"}</span>
+            <span style={{fontWeight:700,fontSize:13,color:ma.pattern?"#f87171":"#fbbf24"}}>
+              {ma.pattern?"Repeated missed appointment pattern detected":"Appointment follow-up required"}
+            </span>
+          </div>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+            {ma.noShows.length>0&&<span style={{fontSize:12,color:"#f87171",fontWeight:600}}>No-Shows: {ma.noShows.length}</span>}
+            {ma.overdue.length>0&&<span style={{fontSize:12,color:"#fbbf24",fontWeight:600}}>Overdue (still Scheduled): {ma.overdue.length}</span>}
+            {ma.pattern&&<span style={{fontSize:12,color:"#94a3b8"}}>{ma.recentMissed.length} missed / overdue in last 30 days — update status or reschedule</span>}
+          </div>
+        </div>
+      )}
       {showForm&&entry&&(
         <div style={{background:"#0f172a",border:"1px solid #6366f1",borderRadius:10,padding:14,marginBottom:12}}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
@@ -2018,6 +2055,31 @@ function Dashboard({clients,onSelect,t,currentUser}){
           ))}
         </div>
       )}
+
+      {/* ── Missed Appointments ── */}
+      {(()=>{
+        const missedClients=clients.filter(c=>!c.archived).map(c=>({...c,ma:getMissedAppointments(c.appointments)})).filter(({ma})=>ma.pattern||ma.overdue.length>0||ma.noShows.length>0).sort((a,b)=>(b.ma.pattern?1:0)-(a.ma.pattern?1:0)||(b.ma.recentMissed.length-a.ma.recentMissed.length));
+        if(missedClients.length===0)return null;
+        return(
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+            <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:4}}>📅 MISSED APPOINTMENT TRACKER</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with No-Show records or overdue scheduled appointments.</div>
+            {missedClients.map(({ma,...c})=>(
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+(ma.pattern?"#ef4444":"#f59e0b")}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{c.name}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {ma.noShows.length>0&&<span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:"rgba(239,68,68,0.12)",color:"#f87171",border:"1px solid rgba(239,68,68,0.25)"}}>No-Shows: {ma.noShows.length}</span>}
+                    {ma.overdue.length>0&&<span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:"rgba(245,158,11,0.12)",color:"#fbbf24",border:"1px solid rgba(245,158,11,0.25)"}}>Overdue: {ma.overdue.length}</span>}
+                    {ma.pattern&&<span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:"rgba(239,68,68,0.18)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.4)"}}>⚠ Pattern</span>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* ── Care Plan Staleness ── */}
       {stalePlans.length>0&&(
