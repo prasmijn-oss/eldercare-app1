@@ -4,10 +4,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://kpwzeawgrqdsezflvjkm.supabase.co";
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwd3plYXdncnFkc2V6Zmx2amttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1Mzc1MzIsImV4cCI6MjA5NTExMzUzMn0.-fvmwgZqwyddWyq1IJ4vcHvsTVMpPmhI72p4hyCtC6E";
 const supabase = createClient(SUPABASE_URL, ANON_KEY);
-// supabaseAdmin: auth.admin.createUser() requires a service role key, which must NOT be a VITE_ env var
-// (VITE_ vars are baked into the JS bundle and visible to anyone). Until an Edge Function is set up,
-// createUser falls back to supabase (anon key) and will receive a 401 from Supabase Auth Admin API.
-// TODO: move createUser to a Supabase Edge Function that holds the service key as a server secret.
+// supabaseAdmin: service role key is NOT stored in the frontend bundle (VITE_ vars are public).
+// User creation and auth management are handled by the create-user and manage-user Edge Functions,
+// which hold the service key as a Supabase-managed secret.
 const supabaseAdmin = supabase;
 const GCSS = [
   "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap');",
@@ -3243,7 +3242,6 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   const lastAct=st.lastActivity?new Date(st.lastActivity).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"No activity";
                   const isArchived=!!c.archived_at;
                   const isSuperAdmin=currentUser?.role==="superadmin";
-                  const totalClients=(st.clients||0)+(st.archivedClients||0);
                   return(
                     <div key={c.id} style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,opacity:isArchived?0.72:1,border:isArchived?"1px solid rgba(245,158,11,0.25)":"1px solid transparent"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
