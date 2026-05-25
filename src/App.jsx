@@ -76,6 +76,11 @@ function buildNotifications(clients){
     else if(ma.overdue.length>0)notifs.push({id:`ma-${c.id}`,type:"missed_appt",urgency:"medium",icon:"📅",title:"Overdue appointment",body:`${c.name} — ${ma.overdue.length} scheduled appointment${ma.overdue.length!==1?"s":""} past due`,clientId:c.id,clientName:c.name});
     const adl=calcAdlSummary(c.adl_logs);
     if(adl&&adl.dep.label==="High")notifs.push({id:`adl-${c.id}`,type:"adl",urgency:"medium",icon:"🧍",title:"High ADL dependency",body:`${c.name} — score ${adl.score}/18 (${adl.dep.label})${adl.trend&&adl.trend==="declining"?" · declining":""}`,clientId:c.id,clientName:c.name});
+    const pain=calcPainSummary(c.pain_assessments);
+    if(pain){
+      if(pain.latestScore>=7)notifs.push({id:`pain-${c.id}`,type:"pain",urgency:"high",icon:"🩹",title:"Severe pain reported",body:`${c.name} — score ${pain.latestScore}/10 (${pain.latest.location||"unspecified location"})`,clientId:c.id,clientName:c.name});
+      else if(pain.persistent)notifs.push({id:`pain-${c.id}`,type:"pain",urgency:"medium",icon:"🩹",title:"Persistent moderate pain",body:`${c.name} — ${pain.recentModerateCount} assessments ≥4/10 in last 7 days`,clientId:c.id,clientName:c.name});
+    }
     (c.incidents||[]).forEach(inc=>{
       if(!inc.date)return;
       const days=Math.ceil((now-new Date(inc.date))/86400000);
@@ -499,6 +504,28 @@ function calcAdlSummary(adlLogs){
   return{latest,score,dep,trend,count:sorted.length};
 }
 
+// ─── Pain Assessment helper ───────────────────────────────────────────────────
+// Score 0-3 Mild · 4-6 Moderate · 7-10 Severe
+function painLevel(score){
+  const n=Number(score);
+  if(n<=3)return{label:"Mild",color:"#10b981"};
+  if(n<=6)return{label:"Moderate",color:"#f59e0b"};
+  return{label:"Severe",color:"#ef4444"};
+}
+function calcPainSummary(assessments){
+  if(!assessments||assessments.length===0)return null;
+  const sorted=[...assessments].sort((a,b)=>b.date.localeCompare(a.date)||(b.time||"").localeCompare(a.time||""));
+  const latest=sorted[0];
+  const latestScore=Number(latest.score??0);
+  const level=painLevel(latestScore);
+  // Frequency: count assessments with score ≥4 in last 7 days
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);
+  const cutoffStr=cutoff.toISOString().slice(0,10);
+  const recentModerate=sorted.filter(a=>a.date>=cutoffStr&&Number(a.score??0)>=4);
+  const persistent=recentModerate.length>=3;
+  return{latest,latestScore,level,persistent,recentModerateCount:recentModerate.length,count:sorted.length};
+}
+
 function expiryBadge(d){
   if(d===null)return null;
   if(d<0)return{label:"EXPIRED",color:"#ef4444",bg:"rgba(239,68,68,0.1)"};
@@ -597,6 +624,7 @@ function toDb(d){return{
   incidents:JSON.stringify(d.incidents||[]),
   intake_checklist:JSON.stringify(d.intake_checklist||[]),
   adl_logs:JSON.stringify(d.adl_logs||[]),
+  pain_assessments:JSON.stringify(d.pain_assessments||[]),
 };}
 
 function fromDb(row){
@@ -614,6 +642,7 @@ function fromDb(row){
     incidents:p(row.incidents,[]),
     intake_checklist:p(row.intake_checklist,[]),
     adl_logs:p(row.adl_logs,[]),
+    pain_assessments:p(row.pain_assessments,[]),
   };
 }
 
@@ -1317,6 +1346,150 @@ function AppointmentLog({items,onChange}){
   );
 }
 
+// ─── Pain Assessment ──────────────────────────────────────────────────────────
+const PAIN_CHARACTERS=["Sharp","Dull","Burning","Aching","Throbbing","Stabbing","Cramping","Pressure"];
+const PAIN_DURATIONS=["Constant","Intermittent","On movement","At rest","Breakthrough"];
+const PAIN_EFFECTIVENESS=["None","Partial","Full"];
+const FACES_SCORES=[{score:0,emoji:"😊",label:"No pain"},{score:2,emoji:"🙂",label:"Mild"},{score:4,emoji:"😐",label:"Moderate"},{score:6,emoji:"😟",label:"Some severe"},{score:8,emoji:"😣",label:"Very severe"},{score:10,emoji:"😭",label:"Worst pain"}];
+
+function PainAssessment({items,onChange}){
+  const [showForm,setShowForm]=useState(false);
+  const [entry,setEntry]=useState(null);
+  const [scaleMode,setScaleMode]=useState("numeric"); // "numeric" | "faces"
+  const blank=()=>({id:uid(),date:tod(),time:"",recorded_by:"",scale:"numeric",score:0,location:"",character:"",duration:"",intervention:"",effectiveness:"",notes:""});
+  const openNew=()=>{const b=blank();setEntry(b);setScaleMode("numeric");setShowForm(true);};
+  const openEdit=row=>{setEntry({...row});setScaleMode(row.scale||"numeric");setShowForm(true);};
+  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),{...entry,scale:scaleMode}].sort((a,b)=>b.date.localeCompare(a.date)||(b.time||"").localeCompare(a.time||"")));setShowForm(false);setEntry(null);};
+  const rm=id=>onChange(items.filter(i=>i.id!==id));
+  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date)||(b.time||"").localeCompare(a.time||""));
+  const summary=calcPainSummary(items);
+
+  return(
+    <div>
+      {/* Latest summary */}
+      {summary&&(
+        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <span style={{fontSize:22}}>{summary.latestScore>=7?"😣":summary.latestScore>=4?"😐":"😊"}</span>
+          <div>
+            <span style={{fontWeight:700,fontSize:13,color:summary.level.color}}>{summary.level.label} pain — {summary.latestScore}/10</span>
+            {summary.latest.location&&<span style={{fontSize:12,color:"#64748b",marginLeft:8}}>📍 {summary.latest.location}</span>}
+          </div>
+          {summary.persistent&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>⚠ Persistent ({summary.recentModerateCount}x this week)</span>}
+          <span style={{fontSize:12,color:"#475569",marginLeft:"auto"}}>{new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <span style={{fontSize:13,color:"#64748b"}}>{items.length} assessment{items.length!==1?"s":""}</span>
+        <button style={{...ABTN,borderStyle:"solid",borderColor:"#f59e0b",color:"#f59e0b"}} onClick={openNew}>+ Log Pain Assessment</button>
+      </div>
+      {showForm&&entry&&(
+        <div style={{background:"#0f172a",border:"1px solid #f59e0b",borderRadius:10,padding:14,marginBottom:12}}>
+          {/* Date / time / recorded by */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
+            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
+            <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
+            <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
+          </div>
+          {/* Scale toggle */}
+          <div style={{marginBottom:12}}>
+            <label style={LBL}>Pain Scale</label>
+            <div style={{display:"flex",gap:6,marginBottom:10}}>
+              {["numeric","faces"].map(m=>(
+                <button key={m} onClick={()=>setScaleMode(m)} style={{padding:"5px 14px",borderRadius:6,border:"1px solid "+(scaleMode===m?"#f59e0b":"#334155"),background:scaleMode===m?"rgba(245,158,11,0.15)":"transparent",color:scaleMode===m?"#f59e0b":"#64748b",fontSize:12,fontWeight:600,cursor:"pointer",textTransform:"capitalize"}}>{m==="numeric"?"Numeric (0-10)":"FACES Scale"}</button>
+              ))}
+            </div>
+            {scaleMode==="numeric"?(
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#64748b",marginBottom:4}}><span>No pain (0)</span><span>Worst pain (10)</span></div>
+                <input type="range" min={0} max={10} step={1} value={entry.score??0} onChange={e=>setEntry(v=>({...v,score:Number(e.target.value)}))} style={{width:"100%",accentColor:painLevel(entry.score??0).color}}/>
+                <div style={{textAlign:"center",marginTop:6}}>
+                  <span style={{fontWeight:800,fontSize:22,color:painLevel(entry.score??0).color}}>{entry.score??0}</span>
+                  <span style={{fontSize:12,color:painLevel(entry.score??0).color,marginLeft:6}}>{painLevel(entry.score??0).label}</span>
+                </div>
+              </div>
+            ):(
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {FACES_SCORES.map(f=>(
+                  <button key={f.score} onClick={()=>setEntry(v=>({...v,score:f.score}))} style={{flex:"1 1 60px",padding:"8px 4px",borderRadius:8,border:"2px solid "+(entry.score===f.score?painLevel(f.score).color:"#334155"),background:entry.score===f.score?painLevel(f.score).color+"20":"transparent",cursor:"pointer",textAlign:"center"}}>
+                    <div style={{fontSize:24}}>{f.emoji}</div>
+                    <div style={{fontSize:10,color:"#64748b",marginTop:2}}>{f.label}</div>
+                    <div style={{fontSize:11,fontWeight:700,color:painLevel(f.score).color}}>{f.score}/10</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Location & character */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Location</label><input style={INP} value={entry.location} onChange={e=>setEntry(v=>({...v,location:e.target.value}))} placeholder="e.g. Lower back, right hip..."/></div>
+            <div><label style={LBL}>Duration / Pattern</label>
+              <select style={{...INP,cursor:"pointer"}} value={entry.duration} onChange={e=>setEntry(v=>({...v,duration:e.target.value}))}>
+                <option value="">Select...</option>
+                {PAIN_DURATIONS.map(d=><option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+          </div>
+          {/* Character chips */}
+          <div style={{marginBottom:10}}>
+            <label style={LBL}>Character</label>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {PAIN_CHARACTERS.map(ch=>(
+                <button key={ch} onClick={()=>setEntry(v=>({...v,character:v.character===ch?"":ch}))} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.character===ch?"#f59e0b":"#334155"),background:entry.character===ch?"rgba(245,158,11,0.15)":"transparent",color:entry.character===ch?"#f59e0b":"#64748b",fontSize:11,fontWeight:600,cursor:"pointer"}}>{ch}</button>
+              ))}
+            </div>
+          </div>
+          {/* Intervention & effectiveness */}
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Intervention / Treatment</label><input style={INP} value={entry.intervention} onChange={e=>setEntry(v=>({...v,intervention:e.target.value}))} placeholder="e.g. Paracetamol 500mg, repositioning..."/></div>
+            <div><label style={LBL}>Effectiveness</label>
+              <select style={{...INP,cursor:"pointer"}} value={entry.effectiveness} onChange={e=>setEntry(v=>({...v,effectiveness:e.target.value}))}>
+                <option value="">N/A</option>
+                {PAIN_EFFECTIVENESS.map(e=><option key={e} value={e}>{e}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...INP,height:52,resize:"vertical"}} value={entry.notes} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Additional observations..."/></div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
+            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#f59e0b",color:"#000",fontWeight:600}} onClick={save}>Save</button>
+          </div>
+        </div>
+      )}
+      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No pain assessments logged yet</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {sorted.map(row=>{
+          const sc=Number(row.score??0);
+          const lv=painLevel(sc);
+          return(
+            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}{row.time&&" "+row.time}</span>
+                  <span style={{fontSize:22,lineHeight:1}}>{sc>=7?"😣":sc>=4?"😐":"😊"}</span>
+                  <span style={{fontSize:12,fontWeight:800,color:lv.color}}>{sc}/10</span>
+                  <span style={{fontSize:11,fontWeight:700,padding:"1px 7px",borderRadius:20,background:lv.color+"20",color:lv.color}}>{lv.label}</span>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#f59e0b",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                {row.location&&<span style={{fontSize:12,color:"#94a3b8"}}>📍 {row.location}</span>}
+                {row.character&&<span style={{fontSize:12,color:"#94a3b8"}}>〰 {row.character}</span>}
+                {row.duration&&<span style={{fontSize:12,color:"#94a3b8"}}>⏱ {row.duration}</span>}
+              </div>
+              {row.intervention&&<div style={{fontSize:12,color:"#64748b",marginTop:4}}>Tx: {row.intervention}{row.effectiveness&&<span style={{marginLeft:6,fontSize:11,fontWeight:600,color:row.effectiveness==="Full"?"#10b981":row.effectiveness==="Partial"?"#f59e0b":"#ef4444"}}>({row.effectiveness} relief)</span>}</div>}
+              {row.recorded_by&&<div style={{fontSize:11,color:"#475569",marginTop:2}}>By: {row.recorded_by}</div>}
+              {row.notes&&<div style={{fontSize:12,color:"#475569",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── ADL Tracker ─────────────────────────────────────────────────────────────
 const ADL_LABELS={bathing:"🛁 Bathing",dressing:"👕 Dressing",toileting:"🚽 Toileting",eating:"🍽️ Eating",mobility:"🚶 Mobility",grooming:"✂️ Grooming"};
 function ADLTracker({items,onChange}){
@@ -1574,6 +1747,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
       <Sec icon="⚠️" title="Incident Reports" accent="#ef4444" defaultOpen={false}><IncidentReports items={d.incidents||[]} onChange={v=>s("incidents",v)} currentUser={currentUser}/></Sec>
       <Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
       <Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
+      <Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
         <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
         <button onClick={()=>valid&&!saving&&onSave(d)} disabled={!valid||saving}
@@ -1952,6 +2126,11 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🧍 ADL TRACKING</div>
           <ADLTracker items={client.adl_logs||[]} onChange={onInlineUpdate?v=>onInlineUpdate("adl_logs",v):()=>{}}/>
         </div>
+        {/* Pain Assessment */}
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:12}}>🩹 PAIN ASSESSMENT</div>
+          <PainAssessment items={client.pain_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("pain_assessments",v):()=>{}}/>
+        </div>
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
     </div>
   );
@@ -2236,6 +2415,35 @@ function Dashboard({clients,onSelect,t,currentUser}){
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{fontWeight:700,fontSize:13,color:adlSum.dep.color}}>{adlSum.dep.label}</div>
                   <div style={{fontSize:11,color:"#64748b"}}>{adlSum.score}/18{adlSum.trend&&adlSum.trend!=="stable"?<span style={{color:adlSum.trend==="declining"?"#f87171":"#10b981"}}> {adlSum.trend==="declining"?"↓":"↑"}</span>:""}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ── Pain Alerts ── */}
+      {(()=>{
+        const painClients=clients.filter(c=>!c.archived).map(c=>({...c,painSum:calcPainSummary(c.pain_assessments)})).filter(({painSum})=>painSum&&(painSum.latestScore>=4||painSum.persistent)).sort((a,b)=>b.painSum.latestScore-a.painSum.latestScore);
+        if(painClients.length===0)return null;
+        return(
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+            <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:4}}>🩹 PAIN ALERTS</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with recent pain score ≥4/10 or persistent moderate-to-severe pain.</div>
+            {painClients.map(({painSum,...c})=>(
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+painSum.level.color}}>
+                <span style={{fontSize:22,flexShrink:0}}>{painSum.latestScore>=7?"😣":painSum.latestScore>=4?"😐":"😊"}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {painSum.latest.location&&<span style={{fontSize:12,color:"#94a3b8"}}>📍 {painSum.latest.location}</span>}
+                    {painSum.latest.character&&<span style={{fontSize:12,color:"#94a3b8"}}>〰 {painSum.latest.character}</span>}
+                    {painSum.persistent&&<span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>Persistent</span>}
+                  </div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontWeight:800,fontSize:18,color:painSum.level.color}}>{painSum.latestScore}/10</div>
+                  <div style={{fontSize:11,color:painSum.level.color}}>{painSum.level.label}</div>
                 </div>
               </div>
             ))}
