@@ -586,6 +586,8 @@ const BRADEN_SUBSCALES=[
   {key:"friction_shear",   label:"Friction & Shear",   max:3,options:["Problem","Potential Problem","No Apparent Problem"]},
 ];
 const BRADEN_MAX=23; // 4+4+4+4+4+3
+const IDLE_TIMEOUT_MS=30*60*1000; // 30 minutes of inactivity → show warning
+const IDLE_WARN_SECS=60;          // seconds of warning countdown before auto-logout
 function bradenRisk(score){
   if(score<=9) return{label:"Very High Risk",color:"#dc2626",turning:"Every 1-2 hours"};
   if(score<=12)return{label:"High Risk",     color:"#ef4444",turning:"Every 2 hours"};
@@ -831,6 +833,59 @@ const INP={width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid #3
 const LBL={display:"block",fontSize:11,fontWeight:700,color:"#64748b",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"};
 const ABTN={background:"none",border:"1.5px dashed #334155",borderRadius:8,padding:"7px 14px",color:"#6366f1",fontSize:13,fontWeight:600};
 const IBTN={background:"none",border:"1px solid #334155",borderRadius:6,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",color:"#64748b",fontSize:12,flexShrink:0};
+
+// ─── Password Strength ───────────────────────────────────────────────────────
+const PW_LEVELS=[
+  {label:"Too short", color:"#475569", bg:"#475569"},
+  {label:"Weak",      color:"#ef4444", bg:"#ef4444"},
+  {label:"Fair",      color:"#f59e0b", bg:"#f59e0b"},
+  {label:"Good",      color:"#06b6d4", bg:"#06b6d4"},
+  {label:"Strong",    color:"#10b981", bg:"#10b981"},
+];
+function scorePassword(pw){
+  if(!pw||pw.length<6)return 0;
+  let score=0;
+  if(pw.length>=10)score++;
+  if(pw.length>=16)score++;
+  if(/[A-Z]/.test(pw))score++;
+  if(/[0-9]/.test(pw))score++;
+  if(/[^A-Za-z0-9]/.test(pw))score++;
+  // penalise repeated/sequential chars
+  if(/(.)\1{3,}/.test(pw))score=Math.max(1,score-1);
+  if(/^[a-z]+$/i.test(pw)||/^[0-9]+$/.test(pw))score=Math.max(1,score-1);
+  return Math.min(4,Math.max(1,score));
+}
+function PasswordStrengthMeter({password}){
+  if(!password)return null;
+  const score=scorePassword(password);
+  const level=PW_LEVELS[score];
+  const checks=[
+    {ok:password.length>=10, label:"10+ characters"},
+    {ok:/[A-Z]/.test(password), label:"Uppercase letter"},
+    {ok:/[0-9]/.test(password), label:"Number"},
+    {ok:/[^A-Za-z0-9]/.test(password), label:"Symbol"},
+  ];
+  return(
+    <div style={{marginTop:8}}>
+      {/* Segmented bar */}
+      <div style={{display:"flex",gap:3,marginBottom:6}}>
+        {[1,2,3,4].map(i=>(
+          <div key={i} style={{flex:1,height:4,borderRadius:2,background:i<=score?level.bg:"#1e293b",transition:"background 0.25s"}}/>
+        ))}
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <span style={{fontSize:11,fontWeight:700,color:level.color}}>{level.label}</span>
+        <div style={{display:"flex",gap:8}}>
+          {checks.map(c=>(
+            <span key={c.label} style={{fontSize:10,color:c.ok?"#10b981":"#475569",fontWeight:c.ok?700:400}}>
+              {c.ok?"✓":"·"} {c.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function SearchDrop({value,onChange,options,placeholder}){
   const [q,setQ]=useState(value||"");
@@ -4143,6 +4198,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     if(!userForm.name||!userForm.email||!userForm.password||!userForm.role||userForm.company_ids.length===0){
       showToast("error","All fields are required — select at least one company");return;
     }
+    if(userForm.password.length<10){showToast("error","Temporary password must be at least 10 characters");return;}
+    if(scorePassword(userForm.password)<2){showToast("error","Temporary password is too weak — add uppercase letters, numbers, or symbols");return;}
     setSaving(true);
     try{
       // Pre-flight duplicate checks (fast, before hitting the edge function)
@@ -4505,7 +4562,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                   <div><label style={LBL}>Full Name *</label><input name="name" value={userForm.name} onChange={onChangeUser} placeholder="e.g. Maria Johnson" style={INP2}/></div>
                   <div><label style={LBL}>Email *</label><input name="email" type="email" value={userForm.email} onChange={onChangeUser} placeholder="user@company.aw" style={INP2}/></div>
-                  <div><label style={LBL}>Temporary Password *</label><input name="password" type="password" value={userForm.password} onChange={onChangeUser} placeholder="Min. 8 characters" style={INP2}/></div>
+                  <div><label style={LBL}>Temporary Password *</label><input name="password" type="password" value={userForm.password} onChange={onChangeUser} placeholder="Min. 10 characters" style={INP2}/><PasswordStrengthMeter password={userForm.password}/></div>
                   <div><label style={LBL}>Username <span style={{color:"#475569",fontWeight:400}}>(optional)</span></label><input name="username" value={userForm.username} onChange={onChangeUser} placeholder="e.g. maria.j" style={INP2}/></div>
                   <div><label style={LBL}>Role *</label>
                     <select name="role" value={userForm.role} onChange={onChangeUser} style={{...INP2,cursor:"pointer"}}>
@@ -5431,7 +5488,8 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
   const changePassword=async()=>{
     if(!pwForm.newPw||!pwForm.confirm){setMsg({type:"error",text:"Fill in all fields"});return;}
     if(pwForm.newPw!==pwForm.confirm){setMsg({type:"error",text:"Passwords don't match"});return;}
-    if(pwForm.newPw.length<8){setMsg({type:"error",text:"Password must be at least 8 characters"});return;}
+    if(pwForm.newPw.length<10){setMsg({type:"error",text:"Password must be at least 10 characters"});return;}
+    if(scorePassword(pwForm.newPw)<2){setMsg({type:"error",text:"Password is too weak — add uppercase letters, numbers, or symbols"});return;}
     setSaving(true);setMsg(null);
     const {error}=await supabase.auth.updateUser({password:pwForm.newPw});
     if(error){setMsg({type:"error",text:error.message});}
@@ -5523,13 +5581,18 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             <div>
               <label style={LB}>New Password</label>
-              <input type="password" style={INP3} value={pwForm.newPw} onChange={e=>setPwForm(f=>({...f,newPw:e.target.value}))} placeholder="Min. 8 characters"/>
+              <input type="password" style={INP3} value={pwForm.newPw} onChange={e=>setPwForm(f=>({...f,newPw:e.target.value}))} placeholder="Min. 10 characters"/>
+              <PasswordStrengthMeter password={pwForm.newPw}/>
             </div>
             <div>
               <label style={LB}>Confirm New Password</label>
               <input type="password" style={INP3} value={pwForm.confirm} onChange={e=>setPwForm(f=>({...f,confirm:e.target.value}))} placeholder="Repeat new password"/>
+              {pwForm.confirm&&pwForm.newPw&&pwForm.confirm!==pwForm.newPw&&(
+                <div style={{fontSize:11,color:"#ef4444",marginTop:5}}>⚠ Passwords do not match</div>
+              )}
             </div>
-            <button onClick={changePassword} disabled={saving} style={{background:"#6366f1",border:"none",borderRadius:8,padding:"10px",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",marginTop:4}}>
+            <button onClick={changePassword} disabled={saving||scorePassword(pwForm.newPw)<2||pwForm.newPw!==pwForm.confirm}
+              style={{background:"#6366f1",border:"none",borderRadius:8,padding:"10px",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",marginTop:4,opacity:(saving||scorePassword(pwForm.newPw)<2||pwForm.newPw!==pwForm.confirm)?0.45:1}}>
               {saving?"Changing...":"Change Password"}
             </button>
           </div>
@@ -5578,6 +5641,115 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
   );
 }
 
+function ForcePasswordChange({currentUser,onDone}){
+  const [pw,setPw]=useState("");
+  const [confirm,setConfirm]=useState("");
+  const [saving,setSaving]=useState(false);
+  const [error,setError]=useState(null);
+  const score=scorePassword(pw);
+  const canSubmit=pw.length>=10&&score>=2&&pw===confirm&&!saving;
+
+  const handle=async()=>{
+    if(!canSubmit)return;
+    if(pw!==confirm){setError("Passwords don't match");return;}
+    setSaving(true);setError(null);
+    // Update password AND clear the flag atomically via updateUser
+    const {data,error:err}=await supabase.auth.updateUser({
+      password:pw,
+      data:{force_password_change:false},
+    });
+    if(err){setError(err.message);setSaving(false);return;}
+    // Refresh session so currentUser reflects cleared flag
+    const {data:{session}}=await supabase.auth.getSession();
+    if(session)onDone(session.user);
+    setSaving(false);
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:9998,background:"#1c1f2e",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{width:"100%",maxWidth:420}}>
+        {/* Header */}
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div style={{fontSize:48,marginBottom:12}}>🔑</div>
+          <div style={{fontFamily:"Playfair Display,serif",fontSize:24,fontWeight:700,color:"#f1f5f9",marginBottom:6}}>Set your password</div>
+          <div style={{fontSize:13,color:"#64748b",lineHeight:1.6}}>
+            Welcome, <strong style={{color:"#94a3b8"}}>{currentUser.displayName||currentUser.email}</strong>.<br/>
+            Your account was created with a temporary password.<br/>
+            Please choose a new password before continuing.
+          </div>
+        </div>
+        <div style={{background:"#161929",border:"1px solid #334155",borderRadius:14,padding:28}}>
+          {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:16,color:"#ef4444",fontSize:13}}>{error}</div>}
+          <div style={{marginBottom:16}}>
+            <label style={{display:"block",fontSize:11,fontWeight:700,color:"#64748b",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"}}>New Password</label>
+            <input type="password" value={pw} onChange={e=>setPw(e.target.value)}
+              placeholder="Min. 10 characters"
+              style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid #334155",background:"#0f172a",color:"#e2e8f0",fontSize:14}}
+              onKeyDown={e=>e.key==="Enter"&&document.getElementById("fpc-confirm")?.focus()}/>
+            <PasswordStrengthMeter password={pw}/>
+          </div>
+          <div style={{marginBottom:20}}>
+            <label style={{display:"block",fontSize:11,fontWeight:700,color:"#64748b",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"}}>Confirm Password</label>
+            <input id="fpc-confirm" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)}
+              placeholder="Repeat new password"
+              style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid "+(confirm&&pw&&confirm!==pw?"#ef4444":"#334155"),background:"#0f172a",color:"#e2e8f0",fontSize:14}}
+              onKeyDown={e=>e.key==="Enter"&&handle()}/>
+            {confirm&&pw&&confirm!==pw&&<div style={{fontSize:11,color:"#ef4444",marginTop:5}}>⚠ Passwords do not match</div>}
+          </div>
+          <button onClick={handle} disabled={!canSubmit}
+            style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:canSubmit?"#6366f1":"#334155",color:canSubmit?"#fff":"#64748b",fontWeight:700,fontSize:15,cursor:canSubmit?"pointer":"not-allowed",transition:"background 0.2s"}}>
+            {saving?"Setting password…":"Set Password & Continue →"}
+          </button>
+          <div style={{textAlign:"center",marginTop:14}}>
+            <button onClick={async()=>{await supabase.auth.signOut();window.location.reload();}}
+              style={{background:"none",border:"none",color:"#475569",fontSize:12,cursor:"pointer",textDecoration:"underline"}}>
+              Sign out instead
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SessionTimeoutModal({countdown,onStayLoggedIn,onLogoutNow}){
+  const pct=Math.round((countdown/IDLE_WARN_SECS)*100);
+  const col=countdown<=10?"#ef4444":countdown<=30?"#f59e0b":"#06b6d4";
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>
+      <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:18,padding:"36px 40px",maxWidth:400,width:"90%",textAlign:"center",boxShadow:"0 24px 64px rgba(0,0,0,0.7)"}}>
+        {/* Countdown ring */}
+        <div style={{position:"relative",width:96,height:96,margin:"0 auto 20px"}}>
+          <svg width={96} height={96} style={{transform:"rotate(-90deg)"}}>
+            <circle cx={48} cy={48} r={42} fill="none" stroke="#1e293b" strokeWidth={8}/>
+            <circle cx={48} cy={48} r={42} fill="none" stroke={col} strokeWidth={8}
+              strokeDasharray={2*Math.PI*42}
+              strokeDashoffset={2*Math.PI*42*(1-pct/100)}
+              strokeLinecap="round"
+              style={{transition:"stroke-dashoffset 1s linear, stroke 0.3s"}}/>
+          </svg>
+          <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:26,color:col}}>{countdown}</div>
+        </div>
+        <div style={{fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:8}}>Still there?</div>
+        <div style={{fontSize:13,color:"#64748b",marginBottom:28,lineHeight:1.6}}>
+          You've been inactive for 30 minutes.<br/>
+          You'll be signed out automatically in <strong style={{color:col}}>{countdown} second{countdown!==1?"s":""}</strong>.
+        </div>
+        <div style={{display:"flex",gap:12,justifyContent:"center"}}>
+          <button onClick={onLogoutNow}
+            style={{padding:"10px 20px",borderRadius:9,border:"1px solid #475569",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:13,cursor:"pointer"}}>
+            Sign out now
+          </button>
+          <button onClick={onStayLoggedIn}
+            style={{padding:"10px 24px",borderRadius:9,border:"none",background:"#6366f1",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+            Stay logged in
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App(){
   const [lang,setLang]=useState(()=>localStorage.getItem("cm-lang")||null);
   const [currentUser,setCurrentUser]=useState(null);
@@ -5608,6 +5780,10 @@ export default function App(){
   const [emailPrefs,setEmailPrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-email-prefs")||"{}") ;}catch{return {};}});
   const [appMsg,setAppMsg]=useState(null); // {type:"success"|"error", text:string}
   const showAppMsg=(type,text)=>{setAppMsg({type,text});setTimeout(()=>setAppMsg(null),3200);};
+  // ── Session timeout ──────────────────────────────────────────────────────────
+  const [idleWarning,setIdleWarning]=useState(false);
+  const [idleCountdown,setIdleCountdown]=useState(IDLE_WARN_SECS);
+  const lastActivityRef=useRef(Date.now());
 
   const t=T[lang]||T["en"];
   const selectLang=code=>{localStorage.setItem("cm-lang",code);setLang(code);};
@@ -5641,6 +5817,38 @@ export default function App(){
     return()=>window.removeEventListener("keydown",handler);
   },[currentUser]);
 
+  // ── Inactivity / session timeout ─────────────────────────────────────────────
+  useEffect(()=>{
+    if(!currentUser)return;
+    const resetActivity=()=>{lastActivityRef.current=Date.now();};
+    const EVENTS=["mousemove","mousedown","keydown","touchstart","scroll"];
+    EVENTS.forEach(ev=>window.addEventListener(ev,resetActivity,{passive:true}));
+    // Poll every 20s — lightweight check
+    const poll=setInterval(()=>{
+      const idle=Date.now()-lastActivityRef.current;
+      if(idle>=IDLE_TIMEOUT_MS&&!idleWarning){setIdleWarning(true);setIdleCountdown(IDLE_WARN_SECS);}
+    },20000);
+    return()=>{
+      EVENTS.forEach(ev=>window.removeEventListener(ev,resetActivity));
+      clearInterval(poll);
+    };
+  },[currentUser,idleWarning]);
+
+  // Countdown tick while warning is showing
+  useEffect(()=>{
+    if(!idleWarning)return;
+    if(idleCountdown<=0){handleLogout();return;}
+    const t=setTimeout(()=>setIdleCountdown(n=>n-1),1000);
+    return()=>clearTimeout(t);
+  },[idleWarning,idleCountdown]);
+
+  const stayLoggedIn=useCallback(async()=>{
+    lastActivityRef.current=Date.now();
+    setIdleWarning(false);
+    setIdleCountdown(IDLE_WARN_SECS);
+    await supabase.auth.getSession(); // ensure token is fresh
+  },[]);
+
   const ROLE_PRIORITY={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
   const pickTopRole=(roles)=>(roles||[]).slice().sort((a,b)=>(ROLE_PRIORITY[a.role]||9)-(ROLE_PRIORITY[b.role]||9))[0];
 
@@ -5649,7 +5857,7 @@ export default function App(){
       if(session){
         const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",session.user.id);
         const rd=pickTopRole(roles);
-        setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
+        setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null,force_password_change:session.user.user_metadata?.force_password_change===true});
       }
       setAuthChecked(true);
     });
@@ -5662,7 +5870,7 @@ export default function App(){
     if(session){
       const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",session.user.id);
       const rd=pickTopRole(roles);
-      setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
+      setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null,force_password_change:session.user.user_metadata?.force_password_change===true});
     }
   },[]);
 
@@ -5861,6 +6069,12 @@ export default function App(){
   if(!authChecked)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#1c1f2e",color:"#6366f1",fontSize:18,fontFamily:"serif"}}>Loading...</div>;
   if(!currentUser)return lang?<Login onLogin={setCurrentUser} t={t}/>:<LangPicker onSelect={selectLang}/>;
   if(!lang)return <LangPicker onSelect={selectLang}/>;
+  // Force password change — must complete before accessing any part of the app
+  if(currentUser.force_password_change){
+    return <ForcePasswordChange currentUser={currentUser} onDone={authUser=>{
+      setCurrentUser(u=>({...u,...authUser,force_password_change:false}));
+    }}/>;
+  }
   if((currentUser.role==="superadmin"||currentUser?.allRoles?.length>1)&&!selectedCompany){
     return <CompanyPicker currentUser={currentUser} onSelect={(cid,role)=>{
       setSelectedCompany(cid);
@@ -5871,6 +6085,8 @@ export default function App(){
   return(
     <div style={{minHeight:"100vh",background:"#1c1f2e",fontFamily:"Inter,Helvetica Neue,sans-serif"}}>
       <style dangerouslySetInnerHTML={{__html:GCSS}}/>
+      {/* ── Session timeout warning overlay ── */}
+      {idleWarning&&<SessionTimeoutModal countdown={idleCountdown} onStayLoggedIn={stayLoggedIn} onLogoutNow={handleLogout}/>}
       {appMsg&&(
         <div style={{position:"fixed",top:20,right:24,zIndex:1200,padding:"12px 20px",borderRadius:10,background:appMsg.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)",animation:"slideIn 0.2s ease"}}>
           {appMsg.type==="success"?"✓ ":"✗ "}{appMsg.text}

@@ -66,10 +66,13 @@ serve(async (req) => {
     }
 
     // Create auth user (email pre-confirmed, no verification email sent)
+    // force_password_change in user_metadata is read by the frontend on every login
+    // to redirect the user to a mandatory password-change screen before they can access the app.
     const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
       email: email.toLowerCase().trim(),
       password,
       email_confirm: true,
+      user_metadata: { force_password_change: true },
     });
 
     if (createErr) {
