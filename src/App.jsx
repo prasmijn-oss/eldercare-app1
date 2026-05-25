@@ -69,6 +69,8 @@ function buildNotifications(clients){
     });
     const fr=calcFallRisk(c);
     if(fr.level==="High")notifs.push({id:`fr-${c.id}`,type:"fall_risk",urgency:"medium",icon:"🚶",title:"High fall risk",body:`${c.name} scores ${fr.score} — ${fr.factors.slice(0,2).join(", ")}`,clientId:c.id,clientName:c.name});
+    const wt=calcWeightTrend(c.vitals);
+    if(wt)notifs.push({id:`wt-${c.id}`,type:"weight_trend",urgency:wt.severity,icon:wt.direction==="gain"?"⚖️":"📉",title:`Rapid weight ${wt.direction}`,body:`${c.name} — ${wt.amount}kg ${wt.direction} in ${wt.days} day${wt.days!==1?"s":""} (${wt.fromKg}→${wt.toKg} kg)`,clientId:c.id,clientName:c.name});
     (c.incidents||[]).forEach(inc=>{
       if(!inc.date)return;
       const days=Math.ceil((now-new Date(inc.date))/86400000);
@@ -397,6 +399,57 @@ function calcFallRisk(client){
   const color=score>=6?"#ef4444":score>=3?"#f59e0b":"#10b981";
   return{score,level,color,factors};
 }
+function calcWeightTrend(vitals){
+  // Extract and sort all entries that have a numeric weight value
+  const pts=[...(vitals||[])]
+    .filter(v=>v.weight!==""&&v.weight!=null&&!isNaN(parseFloat(v.weight)))
+    .sort((a,b)=>a.date.localeCompare(b.date))
+    .map(v=>({date:v.date,kg:parseFloat(v.weight)}));
+
+  if(pts.length<2)return null;
+
+  const latest=pts[pts.length-1];
+  let bestFlag=null;
+
+  // Compare latest weight against every earlier measurement within 90 days
+  for(let i=pts.length-2;i>=0;i--){
+    const ref=pts[i];
+    const daysDiff=Math.ceil((new Date(latest.date+"T00:00:00")-new Date(ref.date+"T00:00:00"))/86400000);
+    if(daysDiff>90)break;
+
+    const kgDiff=latest.kg-ref.kg;
+    const absKg=Math.abs(kgDiff);
+
+    // Clinical thresholds
+    // High:   > 2 kg in ≤7 days  (fluid retention / dehydration risk)
+    //         > 5 kg in ≤30 days
+    // Medium: ≥ 1 kg in ≤7 days
+    //         ≥ 3 kg in ≤30 days
+    let severity=null;
+    if(daysDiff<=7&&absKg>=2)severity="high";
+    else if(daysDiff<=30&&absKg>=5)severity="high";
+    else if(daysDiff<=7&&absKg>=1)severity="medium";
+    else if(daysDiff<=30&&absKg>=3)severity="medium";
+    if(!severity)continue;
+
+    const candidate={
+      direction:kgDiff>0?"gain":"loss",
+      amount:Math.round(absKg*10)/10,
+      days:daysDiff,
+      severity,
+      fromKg:ref.kg,
+      toKg:latest.kg,
+      fromDate:ref.date,
+      toDate:latest.date,
+    };
+    // Keep the worst (highest severity + largest amount)
+    if(!bestFlag||(severity==="high"&&bestFlag.severity!=="high")||(severity===bestFlag.severity&&absKg>bestFlag.amount)){
+      bestFlag=candidate;
+    }
+  }
+  return bestFlag; // null = no alert
+}
+
 function expiryBadge(d){
   if(d===null)return null;
   if(d<0)return{label:"EXPIRED",color:"#ef4444",bg:"rgba(239,68,68,0.1)"};
@@ -810,12 +863,58 @@ function VitalsTracker({vitals,onChange,t}){
     {key:"blood_sugar",label:"Glucose",unit:"mmol",color:"#8b5cf6"},
     {key:"oxygen_sat",label:"O2",unit:"%",color:"#06b6d4"},
   ];
+  const weightTrend=calcWeightTrend(vitals);
+  const weightPts=[...vitals].filter(v=>v.weight!==""&&v.weight!=null&&!isNaN(parseFloat(v.weight))).sort((a,b)=>a.date.localeCompare(b.date));
+
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <span style={{fontSize:13,color:"#64748b"}}>{vitals.length} entries</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#6366f1"}} onClick={openForm}>{t.logVitals}</button>
       </div>
+
+      {/* ── Weight Trend Alert Banner ── */}
+      {weightTrend&&(()=>{
+        const isHigh=weightTrend.severity==="high";
+        const ac=isHigh?"#ef4444":"#f59e0b";
+        const rec=weightTrend.direction==="gain"
+          ?"Consider monitoring for fluid retention, oedema, or heart failure exacerbation."
+          :"Consider monitoring for dehydration, reduced intake, or acute illness.";
+        return(
+          <div style={{background:isHigh?"rgba(239,68,68,0.08)":"rgba(245,158,11,0.08)",border:"1px solid "+(isHigh?"rgba(239,68,68,0.35)":"rgba(245,158,11,0.35)"),borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+            <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+              <span style={{fontSize:22,lineHeight:1,flexShrink:0}}>{weightTrend.direction==="gain"?"⚖️":"📉"}</span>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,fontSize:13,color:ac,marginBottom:3}}>
+                  {isHigh?"🔴 Alert":"🟡 Monitor"}: Rapid weight {weightTrend.direction} — {weightTrend.amount} kg in {weightTrend.days} day{weightTrend.days!==1?"s":""}
+                </div>
+                <div style={{fontSize:12,color:"#94a3b8",marginBottom:4}}>
+                  {weightTrend.fromKg} kg ({new Date(weightTrend.fromDate+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})})
+                  {" → "}
+                  {weightTrend.toKg} kg ({new Date(weightTrend.toDate+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})})
+                </div>
+                <div style={{fontSize:11,color:"#64748b",fontStyle:"italic"}}>{rec}</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Weight Trend Mini-Chart (shown when ≥2 weight entries exist) ── */}
+      {weightPts.length>=2&&(
+        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"10px 12px",marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#10b981",letterSpacing:0.4}}>⚖ WEIGHT TREND</span>
+            <span style={{fontSize:11,color:"#64748b"}}>{weightPts[0].kg} → {weightPts[weightPts.length-1].kg} kg</span>
+          </div>
+          <VChart data={weightPts.map(p=>p.kg)} color={weightTrend?.severity==="high"?"#ef4444":weightTrend?.severity==="medium"?"#f59e0b":"#10b981"} unit="kg"/>
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+            <span style={{fontSize:10,color:"#475569"}}>{new Date(weightPts[0].date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"})}</span>
+            <span style={{fontSize:10,color:"#475569"}}>{new Date(weightPts[weightPts.length-1].date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"})}</span>
+          </div>
+        </div>
+      )}
+
       {vitals.length>=2&&(
         <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:12,marginBottom:12}}>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
