@@ -3991,7 +3991,6 @@ export default function App(){
   const [readNotifIds,setReadNotifIds]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem("cm-read-notifs")||"[]"));}catch{return new Set();}});
   const [showShortcuts,setShowShortcuts]=useState(false);
   const [recentClients,setRecentClients]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-recent")||"[]");}catch{return [];}});
-  const [dashNote,setDashNote]=useState(()=>localStorage.getItem("cm-dash-note")||"");
   const [emailPrefs,setEmailPrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-email-prefs")||"{}") ;}catch{return {};}});
   const [appMsg,setAppMsg]=useState(null); // {type:"success"|"error", text:string}
   const showAppMsg=(type,text)=>{setAppMsg({type,text});setTimeout(()=>setAppMsg(null),3200);};
@@ -4518,7 +4517,7 @@ export default function App(){
           ):!loading&&view==="dashboard"&&(
             <>
               {recentClients.length>0&&(
-                <div style={{marginBottom:20}}>
+                <div style={{marginBottom:24}}>
                   <div style={{fontSize:11,fontWeight:700,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:8}}>⏱ Recently Viewed</div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                     {recentClients.map(rc=>{
@@ -4536,19 +4535,6 @@ export default function App(){
                   </div>
                 </div>
               )}
-              <div style={{marginBottom:20}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:8}}>📝 Quick Note</div>
-                <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:10,overflow:"hidden"}}>
-                  <textarea value={dashNote} onChange={e=>{setDashNote(e.target.value);localStorage.setItem("cm-dash-note",e.target.value);}}
-                    placeholder="Jot a reminder, task, or note... (auto-saved)"
-                    rows={3}
-                    style={{width:"100%",background:"transparent",border:"none",padding:"12px 14px",color:"#e2e8f0",fontSize:13,resize:"vertical",fontFamily:"Inter,sans-serif",lineHeight:1.6}}/>
-                  <div style={{padding:"4px 14px 6px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span style={{fontSize:10,color:"#334155"}}>Auto-saved · personal to this browser</span>
-                    {dashNote&&<button onClick={()=>{setDashNote("");localStorage.removeItem("cm-dash-note");}} style={{background:"none",border:"none",color:"#475569",fontSize:10,cursor:"pointer",fontWeight:600}}>Clear</button>}
-                  </div>
-                </div>
-              </div>
               <Dashboard clients={clients} onSelect={c=>{setSelected(c);setView("detail");trackRecent(c);}} t={t} currentUser={currentUser}/>
             </>
           )}
