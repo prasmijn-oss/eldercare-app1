@@ -9,17 +9,19 @@ const supabase = createClient(SUPABASE_URL, ANON_KEY);
 // which hold the service key as a Supabase-managed secret.
 const supabaseAdmin = supabase;
 const GCSS = [
-  "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap');",
   "* { box-sizing: border-box; margin: 0; padding: 0; }",
-  "body { font-family: Inter, sans-serif; background: #1c1f2e; color: #cdd5e0; }",
-  "input, textarea, select { font-family: inherit; }",
-  "input:focus, textarea:focus, select:focus { outline: none; border-color: #7dd3fc !important; box-shadow: 0 0 0 3px rgba(125,211,252,0.12); }",
-  "button { font-family: inherit; cursor: pointer; } button:hover { opacity: 0.88; }",
-  "::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #2a2e42; border-radius: 3px; }",
-  ".client-row { transition: transform 0.2s ease, box-shadow 0.2s ease !important; }",
-  ".client-row:hover { transform: translateX(4px) !important; box-shadow: 4px 4px 12px rgba(0,0,0,0.6), -2px -2px 6px rgba(255,255,255,0.04) !important; }",
-  ".dash-row { transition: transform 0.18s ease, box-shadow 0.18s ease !important; }",
-  ".dash-row:hover { transform: translateX(3px) !important; box-shadow: 3px 3px 10px rgba(0,0,0,0.55) !important; }",
+  "body { font-family: 'DM Sans', system-ui, sans-serif; background: #07091c; color: #f0f2fa; -webkit-font-smoothing: antialiased; }",
+  "input, textarea, select { font-family: 'DM Sans', system-ui, sans-serif; }",
+  "input:focus, textarea:focus, select:focus { outline: none !important; border-color: rgba(99,102,241,0.5) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important; }",
+  "button { font-family: 'DM Sans', system-ui, sans-serif; cursor: pointer; }",
+  "button:hover { opacity: 0.88; }",
+  "::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }",
+  ".client-row { transition: background 120ms ease !important; }",
+  ".client-row:hover { background: rgba(255,255,255,0.04) !important; }",
+  ".dash-row { transition: background 120ms ease !important; border-radius: 9px; }",
+  ".dash-row:hover { background: rgba(255,255,255,0.04) !important; }",
+  ".card-hover { transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }",
+  ".card-hover:hover { transform: translateY(-2px) !important; border-color: rgba(255,255,255,0.12) !important; box-shadow: 0 12px 32px rgba(0,0,0,0.4) !important; }",
   ".sidebar { transition: transform 0.25s ease; }",
   "@media (max-width: 768px) {",
   "  .sidebar { position: fixed !important; left: 0; top: 0; height: 100vh; z-index: 200; transform: translateX(-100%); }",
@@ -35,8 +37,8 @@ const GCSS = [
   "  .overlay { display: none !important; }",
   "  .mob-hdr { display: none !important; }",
   "}",
-  ".mob-hdr { display: none; align-items: center; justify-content: space-between; padding: 14px 20px; background: #1a1d2b; border-bottom: 1px solid rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 100; }",
-  ".overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 199; }",
+  ".mob-hdr { display: none; align-items: center; justify-content: space-between; padding: 12px 20px; background: #0c0f1f; border-bottom: 1px solid rgba(255,255,255,0.07); position: sticky; top: 0; z-index: 100; }",
+  ".overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 199; }",
   ".overlay.show { display: block; }",
   "@media print {",
   "  body > * { display: none !important; }",
@@ -50,7 +52,9 @@ const GCSS = [
   "html.cm-light img { filter: invert(1) hue-rotate(180deg); }",
   ".notif-panel { animation: slideIn 0.22s ease; }",
   "@keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }",
-  ".shortcut-key { display:inline-block; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); border-radius:5px; padding:1px 7px; font-family:monospace; font-size:12px; color:#a5b4fc; }",
+  ".shortcut-key { display:inline-block; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); border-radius:5px; padding:1px 7px; font-family:'DM Mono',monospace; font-size:12px; color:#a5b4fc; }",
+  ".nav-item { position: relative; }",
+  ".tab-btn { transition: color 120ms ease, border-color 120ms ease; border: none; background: none; cursor: pointer; }",
 ].join("\n");
 
 function buildNotifications(clients){
@@ -829,14 +833,14 @@ function fromDb(row){
   };
 }
 
-const INP={width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid #334155",background:"#0f172a",color:"#e2e8f0",fontSize:14};
-const LBL={display:"block",fontSize:11,fontWeight:700,color:"#64748b",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"};
-const ABTN={background:"none",border:"1.5px dashed #334155",borderRadius:8,padding:"7px 14px",color:"#6366f1",fontSize:13,fontWeight:600};
-const IBTN={background:"none",border:"1px solid #334155",borderRadius:6,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",color:"#64748b",fontSize:12,flexShrink:0};
+const INP={width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.03)",color:"#f0f2fa",fontSize:14};
+const LBL={display:"block",fontSize:11,fontWeight:700,color:"rgba(240,242,250,0.35)",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"};
+const ABTN={background:"none",border:"1.5px dashed rgba(99,102,241,0.4)",borderRadius:8,padding:"7px 14px",color:"#6366f1",fontSize:13,fontWeight:600};
+const IBTN={background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(240,242,250,0.35)",fontSize:12,flexShrink:0};
 
 // ─── Password Strength ───────────────────────────────────────────────────────
 const PW_LEVELS=[
-  {label:"Too short", color:"#475569", bg:"#475569"},
+  {label:"Too short", color:"rgba(240,242,250,0.25)", bg:"rgba(240,242,250,0.25)"},
   {label:"Weak",      color:"#ef4444", bg:"#ef4444"},
   {label:"Fair",      color:"#f59e0b", bg:"#f59e0b"},
   {label:"Good",      color:"#06b6d4", bg:"#06b6d4"},
@@ -870,14 +874,14 @@ function PasswordStrengthMeter({password}){
       {/* Segmented bar */}
       <div style={{display:"flex",gap:3,marginBottom:6}}>
         {[1,2,3,4].map(i=>(
-          <div key={i} style={{flex:1,height:4,borderRadius:2,background:i<=score?level.bg:"#1e293b",transition:"background 0.25s"}}/>
+          <div key={i} style={{flex:1,height:4,borderRadius:2,background:i<=score?level.bg:"rgba(255,255,255,0.06)",transition:"background 0.25s"}}/>
         ))}
       </div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
         <span style={{fontSize:11,fontWeight:700,color:level.color}}>{level.label}</span>
         <div style={{display:"flex",gap:8}}>
           {checks.map(c=>(
-            <span key={c.label} style={{fontSize:10,color:c.ok?"#10b981":"#475569",fontWeight:c.ok?700:400}}>
+            <span key={c.label} style={{fontSize:10,color:c.ok?"#10b981":"rgba(240,242,250,0.25)",fontWeight:c.ok?700:400}}>
               {c.ok?"✓":"·"} {c.label}
             </span>
           ))}
@@ -904,17 +908,17 @@ function SearchDrop({value,onChange,options,placeholder}){
       <input style={{...INP,paddingRight:28}} placeholder={placeholder} value={q}
         onChange={e=>{setQ(e.target.value);onChange(e.target.value);setOpen(true);}}
         onFocus={()=>setOpen(true)}/>
-      <span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:"#475569",fontSize:10,pointerEvents:"none"}}>v</span>
+      <span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:"rgba(240,242,250,0.25)",fontSize:10,pointerEvents:"none"}}>v</span>
       {open&&filtered.length>0&&(
-        <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#1c1f2e",border:"1px solid #334155",borderRadius:8,zIndex:999,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",maxHeight:220,overflowY:"auto"}}>
+        <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,zIndex:999,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",maxHeight:220,overflowY:"auto"}}>
           {filtered.map(opt=>(
             <div key={opt} onMouseDown={()=>pick(opt)}
-              style={{padding:"9px 12px",cursor:"pointer",fontSize:13,color:"#cbd5e1",borderBottom:"1px solid #0f172a"}}>
+              style={{padding:"9px 12px",cursor:"pointer",fontSize:13,color:"rgba(240,242,250,0.7)",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
               {opt}
             </div>
           ))}
           {q&&!options.includes(q)&&(
-            <div onMouseDown={()=>pick(q)} style={{padding:"9px 12px",cursor:"pointer",fontSize:13,color:"#6366f1",fontWeight:600,borderTop:"1px solid #334155"}}>
+            <div onMouseDown={()=>pick(q)} style={{padding:"9px 12px",cursor:"pointer",fontSize:13,color:"#6366f1",fontWeight:600,borderTop:"1px solid rgba(255,255,255,0.07)"}}>
               + Use "{q}"
             </div>
           )}
@@ -927,11 +931,11 @@ function SearchDrop({value,onChange,options,placeholder}){
 function Sec({icon,title,accent,children,defaultOpen=true}){
   const [open,setOpen]=useState(defaultOpen);
   return(
-    <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,marginBottom:16,overflow:"visible"}}>
+    <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,marginBottom:16,overflow:"visible"}}>
       <button onClick={()=>setOpen(o=>!o)}
-        style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"14px 18px",background:"none",border:"none",borderBottom:open?"1px solid #334155":"none"}}>
+        style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"14px 18px",background:"none",border:"none",borderBottom:open?"1px solid rgba(255,255,255,0.1)":"none"}}>
         <span style={{fontSize:18}}>{icon}</span>
-        <span style={{fontFamily:"Playfair Display,serif",fontSize:15,fontWeight:700,color:"#f1f5f9",flex:1,textAlign:"left"}}>{title}</span>
+        <span style={{fontSize:14,fontWeight:600,color:"#f0f2fa",flex:1,textAlign:"left",letterSpacing:"-0.2px"}}>{title}</span>
         <span style={{color:accent||"#6366f1",fontSize:12}}>{open?"^":"v"}</span>
       </button>
       {open&&<div style={{padding:"16px 18px"}}>{children}</div>}
@@ -954,14 +958,14 @@ function PhotoUp({value,onChange,clientId,t}){
     setLoading(false);
   };
   return(
-    <div style={{display:"flex",alignItems:"center",gap:20,padding:"16px 18px",borderBottom:"1px solid #334155"}}>
+    <div style={{display:"flex",alignItems:"center",gap:20,padding:"16px 18px",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
       <div onClick={()=>ref.current&&ref.current.click()}
-        style={{width:80,height:80,borderRadius:"50%",background:value?"transparent":"#0f172a",border:"2px dashed #334155",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",flexShrink:0}}>
+        style={{width:80,height:80,borderRadius:"50%",background:value?"transparent":"rgba(255,255,255,0.04)",border:"2px dashed rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",flexShrink:0}}>
         {value?<img src={value} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:28}}>+</span>}
       </div>
       <input ref={ref} type="file" accept="image/*" style={{display:"none"}} onChange={handle}/>
       <div>
-        <div style={{fontSize:14,fontWeight:600,color:"#f1f5f9",marginBottom:4}}>{t.photoTitle}</div>
+        <div style={{fontSize:14,fontWeight:600,color:"#f0f2fa",marginBottom:4}}>{t.photoTitle}</div>
         <button type="button" onClick={()=>ref.current&&ref.current.click()}
           style={{padding:"6px 14px",borderRadius:7,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontSize:12,fontWeight:600}}>
           {loading?t.uploading:value?t.changePhoto:t.uploadPhoto}
@@ -1004,7 +1008,7 @@ function MedList({items,onChange,t}){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       {items.map(item=>(
-        <div key={item.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:12}}>
+        <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:12}}>
           <div style={{marginBottom:8}}>
             <label style={LBL}>{t.medName}</label>
             <SearchDrop value={item.name} onChange={v=>upd(item.id,"name",v)} options={MEDICATIONS} placeholder={t.searchMed}/>
@@ -1020,7 +1024,7 @@ function MedList({items,onChange,t}){
                 const active=item.timing&&item.timing[slot.key];
                 return(
                   <button key={slot.key} type="button" onClick={()=>updT(item.id,slot.key,!active)}
-                    style={{padding:"5px 12px",borderRadius:20,border:"1.5px solid "+(active?slot.color:"#334155"),background:active?slot.color+"20":"transparent",color:active?slot.color:"#64748b",fontSize:12,fontWeight:600}}>
+                    style={{padding:"5px 12px",borderRadius:20,border:"1.5px solid "+(active?slot.color:"rgba(255,255,255,0.1)"),background:active?slot.color+"20":"transparent",color:active?slot.color:"rgba(240,242,250,0.35)",fontSize:12,fontWeight:600}}>
                     {labs[slot.key]}
                   </button>
                 );
@@ -1077,7 +1081,7 @@ function NotesList({items,onChange,t}){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       {/* Filter Bar */}
-      <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:12}}>
+      <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:12}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
           <div>
             <label style={LBL}>{t.date}</label>
@@ -1097,14 +1101,14 @@ function NotesList({items,onChange,t}){
           <div style={{paddingBottom:1}}>
             {hasFilter&&(
               <button onClick={()=>{setFDate("");setFRole("");setFName("");}}
-                style={{padding:"9px 12px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>
+                style={{padding:"9px 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.35)",fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>
                 Clear
               </button>
             )}
           </div>
         </div>
         {hasFilter&&(
-          <div style={{marginTop:8,fontSize:12,color:"#64748b"}}>
+          <div style={{marginTop:8,fontSize:12,color:"rgba(240,242,250,0.35)"}}>
             {filtered.length} of {items.length} note{items.length!==1?"s":""}
           </div>
         )}
@@ -1112,11 +1116,11 @@ function NotesList({items,onChange,t}){
 
       {/* Notes */}
       {filtered.length===0?(
-        <div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>
+        <div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"20px 0"}}>
           {hasFilter?"No notes match your filters":t.noNotes}
         </div>
       ):filtered.map(item=>(
-        <div key={item.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:12}}>
+        <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:12}}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"160px 1fr 1fr auto",gap:8,alignItems:"center",marginBottom:10}}>
             <div><label style={LBL}>{t.date}</label><input type="date" style={INP} value={item.date} onChange={e=>upd(item.id,"date",e.target.value)}/></div>
             <div><label style={LBL}>{t.role}</label>
@@ -1155,8 +1159,8 @@ function VChart({data,color,unit}){
         const y=H-pd-((v-mn)/rng)*(H-pd*2);
         return <circle key={i} cx={x} cy={y} r="3" fill={color}/>;
       })}
-      <text x={pd} y={H} fontSize="9" fill="#64748b">{vals[0]}{unit}</text>
-      <text x={W-pd} y={H} fontSize="9" fill="#64748b" textAnchor="end">{vals[vals.length-1]}{unit}</text>
+      <text x={pd} y={H} fontSize="9" fill="rgba(240,242,250,0.25)">{vals[0]}{unit}</text>
+      <text x={W-pd} y={H} fontSize="9" fill="rgba(240,242,250,0.25)" textAnchor="end">{vals[vals.length-1]}{unit}</text>
     </svg>
   );
 }
@@ -1185,7 +1189,7 @@ function VitalsTracker({vitals,onChange,t}){
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"#64748b"}}>{vitals.length} entries</span>
+        <span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{vitals.length} entries</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#6366f1"}} onClick={openForm}>{t.logVitals}</button>
       </div>
 
@@ -1204,12 +1208,12 @@ function VitalsTracker({vitals,onChange,t}){
                 <div style={{fontWeight:700,fontSize:13,color:ac,marginBottom:3}}>
                   {isHigh?"🔴 Alert":"🟡 Monitor"}: Rapid weight {weightTrend.direction} — {weightTrend.amount} kg in {weightTrend.days} day{weightTrend.days!==1?"s":""}
                 </div>
-                <div style={{fontSize:12,color:"#94a3b8",marginBottom:4}}>
+                <div style={{fontSize:12,color:"rgba(240,242,250,0.45)",marginBottom:4}}>
                   {weightTrend.fromKg} kg ({new Date(weightTrend.fromDate+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})})
                   {" → "}
                   {weightTrend.toKg} kg ({new Date(weightTrend.toDate+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})})
                 </div>
-                <div style={{fontSize:11,color:"#64748b",fontStyle:"italic"}}>{rec}</div>
+                <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",fontStyle:"italic"}}>{rec}</div>
               </div>
             </div>
           </div>
@@ -1218,25 +1222,25 @@ function VitalsTracker({vitals,onChange,t}){
 
       {/* ── Weight Trend Mini-Chart (shown when ≥2 weight entries exist) ── */}
       {weightPts.length>=2&&(
-        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"10px 12px",marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 12px",marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
             <span style={{fontSize:11,fontWeight:700,color:"#10b981",letterSpacing:0.4}}>⚖ WEIGHT TREND</span>
-            <span style={{fontSize:11,color:"#64748b"}}>{weightPts[0].kg} → {weightPts[weightPts.length-1].kg} kg</span>
+            <span style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>{weightPts[0].kg} → {weightPts[weightPts.length-1].kg} kg</span>
           </div>
           <VChart data={weightPts.map(p=>p.kg)} color={weightTrend?.severity==="high"?"#ef4444":weightTrend?.severity==="medium"?"#f59e0b":"#10b981"} unit="kg"/>
           <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-            <span style={{fontSize:10,color:"#475569"}}>{new Date(weightPts[0].date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"})}</span>
-            <span style={{fontSize:10,color:"#475569"}}>{new Date(weightPts[weightPts.length-1].date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"})}</span>
+            <span style={{fontSize:10,color:"rgba(240,242,250,0.25)"}}>{new Date(weightPts[0].date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"})}</span>
+            <span style={{fontSize:10,color:"rgba(240,242,250,0.25)"}}>{new Date(weightPts[weightPts.length-1].date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"})}</span>
           </div>
         </div>
       )}
 
       {vitals.length>=2&&(
-        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:12,marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:12,marginBottom:12}}>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
             {metrics.map(m=>(
               <button key={m.key} onClick={()=>setMetric(m.key)}
-                style={{padding:"3px 10px",borderRadius:20,border:"1.5px solid "+(metric===m.key?m.color:"#334155"),background:metric===m.key?m.color+"20":"transparent",color:metric===m.key?m.color:"#64748b",fontSize:11,fontWeight:600}}>
+                style={{padding:"3px 10px",borderRadius:20,border:"1.5px solid "+(metric===m.key?m.color:"rgba(255,255,255,0.1)"),background:metric===m.key?m.color+"20":"transparent",color:metric===m.key?m.color:"rgba(240,242,250,0.35)",fontSize:11,fontWeight:600}}>
                 {m.label}
               </button>
             ))}
@@ -1245,13 +1249,13 @@ function VitalsTracker({vitals,onChange,t}){
         </div>
       )}
       {showForm&&(
-        <div style={{background:"#0f172a",border:"1px solid #6366f1",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #6366f1",borderRadius:10,padding:14,marginBottom:12}}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>{t.date}</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>{t.bloodPressure}</label>
               <div style={{display:"flex",gap:6,alignItems:"center"}}>
                 <input style={INP} placeholder="Sys" value={entry.bp_systolic} onChange={e=>setEntry(v=>({...v,bp_systolic:e.target.value}))}/>
-                <span style={{color:"#64748b"}}>/</span>
+                <span style={{color:"rgba(240,242,250,0.35)"}}>/</span>
                 <input style={INP} placeholder="Dia" value={entry.bp_diastolic} onChange={e=>setEntry(v=>({...v,bp_diastolic:e.target.value}))}/>
               </div>
             </div>
@@ -1268,13 +1272,13 @@ function VitalsTracker({vitals,onChange,t}){
           </div>
         </div>
       )}
-      {sorted.length===0?<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>{t.noVitals}</div>:(
+      {sorted.length===0?<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"20px 0"}}>{t.noVitals}</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {sorted.map(v=>(
-            <div key={v.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:8,padding:"10px 14px"}}>
+            <div key={v.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:8,padding:"10px 14px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <span style={{fontWeight:600,fontSize:13,color:"#f1f5f9"}}>{new Date(v.date+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</span>
-                <button onClick={()=>rm(v.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                <span style={{fontWeight:600,fontSize:13,color:"#f0f2fa"}}>{new Date(v.date+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</span>
+                <button onClick={()=>rm(v.id)} style={{background:"none",border:"none",color:"rgba(240,242,250,0.25)",fontSize:12}}>x</button>
               </div>
               <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                 {v.bp_systolic&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:"rgba(239,68,68,0.1)",color:"#ef4444",fontWeight:600}}>BP {v.bp_systolic}/{v.bp_diastolic} mmHg</span>}
@@ -1284,7 +1288,7 @@ function VitalsTracker({vitals,onChange,t}){
                 {v.blood_sugar&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:"rgba(139,92,246,0.1)",color:"#8b5cf6",fontWeight:600}}>{v.blood_sugar} mmol</span>}
                 {v.oxygen_sat&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:"rgba(6,182,212,0.1)",color:"#06b6d4",fontWeight:600}}>{v.oxygen_sat}% O2</span>}
               </div>
-              {v.notes&&<div style={{fontSize:12,color:"#64748b",marginTop:6,fontStyle:"italic"}}>{v.notes}</div>}
+              {v.notes&&<div style={{fontSize:12,color:"rgba(240,242,250,0.35)",marginTop:6,fontStyle:"italic"}}>{v.notes}</div>}
             </div>
           ))}
         </div>
@@ -1297,7 +1301,7 @@ const GSTATUSES=[
   {value:"inProgress",color:"#f59e0b"},
   {value:"achieved",color:"#10b981"},
   {value:"onHold",color:"#8b5cf6"},
-  {value:"discontinued",color:"#64748b"},
+  {value:"discontinued",color:"rgba(240,242,250,0.35)"},
 ];
 
 function CarePlan({items,onChange,t}){
@@ -1307,11 +1311,11 @@ function CarePlan({items,onChange,t}){
   const slab={inProgress:t.inProgress,achieved:t.achieved,onHold:t.onHold,discontinued:t.discontinued};
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      {items.length===0&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"16px 0"}}>{t.noGoals}</div>}
+      {items.length===0&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"16px 0"}}>{t.noGoals}</div>}
       {items.map(item=>{
         const gs=GSTATUSES.find(s=>s.value===item.status)||GSTATUSES[0];
         return(
-          <div key={item.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:12,borderLeft:"3px solid "+gs.color}}>
+          <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:12,borderLeft:"3px solid "+gs.color}}>
             <div style={{marginBottom:8}}><label style={LBL}>{t.goalLabel}</label><input style={INP} placeholder={t.goalLabel+"..."} value={item.goal} onChange={e=>upd(item.id,"goal",e.target.value)}/></div>
             <div style={{marginBottom:8}}><label style={LBL}>{t.planLabel}</label><textarea style={{...INP,height:64,resize:"vertical"}} placeholder={t.planLabel+"..."} value={item.plan} onChange={e=>upd(item.id,"plan",e.target.value)}/></div>
             <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
@@ -1338,12 +1342,12 @@ function DocTracker({items,onChange,t}){
   const rm=id=>onChange(items.filter(i=>i.id!==id));
   return(
     <div style={{display:"flex",flexDirection:"column",gap:8}}>
-      {items.length===0&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"16px 0"}}>{t.noDocs}</div>}
+      {items.length===0&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"16px 0"}}>{t.noDocs}</div>}
       {items.map(item=>{
         const days=daysUntil(item.expiry);
         const badge=expiryBadge(days);
         return(
-          <div key={item.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:12,display:"flex",gap:10,alignItems:"center",borderLeft:badge?"3px solid "+badge.color:"3px solid #334155"}}>
+          <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:12,display:"flex",gap:10,alignItems:"center",borderLeft:badge?"3px solid "+badge.color:"3px solid rgba(255,255,255,0.1)"}}>
             <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,flex:1}}>
               <div><label style={LBL}>{t.docName}</label><input style={INP} placeholder="e.g. AZV Card..." value={item.name} onChange={e=>upd(item.id,"name",e.target.value)}/></div>
               <div><label style={LBL}>{t.expiry}</label><input type="date" style={INP} value={item.expiry||""} onChange={e=>upd(item.id,"expiry",e.target.value)}/></div>
@@ -1366,7 +1370,7 @@ function InvItem({item,onUpd,onDel,t}){
   const ref=useRef(null);
   const cc={Excellent:"#10b981",Good:"#06b6d4",Fair:"#f59e0b",Poor:"#ef4444"};
   const cl={Excellent:t.excellent,Good:t.good,Fair:t.fair,Poor:t.poor};
-  const color=cc[item.condition]||"#64748b";
+  const color=cc[item.condition]||"rgba(240,242,250,0.3)";
   const handlePhoto=async e=>{
     const file=e.target.files[0];if(!file)return;
     setUploading(true);
@@ -1379,10 +1383,10 @@ function InvItem({item,onUpd,onDel,t}){
     setUploading(false);
   };
   return(
-    <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,overflow:"hidden"}}>
+    <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,overflow:"hidden"}}>
       <div onClick={()=>ref.current&&ref.current.click()}
-        style={{width:"100%",height:120,background:item.photo_url?"transparent":"#1e293b",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",borderBottom:"1px solid #334155",position:"relative"}}>
-        {item.photo_url?<img src={item.photo_url} alt={item.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{textAlign:"center",color:"#475569"}}><div style={{fontSize:28}}>+</div><div style={{fontSize:11,marginTop:4}}>Add photo</div></div>}
+        style={{width:"100%",height:120,background:item.photo_url?"transparent":"rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",borderBottom:"1px solid rgba(255,255,255,0.07)",position:"relative"}}>
+        {item.photo_url?<img src={item.photo_url} alt={item.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{textAlign:"center",color:"rgba(240,242,250,0.25)"}}><div style={{fontSize:28}}>+</div><div style={{fontSize:11,marginTop:4}}>Add photo</div></div>}
         {uploading&&<div style={{position:"absolute",inset:0,background:"rgba(15,23,42,0.8)",display:"flex",alignItems:"center",justifyContent:"center",color:"#6366f1",fontSize:12}}>Uploading...</div>}
       </div>
       <input ref={ref} type="file" accept="image/*" style={{display:"none"}} onChange={handlePhoto}/>
@@ -1406,7 +1410,7 @@ function InvItem({item,onUpd,onDel,t}){
           <label style={{...LBL,fontSize:9}}>{t.location}</label>
           <input style={{...INP,fontSize:12}} placeholder="Room 3, wardrobe..." value={item.location||""} onChange={e=>onUpd("location",e.target.value)}/>
         </div>
-        <button onClick={onDel} style={{background:"none",border:"1px solid #334155",borderRadius:6,padding:"3px 10px",color:"#64748b",fontSize:11}}>Remove</button>
+        <button onClick={onDel} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,padding:"3px 10px",color:"rgba(240,242,250,0.35)",fontSize:11}}>Remove</button>
       </div>
     </div>
   );
@@ -1420,10 +1424,10 @@ function Inventory({items,onChange,t}){
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"#64748b"}}>{items.length} items{total>0?" - AWG "+total.toFixed(2):""}</span>
+        <span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{items.length} items{total>0?" - AWG "+total.toFixed(2):""}</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#6366f1"}} onClick={add}>{t.addItem}</button>
       </div>
-      {items.length===0&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"24px 0"}}>{t.noItems}</div>}
+      {items.length===0&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"24px 0"}}>{t.noItems}</div>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
         {items.map(item=><InvItem key={item.id} item={item} onUpd={(f,v)=>upd(item.id,f,v)} onDel={()=>rm(item.id)} t={t}/>)}
       </div>
@@ -1441,20 +1445,20 @@ function FamilyContacts({items,onChange}){
   const setPrimary=id=>onChange(items.map(i=>({...i,is_primary:i.id===id})));
   return(
     <div style={{display:"flex",flexDirection:"column",gap:8}}>
-      {items.length===0&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"16px 0"}}>No family contacts added yet</div>}
+      {items.length===0&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"16px 0"}}>No family contacts added yet</div>}
       {items.map(item=>(
-        <div key={item.id} style={{background:"#0f172a",border:"1px solid "+(item.is_primary?"rgba(99,102,241,0.4)":"#334155"),borderRadius:10,overflow:"hidden"}}>
+        <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid "+(item.is_primary?"rgba(99,102,241,0.4)":"rgba(255,255,255,0.1)"),borderRadius:10,overflow:"hidden"}}>
           <div onClick={()=>setExpanded(expanded===item.id?null:item.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer"}}>
             <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(item.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(item.name||"?")}</div>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontWeight:600,fontSize:13,color:"#f1f5f9"}}>{item.name||"New Contact"}</div>
-              <div style={{fontSize:11,color:"#64748b"}}>{item.relationship}{item.phone?" · "+item.phone:""}</div>
+              <div style={{fontWeight:600,fontSize:13,color:"#f0f2fa"}}>{item.name||"New Contact"}</div>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>{item.relationship}{item.phone?" · "+item.phone:""}</div>
             </div>
             {item.is_primary&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(99,102,241,0.15)",color:"#a5b4fc"}}>Primary</span>}
-            <span style={{color:"#475569",fontSize:12}}>{expanded===item.id?"^":"v"}</span>
+            <span style={{color:"rgba(240,242,250,0.25)",fontSize:12}}>{expanded===item.id?"^":"v"}</span>
           </div>
           {expanded===item.id&&(
-            <div style={{padding:"12px 14px",borderTop:"1px solid #334155",display:"flex",flexDirection:"column",gap:10}}>
+            <div style={{padding:"12px 14px",borderTop:"1px solid rgba(255,255,255,0.07)",display:"flex",flexDirection:"column",gap:10}}>
               <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                 <div><label style={LBL}>Full Name</label><input style={INP} value={item.name} onChange={e=>upd(item.id,"name",e.target.value)} placeholder="Full name..."/></div>
                 <div><label style={LBL}>Relationship</label>
@@ -1469,7 +1473,7 @@ function FamilyContacts({items,onChange}){
               <div><label style={LBL}>Notes</label><input style={INP} value={item.notes} onChange={e=>upd(item.id,"notes",e.target.value)} placeholder="e.g. Available evenings only..."/></div>
               <div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center"}}>
                 {!item.is_primary?<button onClick={()=>setPrimary(item.id)} style={{background:"none",border:"1px solid #6366f1",borderRadius:6,padding:"4px 12px",color:"#6366f1",fontSize:11,fontWeight:700}}>★ Set as Primary</button>:<span style={{fontSize:11,color:"#6366f1",fontWeight:700}}>★ Primary Contact</span>}
-                <button onClick={()=>rm(item.id)} style={{background:"none",border:"1px solid #334155",borderRadius:6,padding:"4px 12px",color:"#ef4444",fontSize:11,fontWeight:600}}>Remove</button>
+                <button onClick={()=>rm(item.id)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,padding:"4px 12px",color:"#ef4444",fontSize:11,fontWeight:600}}>Remove</button>
               </div>
             </div>
           )}
@@ -1483,7 +1487,7 @@ function FamilyContacts({items,onChange}){
 // ─── Appointment Log ──────────────────────────────────────────────────────────
 const APPT_TYPES=["Doctor Visit","Specialist","Lab / Imaging","Physiotherapy","Dentist","Transport Only","Other"];
 const APPT_STATUSES=["Scheduled","Completed","Cancelled","No-Show"];
-const APPT_STATUS_COLORS={Scheduled:"#6366f1",Completed:"#10b981",Cancelled:"#64748b","No-Show":"#f59e0b"};
+const APPT_STATUS_COLORS={Scheduled:"#6366f1",Completed:"#10b981",Cancelled:"rgba(240,242,250,0.3)","No-Show":"#f59e0b"};
 const TRANSPORT_TYPES=["Family","Facility Transport","Taxi","Ambulance","None"];
 function AppointmentLog({items,onChange}){
   const [showForm,setShowForm]=useState(false);
@@ -1498,7 +1502,7 @@ function AppointmentLog({items,onChange}){
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"#64748b"}}>{items.length} appointment{items.length!==1?"s":""}</span>
+        <span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{items.length} appointment{items.length!==1?"s":""}</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#6366f1"}} onClick={openNew}>+ Log Appointment</button>
       </div>
       {/* ── Missed appointment alert banner ── */}
@@ -1513,12 +1517,12 @@ function AppointmentLog({items,onChange}){
           <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
             {ma.noShows.length>0&&<span style={{fontSize:12,color:"#f87171",fontWeight:600}}>No-Shows: {ma.noShows.length}</span>}
             {ma.overdue.length>0&&<span style={{fontSize:12,color:"#fbbf24",fontWeight:600}}>Overdue (still Scheduled): {ma.overdue.length}</span>}
-            {ma.pattern&&<span style={{fontSize:12,color:"#94a3b8"}}>{ma.recentMissed.length} missed / overdue in last 30 days — update status or reschedule</span>}
+            {ma.pattern&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>{ma.recentMissed.length} missed / overdue in last 30 days — update status or reschedule</span>}
           </div>
         </div>
       )}
       {showForm&&entry&&(
-        <div style={{background:"#0f172a",border:"1px solid #6366f1",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #6366f1",borderRadius:10,padding:14,marginBottom:12}}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
@@ -1536,7 +1540,7 @@ function AppointmentLog({items,onChange}){
             <div><label style={LBL}>Location / Clinic</label><input style={INP} value={entry.location} onChange={e=>setEntry(v=>({...v,location:e.target.value}))} placeholder="e.g. CMC..."/></div>
           </div>
           <div style={{marginBottom:10}}>
-            <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#e2e8f0",fontWeight:600,cursor:"pointer",marginBottom:6}}>
+            <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#f0f2fa",fontWeight:600,cursor:"pointer",marginBottom:6}}>
               <input type="checkbox" checked={entry.transport_needed} onChange={e=>setEntry(v=>({...v,transport_needed:e.target.checked}))} style={{accentColor:"#6366f1",width:15,height:15}}/>
               Transport needed
             </label>
@@ -1551,29 +1555,29 @@ function AppointmentLog({items,onChange}){
           </div>
         </div>
       )}
-      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No appointments logged yet</div>}
+      {sorted.length===0&&!showForm&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No appointments logged yet</div>}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {sorted.map(item=>{
-          const sc=APPT_STATUS_COLORS[item.status]||"#64748b";
+          const sc=APPT_STATUS_COLORS[item.status]||"rgba(240,242,250,0.3)";
           return(
-            <div key={item.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+sc}}>
+            <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+sc}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(item.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}{item.time&&" at "+item.time}</span>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{new Date(item.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}{item.time&&" at "+item.time}</span>
                   <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:sc+"20",color:sc}}>{item.status}</span>
                 </div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>openEdit(item)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#6366f1",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                  <button onClick={()=>openEdit(item)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#6366f1",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:"rgba(240,242,250,0.25)",fontSize:12}}>x</button>
                 </div>
               </div>
               <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                <span style={{fontSize:12,color:"#64748b"}}>📋 {item.type}</span>
-                {item.provider&&<span style={{fontSize:12,color:"#94a3b8"}}>👨‍⚕️ {item.provider}</span>}
-                {item.location&&<span style={{fontSize:12,color:"#94a3b8"}}>📍 {item.location}</span>}
+                <span style={{fontSize:12,color:"rgba(240,242,250,0.35)"}}>📋 {item.type}</span>
+                {item.provider&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>👨‍⚕️ {item.provider}</span>}
+                {item.location&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>📍 {item.location}</span>}
                 {item.transport_needed&&<span style={{fontSize:11,fontWeight:600,color:"#f59e0b"}}>🚗 {item.transport_type}</span>}
               </div>
-              {item.notes&&<div style={{fontSize:12,color:"#475569",marginTop:4,fontStyle:"italic"}}>{item.notes}</div>}
+              {item.notes&&<div style={{fontSize:12,color:"rgba(240,242,250,0.25)",marginTop:4,fontStyle:"italic"}}>{item.notes}</div>}
             </div>
           );
         })}
@@ -1604,22 +1608,22 @@ function PainAssessment({items,onChange}){
     <div>
       {/* Latest summary */}
       {summary&&(
-        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
           <span style={{fontSize:22}}>{summary.latestScore>=7?"😣":summary.latestScore>=4?"😐":"😊"}</span>
           <div>
             <span style={{fontWeight:700,fontSize:13,color:summary.level.color}}>{summary.level.label} pain — {summary.latestScore}/10</span>
-            {summary.latest.location&&<span style={{fontSize:12,color:"#64748b",marginLeft:8}}>📍 {summary.latest.location}</span>}
+            {summary.latest.location&&<span style={{fontSize:12,color:"rgba(240,242,250,0.35)",marginLeft:8}}>📍 {summary.latest.location}</span>}
           </div>
           {summary.persistent&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>⚠ Persistent ({summary.recentModerateCount}x this week)</span>}
-          <span style={{fontSize:12,color:"#475569",marginLeft:"auto"}}>{new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
+          <span style={{fontSize:12,color:"rgba(240,242,250,0.25)",marginLeft:"auto"}}>{new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
         </div>
       )}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"#64748b"}}>{items.length} assessment{items.length!==1?"s":""}</span>
+        <span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{items.length} assessment{items.length!==1?"s":""}</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#f59e0b",color:"#f59e0b"}} onClick={openNew}>+ Log Pain Assessment</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"#0f172a",border:"1px solid #f59e0b",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #f59e0b",borderRadius:10,padding:14,marginBottom:12}}>
           {/* Date / time / recorded by */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
@@ -1631,12 +1635,12 @@ function PainAssessment({items,onChange}){
             <label style={LBL}>Pain Scale</label>
             <div style={{display:"flex",gap:6,marginBottom:10}}>
               {["numeric","faces"].map(m=>(
-                <button key={m} onClick={()=>setScaleMode(m)} style={{padding:"5px 14px",borderRadius:6,border:"1px solid "+(scaleMode===m?"#f59e0b":"#334155"),background:scaleMode===m?"rgba(245,158,11,0.15)":"transparent",color:scaleMode===m?"#f59e0b":"#64748b",fontSize:12,fontWeight:600,cursor:"pointer",textTransform:"capitalize"}}>{m==="numeric"?"Numeric (0-10)":"FACES Scale"}</button>
+                <button key={m} onClick={()=>setScaleMode(m)} style={{padding:"5px 14px",borderRadius:6,border:"1px solid "+(scaleMode===m?"#f59e0b":"rgba(255,255,255,0.1)"),background:scaleMode===m?"rgba(245,158,11,0.15)":"transparent",color:scaleMode===m?"#f59e0b":"rgba(240,242,250,0.3)",fontSize:12,fontWeight:600,cursor:"pointer",textTransform:"capitalize"}}>{m==="numeric"?"Numeric (0-10)":"FACES Scale"}</button>
               ))}
             </div>
             {scaleMode==="numeric"?(
               <div>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#64748b",marginBottom:4}}><span>No pain (0)</span><span>Worst pain (10)</span></div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:4}}><span>No pain (0)</span><span>Worst pain (10)</span></div>
                 <input type="range" min={0} max={10} step={1} value={entry.score??0} onChange={e=>setEntry(v=>({...v,score:Number(e.target.value)}))} style={{width:"100%",accentColor:painLevel(entry.score??0).color}}/>
                 <div style={{textAlign:"center",marginTop:6}}>
                   <span style={{fontWeight:800,fontSize:22,color:painLevel(entry.score??0).color}}>{entry.score??0}</span>
@@ -1646,9 +1650,9 @@ function PainAssessment({items,onChange}){
             ):(
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {FACES_SCORES.map(f=>(
-                  <button key={f.score} onClick={()=>setEntry(v=>({...v,score:f.score}))} style={{flex:"1 1 60px",padding:"8px 4px",borderRadius:8,border:"2px solid "+(entry.score===f.score?painLevel(f.score).color:"#334155"),background:entry.score===f.score?painLevel(f.score).color+"20":"transparent",cursor:"pointer",textAlign:"center"}}>
+                  <button key={f.score} onClick={()=>setEntry(v=>({...v,score:f.score}))} style={{flex:"1 1 60px",padding:"8px 4px",borderRadius:8,border:"2px solid "+(entry.score===f.score?painLevel(f.score).color:"rgba(255,255,255,0.1)"),background:entry.score===f.score?painLevel(f.score).color+"20":"transparent",cursor:"pointer",textAlign:"center"}}>
                     <div style={{fontSize:24}}>{f.emoji}</div>
-                    <div style={{fontSize:10,color:"#64748b",marginTop:2}}>{f.label}</div>
+                    <div style={{fontSize:10,color:"rgba(240,242,250,0.35)",marginTop:2}}>{f.label}</div>
                     <div style={{fontSize:11,fontWeight:700,color:painLevel(f.score).color}}>{f.score}/10</div>
                   </button>
                 ))}
@@ -1670,7 +1674,7 @@ function PainAssessment({items,onChange}){
             <label style={LBL}>Character</label>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               {PAIN_CHARACTERS.map(ch=>(
-                <button key={ch} onClick={()=>setEntry(v=>({...v,character:v.character===ch?"":ch}))} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.character===ch?"#f59e0b":"#334155"),background:entry.character===ch?"rgba(245,158,11,0.15)":"transparent",color:entry.character===ch?"#f59e0b":"#64748b",fontSize:11,fontWeight:600,cursor:"pointer"}}>{ch}</button>
+                <button key={ch} onClick={()=>setEntry(v=>({...v,character:v.character===ch?"":ch}))} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.character===ch?"#f59e0b":"rgba(255,255,255,0.1)"),background:entry.character===ch?"rgba(245,158,11,0.15)":"transparent",color:entry.character===ch?"#f59e0b":"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>{ch}</button>
               ))}
             </div>
           </div>
@@ -1691,33 +1695,33 @@ function PainAssessment({items,onChange}){
           </div>
         </div>
       )}
-      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No pain assessments logged yet</div>}
+      {sorted.length===0&&!showForm&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No pain assessments logged yet</div>}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {sorted.map(row=>{
           const sc=Number(row.score??0);
           const lv=painLevel(sc);
           return(
-            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
+            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}{row.time&&" "+row.time}</span>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}{row.time&&" "+row.time}</span>
                   <span style={{fontSize:22,lineHeight:1}}>{sc>=7?"😣":sc>=4?"😐":"😊"}</span>
                   <span style={{fontSize:12,fontWeight:800,color:lv.color}}>{sc}/10</span>
                   <span style={{fontSize:11,fontWeight:700,padding:"1px 7px",borderRadius:20,background:lv.color+"20",color:lv.color}}>{lv.label}</span>
                 </div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#f59e0b",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#f59e0b",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"rgba(240,242,250,0.25)",fontSize:12}}>x</button>
                 </div>
               </div>
               <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                {row.location&&<span style={{fontSize:12,color:"#94a3b8"}}>📍 {row.location}</span>}
-                {row.character&&<span style={{fontSize:12,color:"#94a3b8"}}>〰 {row.character}</span>}
-                {row.duration&&<span style={{fontSize:12,color:"#94a3b8"}}>⏱ {row.duration}</span>}
+                {row.location&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>📍 {row.location}</span>}
+                {row.character&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>〰 {row.character}</span>}
+                {row.duration&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>⏱ {row.duration}</span>}
               </div>
-              {row.intervention&&<div style={{fontSize:12,color:"#64748b",marginTop:4}}>Tx: {row.intervention}{row.effectiveness&&<span style={{marginLeft:6,fontSize:11,fontWeight:600,color:row.effectiveness==="Full"?"#10b981":row.effectiveness==="Partial"?"#f59e0b":"#ef4444"}}>({row.effectiveness} relief)</span>}</div>}
-              {row.recorded_by&&<div style={{fontSize:11,color:"#475569",marginTop:2}}>By: {row.recorded_by}</div>}
-              {row.notes&&<div style={{fontSize:12,color:"#475569",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
+              {row.intervention&&<div style={{fontSize:12,color:"rgba(240,242,250,0.35)",marginTop:4}}>Tx: {row.intervention}{row.effectiveness&&<span style={{marginLeft:6,fontSize:11,fontWeight:600,color:row.effectiveness==="Full"?"#10b981":row.effectiveness==="Partial"?"#f59e0b":"#ef4444"}}>({row.effectiveness} relief)</span>}</div>}
+              {row.recorded_by&&<div style={{fontSize:11,color:"rgba(240,242,250,0.25)",marginTop:2}}>By: {row.recorded_by}</div>}
+              {row.notes&&<div style={{fontSize:12,color:"rgba(240,242,250,0.25)",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
             </div>
           );
         })}
@@ -1751,20 +1755,20 @@ function BradenScale({items,onChange}){
     <div>
       {/* Latest summary */}
       {summary&&(
-        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
             <span style={{fontWeight:800,fontSize:22,color:summary.risk.color}}>{summary.score}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:summary.risk.color}}>{summary.risk.label}</div>
-              <div style={{fontSize:11,color:"#64748b"}}>Score {summary.score}/{BRADEN_MAX} · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>Score {summary.score}/{BRADEN_MAX} · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
             </div>
-            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"#64748b"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
+            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"rgba(240,242,250,0.3)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
           </div>
           {/* Score bar */}
-          <div style={{height:6,background:"#1e293b",borderRadius:3,overflow:"hidden",marginBottom:6}}>
+          <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",marginBottom:6}}>
             <div style={{height:"100%",width:scoreBar(summary.score)+"%",background:summary.risk.color,borderRadius:3,transition:"width 0.3s"}}/>
           </div>
-          <div style={{fontSize:11,color:"#475569"}}>🔄 Recommended repositioning: <strong style={{color:"#94a3b8"}}>{summary.latest.turning_schedule||summary.risk.turning}</strong></div>
+          <div style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>🔄 Recommended repositioning: <strong style={{color:"rgba(240,242,250,0.45)"}}>{summary.latest.turning_schedule||summary.risk.turning}</strong></div>
           {/* Subscale mini-badges */}
           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
             {BRADEN_SUBSCALES.map(sub=>{
@@ -1777,19 +1781,19 @@ function BradenScale({items,onChange}){
         </div>
       )}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"#64748b"}}>{items.length} assessment{items.length!==1?"s":""}</span>
+        <span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{items.length} assessment{items.length!==1?"s":""}</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#8b5cf6",color:"#8b5cf6"}} onClick={openNew}>+ Log Braden Assessment</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"#0f172a",border:"1px solid #8b5cf6",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #8b5cf6",borderRadius:10,padding:14,marginBottom:12}}>
           {/* Live score header */}
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"#161929",borderRadius:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
             <span style={{fontWeight:800,fontSize:26,color:liveRisk.color}}>{liveScore}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:liveRisk.color}}>{liveRisk.label}</div>
-              <div style={{fontSize:11,color:"#64748b"}}>of {BRADEN_MAX} · updates as you score</div>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>of {BRADEN_MAX} · updates as you score</div>
             </div>
-            <div style={{flex:1,height:6,background:"#1e293b",borderRadius:3,overflow:"hidden"}}>
+            <div style={{flex:1,height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
               <div style={{height:"100%",width:scoreBar(liveScore)+"%",background:liveRisk.color,borderRadius:3,transition:"width 0.2s"}}/>
             </div>
           </div>
@@ -1815,7 +1819,7 @@ function BradenScale({items,onChange}){
                       return(
                         <button key={score} onClick={()=>setEntry(v=>({...v,[sub.key]:score}))}
                           title={opt}
-                          style={{flex:1,padding:"6px 4px",borderRadius:6,border:"1px solid "+(active?col:"#334155"),background:active?col+"25":"transparent",color:active?col:"#475569",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center",lineHeight:1.2}}>
+                          style={{flex:1,padding:"6px 4px",borderRadius:6,border:"1px solid "+(active?col:"rgba(255,255,255,0.1)"),background:active?col+"25":"transparent",color:active?col:"rgba(240,242,250,0.25)",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center",lineHeight:1.2}}>
                           <div style={{fontWeight:700,fontSize:13}}>{score}</div>
                           <div style={{fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt}</div>
                         </button>
@@ -1836,22 +1840,22 @@ function BradenScale({items,onChange}){
           </div>
         </div>
       )}
-      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No Braden assessments logged yet</div>}
+      {sorted.length===0&&!showForm&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No Braden assessments logged yet</div>}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {sorted.map(row=>{
           const sc=bradenScore(row);
           const rk=bradenRisk(sc);
           return(
-            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
+            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
                   <span style={{fontWeight:800,fontSize:15,color:rk.color}}>{sc}</span>
                   <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:rk.color+"20",color:rk.color}}>{rk.label}</span>
                 </div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#8b5cf6",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#8b5cf6",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"rgba(240,242,250,0.25)",fontSize:12}}>x</button>
                 </div>
               </div>
               <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:4}}>
@@ -1861,8 +1865,8 @@ function BradenScale({items,onChange}){
                   return<span key={sub.key} style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:10,background:col+"18",color:col}}>{sub.label.split(" ")[0]} {val}</span>;
                 })}
               </div>
-              <div style={{fontSize:11,color:"#475569"}}>🔄 {row.turning_schedule||rk.turning}{row.recorded_by&&" · By: "+row.recorded_by}</div>
-              {row.notes&&<div style={{fontSize:12,color:"#475569",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>🔄 {row.turning_schedule||rk.turning}{row.recorded_by&&" · By: "+row.recorded_by}</div>
+              {row.notes&&<div style={{fontSize:12,color:"rgba(240,242,250,0.25)",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
             </div>
           );
         })}
@@ -1889,36 +1893,36 @@ function CognitiveScreening({items,onChange}){
     <div>
       {/* Summary card */}
       {summary&&(
-        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
             <span style={{fontWeight:800,fontSize:22,color:summary.level.color}}>{summary.score}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:summary.level.color}}>{summary.level.label}</div>
-              <div style={{fontSize:11,color:"#64748b"}}>{summary.latest.test_type||"MMSE"} · Score {summary.score}/30 · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>{summary.latest.test_type||"MMSE"} · Score {summary.score}/30 · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
             </div>
-            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"#64748b"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
+            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"rgba(240,242,250,0.3)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
           </div>
-          <div style={{height:6,background:"#1e293b",borderRadius:3,overflow:"hidden",marginBottom:6}}>
+          <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",marginBottom:6}}>
             <div style={{height:"100%",width:Math.round((summary.score/30)*100)+"%",background:summary.level.color,borderRadius:3,transition:"width 0.3s"}}/>
           </div>
           {summary.dueReassess&&<div style={{fontSize:11,background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:6,padding:"4px 10px",color:"#f59e0b",marginTop:6}}>⚠️ Reassessment overdue — last screening was {summary.daysSince} days ago</div>}
-          {summary.latest.next_due&&<div style={{fontSize:11,color:"#475569",marginTop:4}}>📅 Next due: {new Date(summary.latest.next_due+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
+          {summary.latest.next_due&&<div style={{fontSize:11,color:"rgba(240,242,250,0.25)",marginTop:4}}>📅 Next due: {new Date(summary.latest.next_due+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
         </div>
       )}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"#64748b"}}>{items.length} screening{items.length!==1?"s":""}</span>
+        <span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{items.length} screening{items.length!==1?"s":""}</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#a78bfa",color:"#a78bfa"}} onClick={openNew}>+ Log Screening</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"#0f172a",border:"1px solid #a78bfa",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #a78bfa",borderRadius:10,padding:14,marginBottom:12}}>
           {/* Live score header */}
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"#161929",borderRadius:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
             <span style={{fontWeight:800,fontSize:26,color:liveLevel.color}}>{entry.score??30}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:liveLevel.color}}>{liveLevel.label}</div>
-              <div style={{fontSize:11,color:"#64748b"}}>{entry.test_type||"MMSE"} · out of 30</div>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>{entry.test_type||"MMSE"} · out of 30</div>
             </div>
-            <div style={{flex:1,height:6,background:"#1e293b",borderRadius:3,overflow:"hidden"}}>
+            <div style={{flex:1,height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
               <div style={{height:"100%",width:Math.round((Number(entry.score??30)/30)*100)+"%",background:liveLevel.color,borderRadius:3,transition:"width 0.2s"}}/>
             </div>
           </div>
@@ -1950,7 +1954,7 @@ function CognitiveScreening({items,onChange}){
           {/* MMSE domain breakdown (optional) */}
           {entry.test_type==="MMSE"&&(
             <div style={{marginBottom:10}}>
-              <button type="button" onClick={()=>setShowDomains(v=>!v)} style={{background:"none",border:"none",color:"#94a3b8",fontSize:12,cursor:"pointer",padding:0}}>
+              <button type="button" onClick={()=>setShowDomains(v=>!v)} style={{background:"none",border:"none",color:"rgba(240,242,250,0.45)",fontSize:12,cursor:"pointer",padding:0}}>
                 {showDomains?"▾":"▸"} Domain breakdown (optional)
               </button>
               {showDomains&&(
@@ -1979,27 +1983,27 @@ function CognitiveScreening({items,onChange}){
           </div>
         </div>
       )}
-      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No cognitive screenings logged yet</div>}
+      {sorted.length===0&&!showForm&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No cognitive screenings logged yet</div>}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {sorted.map(row=>{
           const lv=cognitiveLevel(row.test_type||"MMSE",row.score);
           return(
-            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
+            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
                   <span style={{fontSize:11,padding:"1px 8px",borderRadius:10,background:lv.color+"18",color:lv.color,fontWeight:700}}>{row.test_type||"MMSE"}</span>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:800,fontSize:17,color:lv.color}}>{row.score}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}>/30</span></span>
+                  <span style={{fontWeight:800,fontSize:17,color:lv.color}}>{row.score}<span style={{fontSize:11,fontWeight:400,color:"rgba(240,242,250,0.25)"}}>/30</span></span>
                   <span style={{fontSize:11,color:lv.color,fontWeight:600}}>{lv.label}</span>
                   <button onClick={()=>openEdit(row)} style={{...IBTN}}>✏️</button>
                   <button onClick={()=>rm(row.id)} style={{...IBTN}}>🗑</button>
                 </div>
               </div>
-              {row.administered_by&&<div style={{fontSize:11,color:"#475569"}}>By: {row.administered_by}</div>}
-              {row.notes&&<div style={{fontSize:12,color:"#64748b",marginTop:3,fontStyle:"italic"}}>{row.notes}</div>}
-              {row.next_due&&<div style={{fontSize:11,color:"#475569",marginTop:2}}>📅 Next due: {new Date(row.next_due+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
+              {row.administered_by&&<div style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>By: {row.administered_by}</div>}
+              {row.notes&&<div style={{fontSize:12,color:"rgba(240,242,250,0.35)",marginTop:3,fontStyle:"italic"}}>{row.notes}</div>}
+              {row.next_due&&<div style={{fontSize:11,color:"rgba(240,242,250,0.25)",marginTop:2}}>📅 Next due: {new Date(row.next_due+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
               {/* MMSE domain mini-badges */}
               {row.test_type==="MMSE"&&row.domains&&Object.keys(row.domains).length>0&&(
                 <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:6}}>
@@ -2035,19 +2039,19 @@ function ContinenceLog({items,onChange}){
     <div>
       {/* Summary strip */}
       {summary&&summary.recentCount>0&&(
-        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
           <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"center"}}>
             <div style={{textAlign:"center"}}>
               <div style={{fontWeight:800,fontSize:22,color:summary.highFrequency?"#ef4444":"#06b6d4"}}>{summary.avgPerDay}</div>
-              <div style={{fontSize:10,color:"#64748b"}}>avg/day (7d)</div>
+              <div style={{fontSize:10,color:"rgba(240,242,250,0.35)"}}>avg/day (7d)</div>
             </div>
             <div style={{textAlign:"center"}}>
-              <div style={{fontWeight:700,fontSize:16,color:"#94a3b8"}}>{summary.recentCount}</div>
-              <div style={{fontSize:10,color:"#64748b"}}>episodes (7d)</div>
+              <div style={{fontWeight:700,fontSize:16,color:"rgba(240,242,250,0.45)"}}>{summary.recentCount}</div>
+              <div style={{fontSize:10,color:"rgba(240,242,250,0.35)"}}>episodes (7d)</div>
             </div>
             {summary.mostCommonType&&<div style={{flex:1}}>
-              <div style={{fontSize:11,color:"#64748b"}}>Most common</div>
-              <div style={{fontWeight:600,fontSize:12,color:"#94a3b8"}}>{summary.mostCommonType}</div>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>Most common</div>
+              <div style={{fontWeight:600,fontSize:12,color:"rgba(240,242,250,0.45)"}}>{summary.mostCommonType}</div>
             </div>}
             {summary.skinIssue&&<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.3)"}}>⚠️ Skin breakdown</span>}
             {summary.highFrequency&&!summary.skinIssue&&<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.3)"}}>High frequency</span>}
@@ -2055,11 +2059,11 @@ function ContinenceLog({items,onChange}){
         </div>
       )}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"#64748b"}}>{items.length} episode{items.length!==1?"s":""} logged</span>
+        <span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{items.length} episode{items.length!==1?"s":""} logged</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#06b6d4",color:"#06b6d4"}} onClick={openNew}>+ Log Episode</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"#0f172a",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time||""} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
@@ -2098,22 +2102,22 @@ function ContinenceLog({items,onChange}){
           </div>
         </div>
       )}
-      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No continence episodes logged yet</div>}
+      {sorted.length===0&&!showForm&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No continence episodes logged yet</div>}
       <div style={{display:"flex",flexDirection:"column",gap:7}}>
         {sorted.map(row=>{
           const skinCol=row.skin_condition==="Breakdown"?"#ef4444":row.skin_condition==="Maceration"?"#f59e0b":row.skin_condition==="Redness"?"#fb923c":"#10b981";
           return(
-            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"9px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"9px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
-                  <span style={{fontWeight:700,fontSize:12,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}{row.time&&" "+row.time}</span>
+                  <span style={{fontWeight:700,fontSize:12,color:"#f0f2fa"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}{row.time&&" "+row.time}</span>
                   <span style={{fontSize:11,padding:"1px 8px",borderRadius:10,background:"rgba(6,182,212,0.12)",color:"#06b6d4",fontWeight:600}}>{row.type}</span>
-                  {row.volume&&<span style={{fontSize:11,color:"#64748b"}}>{row.volume}</span>}
+                  {row.volume&&<span style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>{row.volume}</span>}
                 </div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                  {row.product_used&&row.product_used!=="None"&&<span style={{fontSize:11,color:"#475569"}}>🛒 {row.product_used}</span>}
+                  {row.product_used&&row.product_used!=="None"&&<span style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>🛒 {row.product_used}</span>}
                   <span style={{fontSize:11,fontWeight:600,color:skinCol}}>Skin: {row.skin_condition||"Intact"}</span>
-                  {row.notes&&<span style={{fontSize:11,color:"#64748b",fontStyle:"italic",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.notes}</span>}
+                  {row.notes&&<span style={{fontSize:11,color:"rgba(240,242,250,0.35)",fontStyle:"italic",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.notes}</span>}
                 </div>
               </div>
               <div style={{display:"flex",gap:6,flexShrink:0}}>
@@ -2146,7 +2150,7 @@ function NutritionScreening({items,onChange}){
     const active=entry&&Number(entry[field])===val;
     return(
       <button onClick={()=>setEntry(v=>({...v,[field]:val}))} title={desc}
-        style={{flex:1,padding:"7px 5px",borderRadius:7,border:"1px solid "+(active?color:"#334155"),background:active?color+"22":"transparent",color:active?color:"#475569",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center"}}>
+        style={{flex:1,padding:"7px 5px",borderRadius:7,border:"1px solid "+(active?color:"rgba(255,255,255,0.1)"),background:active?color+"22":"transparent",color:active?color:"rgba(240,242,250,0.25)",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center"}}>
         <div style={{fontWeight:700,fontSize:15}}>{val}</div>
         <div style={{fontSize:9,lineHeight:1.2}}>{label}</div>
       </button>
@@ -2157,19 +2161,19 @@ function NutritionScreening({items,onChange}){
     <div>
       {/* Summary card */}
       {summary&&(
-        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
             <span style={{fontWeight:800,fontSize:22,color:summary.risk.color}}>{summary.score}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:summary.risk.color}}>{summary.risk.label}</div>
-              <div style={{fontSize:11,color:"#64748b"}}>MUST Score · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>MUST Score · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
             </div>
-            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="worsening"?"#ef4444":"#64748b"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="worsening"?"↓ Worsening":"→ Stable"}</span>}
+            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="worsening"?"#ef4444":"rgba(240,242,250,0.3)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="worsening"?"↓ Worsening":"→ Stable"}</span>}
           </div>
-          <div style={{height:6,background:"#1e293b",borderRadius:3,overflow:"hidden",marginBottom:8}}>
+          <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",marginBottom:8}}>
             <div style={{height:"100%",width:Math.min(100,Math.round((summary.score/4)*100))+"%",background:summary.risk.color,borderRadius:3,transition:"width 0.3s"}}/>
           </div>
-          <div style={{fontSize:11,color:"#475569"}}>📋 Action: <strong style={{color:"#94a3b8"}}>{summary.risk.action}</strong></div>
+          <div style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>📋 Action: <strong style={{color:"rgba(240,242,250,0.45)"}}>{summary.risk.action}</strong></div>
           {(summary.latest.swallowing_difficulty||summary.latest.dietary_restrictions||summary.latest.supplement_use)&&(
             <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
               {summary.latest.swallowing_difficulty&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:"rgba(239,68,68,0.1)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.25)"}}>⚠️ Swallowing difficulty</span>}
@@ -2180,19 +2184,19 @@ function NutritionScreening({items,onChange}){
         </div>
       )}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"#64748b"}}>{items.length} screening{items.length!==1?"s":""}</span>
+        <span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{items.length} screening{items.length!==1?"s":""}</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#10b981",color:"#10b981"}} onClick={openNew}>+ Log Screening</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"#0f172a",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
           {/* Live score header */}
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"#161929",borderRadius:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
             <span style={{fontWeight:800,fontSize:26,color:liveRisk.color}}>{liveScore}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:liveRisk.color}}>{liveRisk.label}</div>
-              <div style={{fontSize:11,color:"#64748b"}}>MUST Score · updates as you score</div>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>MUST Score · updates as you score</div>
             </div>
-            <div style={{flex:1,height:6,background:"#1e293b",borderRadius:3,overflow:"hidden"}}>
+            <div style={{flex:1,height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
               <div style={{height:"100%",width:Math.min(100,Math.round((liveScore/4)*100))+"%",background:liveRisk.color,borderRadius:3,transition:"width 0.2s"}}/>
             </div>
           </div>
@@ -2220,10 +2224,10 @@ function NutritionScreening({items,onChange}){
           <div style={{marginBottom:10}}>
             <label style={LBL}>Acute Illness Effect (+2 points if acutely ill / no nutritional intake ≥5 days)</label>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <button onClick={()=>setEntry(v=>({...v,acute_illness:!v.acute_illness}))} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+(entry.acute_illness?"#ef4444":"#334155"),background:entry.acute_illness?"rgba(239,68,68,0.15)":"transparent",color:entry.acute_illness?"#ef4444":"#64748b",fontWeight:600,fontSize:13}}>
+              <button onClick={()=>setEntry(v=>({...v,acute_illness:!v.acute_illness}))} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+(entry.acute_illness?"#ef4444":"rgba(255,255,255,0.1)"),background:entry.acute_illness?"rgba(239,68,68,0.15)":"transparent",color:entry.acute_illness?"#ef4444":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13}}>
                 {entry.acute_illness?"Yes — +2 applied":"No"}
               </button>
-              <span style={{fontSize:11,color:"#64748b"}}>Tap to toggle</span>
+              <span style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>Tap to toggle</span>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
@@ -2234,7 +2238,7 @@ function NutritionScreening({items,onChange}){
             </div>
             <div style={{display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
               <label style={{...LBL,marginBottom:8}}>Swallowing Difficulty</label>
-              <button onClick={()=>setEntry(v=>({...v,swallowing_difficulty:!v.swallowing_difficulty}))} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(entry.swallowing_difficulty?"#ef4444":"#334155"),background:entry.swallowing_difficulty?"rgba(239,68,68,0.12)":"transparent",color:entry.swallowing_difficulty?"#ef4444":"#64748b",fontWeight:600,fontSize:13}}>
+              <button onClick={()=>setEntry(v=>({...v,swallowing_difficulty:!v.swallowing_difficulty}))} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(entry.swallowing_difficulty?"#ef4444":"rgba(255,255,255,0.1)"),background:entry.swallowing_difficulty?"rgba(239,68,68,0.12)":"transparent",color:entry.swallowing_difficulty?"#ef4444":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13}}>
                 {entry.swallowing_difficulty?"Yes — Dysphagia":"No"}
               </button>
             </div>
@@ -2253,32 +2257,32 @@ function NutritionScreening({items,onChange}){
           </div>
         </div>
       )}
-      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No nutritional screenings logged yet</div>}
+      {sorted.length===0&&!showForm&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No nutritional screenings logged yet</div>}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {sorted.map(row=>{
           const sc=mustScore(row);
           const rk=mustRisk(sc);
           return(
-            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
+            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
-                  {row.assessed_by&&<span style={{fontSize:11,color:"#475569"}}>By: {row.assessed_by}</span>}
+                  <span style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
+                  {row.assessed_by&&<span style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>By: {row.assessed_by}</span>}
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:800,fontSize:17,color:rk.color}}>{sc}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}> MUST</span></span>
+                  <span style={{fontWeight:800,fontSize:17,color:rk.color}}>{sc}<span style={{fontSize:11,fontWeight:400,color:"rgba(240,242,250,0.25)"}}> MUST</span></span>
                   <span style={{fontSize:11,color:rk.color,fontWeight:600}}>{rk.label}</span>
                   <button onClick={()=>openEdit(row)} style={{...IBTN}}>✏️</button>
                   <button onClick={()=>rm(row.id)} style={{...IBTN}}>🗑</button>
                 </div>
               </div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                <span style={{fontSize:11,color:"#64748b"}}>BMI:{row.bmi_score} WL:{row.weight_loss_score} Acute:{row.acute_illness?"+2":"0"}</span>
-                {row.appetite&&row.appetite!=="Good"&&<span style={{fontSize:11,fontWeight:600,color:row.appetite==="None"?"#ef4444":row.appetite==="Poor"?"#f59e0b":"#94a3b8"}}>Appetite: {row.appetite}</span>}
+                <span style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>BMI:{row.bmi_score} WL:{row.weight_loss_score} Acute:{row.acute_illness?"+2":"0"}</span>
+                {row.appetite&&row.appetite!=="Good"&&<span style={{fontSize:11,fontWeight:600,color:row.appetite==="None"?"#ef4444":row.appetite==="Poor"?"#f59e0b":"rgba(240,242,250,0.45)"}}>Appetite: {row.appetite}</span>}
                 {row.swallowing_difficulty&&<span style={{fontSize:11,fontWeight:700,color:"#ef4444"}}>⚠️ Dysphagia</span>}
-                {row.dietary_restrictions&&<span style={{fontSize:11,color:"#475569"}}>🍽 {row.dietary_restrictions}</span>}
+                {row.dietary_restrictions&&<span style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>🍽 {row.dietary_restrictions}</span>}
               </div>
-              {row.notes&&<div style={{fontSize:12,color:"#64748b",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
+              {row.notes&&<div style={{fontSize:12,color:"rgba(240,242,250,0.35)",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
             </div>
           );
         })}
@@ -2318,11 +2322,11 @@ function WoundAssessment({items,onChange}){
       {summary&&summary.activeSites.length>0&&(
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
           {summary.activeSites.map(w=>{
-            const hc=WOUND_HEALING_COLOR[w.healing_status]||"#64748b";
+            const hc=WOUND_HEALING_COLOR[w.healing_status]||"rgba(240,242,250,0.3)";
             return(
               <div key={w.site} style={{padding:"6px 12px",borderRadius:10,background:hc+"15",border:"1px solid "+hc+"40",display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontWeight:700,fontSize:12,color:hc}}>🩹 {w.site}</span>
-                {w.stage&&w.stage!=="N/A"&&<span style={{fontSize:11,color:"#94a3b8"}}>{w.stage}</span>}
+                {w.stage&&w.stage!=="N/A"&&<span style={{fontSize:11,color:"rgba(240,242,250,0.45)"}}>{w.stage}</span>}
                 <span style={{fontSize:11,fontWeight:600,color:hc}}>{w.healing_status}</span>
               </div>
             );
@@ -2331,24 +2335,24 @@ function WoundAssessment({items,onChange}){
         </div>
       )}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"#64748b"}}>{items.length} record{items.length!==1?"s":""}</span>
+        <span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{items.length} record{items.length!==1?"s":""}</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#06b6d4",color:"#06b6d4"}} onClick={openNew}>+ Log Assessment</button>
       </div>
       {/* Site filter tabs */}
       {allSites.length>2&&(
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
           {allSites.map(s=>(
-            <button key={s} onClick={()=>setFilterSite(s)} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+(filterSite===s?"#06b6d4":"#334155"),background:filterSite===s?"rgba(6,182,212,0.15)":"transparent",color:filterSite===s?"#06b6d4":"#64748b",fontSize:11,fontWeight:600,cursor:"pointer"}}>{s}</button>
+            <button key={s} onClick={()=>setFilterSite(s)} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+(filterSite===s?"#06b6d4":"rgba(255,255,255,0.1)"),background:filterSite===s?"rgba(6,182,212,0.15)":"transparent",color:filterSite===s?"#06b6d4":"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>{s}</button>
           ))}
         </div>
       )}
       {showForm&&entry&&(
-        <div style={{background:"#0f172a",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
             <div><label style={LBL}>Healing Status</label>
-              <select style={{...INP,cursor:"pointer",color:WOUND_HEALING_COLOR[entry.healing_status]||"#e2e8f0",borderColor:WOUND_HEALING_COLOR[entry.healing_status]||"#334155"}} value={entry.healing_status} onChange={e=>setEntry(v=>({...v,healing_status:e.target.value}))}>
+              <select style={{...INP,cursor:"pointer",color:WOUND_HEALING_COLOR[entry.healing_status]||"#e2e8f0",borderColor:WOUND_HEALING_COLOR[entry.healing_status]||"rgba(255,255,255,0.1)"}} value={entry.healing_status} onChange={e=>setEntry(v=>({...v,healing_status:e.target.value}))}>
                 {WOUND_HEALING.map(h=><option key={h} value={h}>{h}</option>)}
               </select>
             </div>
@@ -2370,9 +2374,9 @@ function WoundAssessment({items,onChange}){
           <div style={{marginBottom:10}}>
             <label style={LBL}>Measurements (cm)</label>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.length_cm} onChange={e=>setEntry(v=>({...v,length_cm:e.target.value}))} placeholder="Length"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"#475569"}}>L</span></div>
-              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.width_cm} onChange={e=>setEntry(v=>({...v,width_cm:e.target.value}))} placeholder="Width"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"#475569"}}>W</span></div>
-              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.depth_cm} onChange={e=>setEntry(v=>({...v,depth_cm:e.target.value}))} placeholder="Depth"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"#475569"}}>D</span></div>
+              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.length_cm} onChange={e=>setEntry(v=>({...v,length_cm:e.target.value}))} placeholder="Length"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"rgba(240,242,250,0.25)"}}>L</span></div>
+              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.width_cm} onChange={e=>setEntry(v=>({...v,width_cm:e.target.value}))} placeholder="Width"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"rgba(240,242,250,0.25)"}}>W</span></div>
+              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.depth_cm} onChange={e=>setEntry(v=>({...v,depth_cm:e.target.value}))} placeholder="Depth"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"rgba(240,242,250,0.25)"}}>D</span></div>
             </div>
           </div>
           {/* Wound characteristics */}
@@ -2380,13 +2384,13 @@ function WoundAssessment({items,onChange}){
             <div>
               <label style={LBL}>Wound Bed</label>
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                {WOUND_BED.map(b=><button key={b} onClick={()=>setEntry(v=>({...v,wound_bed:b}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.wound_bed===b?"#06b6d4":"#334155"),background:entry.wound_bed===b?"rgba(6,182,212,0.15)":"transparent",color:entry.wound_bed===b?"#06b6d4":"#64748b",fontSize:11,cursor:"pointer"}}>{b}</button>)}
+                {WOUND_BED.map(b=><button key={b} onClick={()=>setEntry(v=>({...v,wound_bed:b}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.wound_bed===b?"#06b6d4":"rgba(255,255,255,0.1)"),background:entry.wound_bed===b?"rgba(6,182,212,0.15)":"transparent",color:entry.wound_bed===b?"#06b6d4":"rgba(240,242,250,0.3)",fontSize:11,cursor:"pointer"}}>{b}</button>)}
               </div>
             </div>
             <div>
               <label style={LBL}>Periwound Skin</label>
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                {WOUND_PERIWOUND.map(p=><button key={p} onClick={()=>setEntry(v=>({...v,periwound:p}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.periwound===p?"#06b6d4":"#334155"),background:entry.periwound===p?"rgba(6,182,212,0.15)":"transparent",color:entry.periwound===p?"#06b6d4":"#64748b",fontSize:11,cursor:"pointer"}}>{p}</button>)}
+                {WOUND_PERIWOUND.map(p=><button key={p} onClick={()=>setEntry(v=>({...v,periwound:p}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.periwound===p?"#06b6d4":"rgba(255,255,255,0.1)"),background:entry.periwound===p?"rgba(6,182,212,0.15)":"transparent",color:entry.periwound===p?"#06b6d4":"rgba(240,242,250,0.3)",fontSize:11,cursor:"pointer"}}>{p}</button>)}
               </div>
             </div>
           </div>
@@ -2408,7 +2412,7 @@ function WoundAssessment({items,onChange}){
               </select>
             </div>
             <div style={{display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
-              <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#e2e8f0",fontWeight:600,cursor:"pointer",paddingBottom:8}}>
+              <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#f0f2fa",fontWeight:600,cursor:"pointer",paddingBottom:8}}>
                 <input type="checkbox" checked={!!entry.odour} onChange={e=>setEntry(v=>({...v,odour:e.target.checked}))} style={{accentColor:"#ef4444",width:14,height:14}}/>
                 Odour present
               </label>
@@ -2425,41 +2429,41 @@ function WoundAssessment({items,onChange}){
           </div>
         </div>
       )}
-      {filtered.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No wound assessments logged yet</div>}
+      {filtered.length===0&&!showForm&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No wound assessments logged yet</div>}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {filtered.map(row=>{
-          const hc=WOUND_HEALING_COLOR[row.healing_status]||"#64748b";
+          const hc=WOUND_HEALING_COLOR[row.healing_status]||"rgba(240,242,250,0.3)";
           const area=(row.length_cm&&row.width_cm)?Math.round(parseFloat(row.length_cm)*parseFloat(row.width_cm)*10)/10:null;
           return(
-            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+hc}}>
+            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+hc}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</span>
-                  {row.site&&<span style={{fontSize:12,fontWeight:700,color:"#94a3b8"}}>📍 {row.site}</span>}
+                  <span style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</span>
+                  {row.site&&<span style={{fontSize:12,fontWeight:700,color:"rgba(240,242,250,0.45)"}}>📍 {row.site}</span>}
                   <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:hc+"20",color:hc}}>{row.healing_status}</span>
-                  {row.stage&&row.stage!=="N/A"&&<span style={{fontSize:11,fontWeight:600,padding:"1px 7px",borderRadius:20,background:"rgba(100,116,139,0.15)",color:"#94a3b8"}}>{row.stage}</span>}
+                  {row.stage&&row.stage!=="N/A"&&<span style={{fontSize:11,fontWeight:600,padding:"1px 7px",borderRadius:20,background:"rgba(100,116,139,0.15)",color:"rgba(240,242,250,0.45)"}}>{row.stage}</span>}
                 </div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#06b6d4",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#06b6d4",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"rgba(240,242,250,0.25)",fontSize:12}}>x</button>
                 </div>
               </div>
               <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:area||row.wound_bed||row.exudate?4:0}}>
-                <span style={{fontSize:12,color:"#64748b"}}>📋 {row.type}</span>
-                {area&&<span style={{fontSize:12,color:"#94a3b8"}}>📐 {row.length_cm}×{row.width_cm}{row.depth_cm?" (d:"+row.depth_cm+")":""} cm → {area} cm²</span>}
+                <span style={{fontSize:12,color:"rgba(240,242,250,0.35)"}}>📋 {row.type}</span>
+                {area&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>📐 {row.length_cm}×{row.width_cm}{row.depth_cm?" (d:"+row.depth_cm+")":""} cm → {area} cm²</span>}
               </div>
               {(row.wound_bed||row.periwound||row.exudate)&&(
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:4}}>
-                  {row.wound_bed&&<span style={{fontSize:11,color:"#64748b"}}>Bed: <strong style={{color:"#94a3b8"}}>{row.wound_bed}</strong></span>}
-                  {row.periwound&&<span style={{fontSize:11,color:"#64748b"}}>Periwound: <strong style={{color:"#94a3b8"}}>{row.periwound}</strong></span>}
-                  {row.exudate&&row.exudate!=="None"&&<span style={{fontSize:11,color:"#64748b"}}>Exudate: <strong style={{color:"#94a3b8"}}>{row.exudate}{row.exudate_type?" "+row.exudate_type:""}</strong></span>}
+                  {row.wound_bed&&<span style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>Bed: <strong style={{color:"rgba(240,242,250,0.45)"}}>{row.wound_bed}</strong></span>}
+                  {row.periwound&&<span style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>Periwound: <strong style={{color:"rgba(240,242,250,0.45)"}}>{row.periwound}</strong></span>}
+                  {row.exudate&&row.exudate!=="None"&&<span style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>Exudate: <strong style={{color:"rgba(240,242,250,0.45)"}}>{row.exudate}{row.exudate_type?" "+row.exudate_type:""}</strong></span>}
                   {row.odour&&<span style={{fontSize:11,fontWeight:700,color:"#f87171"}}>⚠ Odour</span>}
                   {row.pain_at_site&&row.pain_at_site!=="None"&&<span style={{fontSize:11,color:"#f59e0b"}}>Pain: {row.pain_at_site}</span>}
                 </div>
               )}
-              {row.dressing_used&&<div style={{fontSize:12,color:"#475569",marginTop:2}}>Dressing: {row.dressing_used}{row.dressing_frequency?" · "+row.dressing_frequency:""}</div>}
-              {row.recorded_by&&<div style={{fontSize:11,color:"#475569",marginTop:2}}>By: {row.recorded_by}</div>}
-              {row.notes&&<div style={{fontSize:12,color:"#475569",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
+              {row.dressing_used&&<div style={{fontSize:12,color:"rgba(240,242,250,0.25)",marginTop:2}}>Dressing: {row.dressing_used}{row.dressing_frequency?" · "+row.dressing_frequency:""}</div>}
+              {row.recorded_by&&<div style={{fontSize:11,color:"rgba(240,242,250,0.25)",marginTop:2}}>By: {row.recorded_by}</div>}
+              {row.notes&&<div style={{fontSize:12,color:"rgba(240,242,250,0.25)",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
             </div>
           );
         })}
@@ -2485,11 +2489,11 @@ function ADLTracker({items,onChange}){
     <div>
       {/* Summary bar */}
       {summary&&(
-        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
           <span style={{fontWeight:700,fontSize:13,color:summary.dep.color}}>{summary.dep.label} dependency</span>
-          <span style={{fontSize:12,color:"#64748b"}}>Score: {summary.score}/18</span>
+          <span style={{fontSize:12,color:"rgba(240,242,250,0.35)"}}>Score: {summary.score}/18</span>
           {summary.trend&&(
-            <span style={{fontSize:12,fontWeight:600,color:summary.trend==="declining"?"#f87171":summary.trend==="improving"?"#10b981":"#64748b"}}>
+            <span style={{fontSize:12,fontWeight:600,color:summary.trend==="declining"?"#f87171":summary.trend==="improving"?"#10b981":"rgba(240,242,250,0.3)"}}>
               {summary.trend==="declining"?"↓ Declining":summary.trend==="improving"?"↑ Improving":"→ Stable"}
             </span>
           )}
@@ -2502,11 +2506,11 @@ function ADLTracker({items,onChange}){
         </div>
       )}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"#64748b"}}>{items.length} assessment{items.length!==1?"s":""}</span>
+        <span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{items.length} assessment{items.length!==1?"s":""}</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#10b981",color:"#10b981"}} onClick={openNew}>+ Log Assessment</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"#0f172a",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
@@ -2518,7 +2522,7 @@ function ADLTracker({items,onChange}){
                 <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                   {ADL_LEVELS.map(lvl=>(
                     <button key={lvl} onClick={()=>setEntry(v=>({...v,items:{...v.items,[k]:lvl}}))}
-                      style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"#334155"),background:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]+"25":"transparent",color:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"#64748b",fontSize:11,fontWeight:600,cursor:"pointer"}}>
+                      style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"rgba(255,255,255,0.1)"),background:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]+"25":"transparent",color:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>
                       {lvl}
                     </button>
                   ))}
@@ -2533,21 +2537,21 @@ function ADLTracker({items,onChange}){
           </div>
         </div>
       )}
-      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No ADL assessments logged yet</div>}
+      {sorted.length===0&&!showForm&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No ADL assessments logged yet</div>}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {sorted.map(row=>{
           const sc=adlScore(row.items);
           const dep=adlDepLevel(sc);
           return(
-            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+dep.color}}>
+            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+dep.color}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
                   <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:dep.color+"20",color:dep.color}}>{dep.label} ({sc}/18)</span>
                 </div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#10b981",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#10b981",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"rgba(240,242,250,0.25)",fontSize:12}}>x</button>
                 </div>
               </div>
               <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -2556,8 +2560,8 @@ function ADLTracker({items,onChange}){
                   return<span key={k} style={{fontSize:11,padding:"1px 7px",borderRadius:12,background:ADL_LEVEL_COLOR[lvl]+"18",color:ADL_LEVEL_COLOR[lvl],border:"1px solid "+ADL_LEVEL_COLOR[lvl]+"35"}}>{ADL_LABELS[k].split(" ")[0]} <strong>{lvl}</strong></span>;
                 })}
               </div>
-              {row.recorded_by&&<div style={{fontSize:11,color:"#475569",marginTop:4}}>Recorded by: {row.recorded_by}</div>}
-              {row.notes&&<div style={{fontSize:12,color:"#475569",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
+              {row.recorded_by&&<div style={{fontSize:11,color:"rgba(240,242,250,0.25)",marginTop:4}}>Recorded by: {row.recorded_by}</div>}
+              {row.notes&&<div style={{fontSize:12,color:"rgba(240,242,250,0.25)",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
             </div>
           );
         })}
@@ -2581,11 +2585,11 @@ function IncidentReports({items,onChange,currentUser}){
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"#64748b"}}>{items.length} incident{items.length!==1?"s":""}</span>
+        <span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{items.length} incident{items.length!==1?"s":""}</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#ef4444",color:"#ef4444"}} onClick={openNew}>+ Log Incident</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"#0f172a",border:"1px solid #ef4444",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #ef4444",borderRadius:10,padding:14,marginBottom:12}}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
@@ -2595,7 +2599,7 @@ function IncidentReports({items,onChange,currentUser}){
               </select>
             </div>
             <div><label style={LBL}>Severity</label>
-              <select style={{...INP,cursor:"pointer",color:INCIDENT_SEV_COLORS[entry.severity]||"#e2e8f0",borderColor:INCIDENT_SEV_COLORS[entry.severity]||"#334155"}} value={entry.severity} onChange={e=>setEntry(v=>({...v,severity:e.target.value}))}>
+              <select style={{...INP,cursor:"pointer",color:INCIDENT_SEV_COLORS[entry.severity]||"#e2e8f0",borderColor:INCIDENT_SEV_COLORS[entry.severity]||"rgba(255,255,255,0.1)"}} value={entry.severity} onChange={e=>setEntry(v=>({...v,severity:e.target.value}))}>
                 {["Minor","Moderate","Severe"].map(s=><option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -2608,7 +2612,7 @@ function IncidentReports({items,onChange,currentUser}){
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
             <input type="checkbox" checked={entry.follow_up_required} onChange={e=>setEntry(v=>({...v,follow_up_required:e.target.checked}))} style={{accentColor:"#6366f1",width:15,height:15}}/>
-            <label style={{fontSize:13,color:"#e2e8f0",fontWeight:600}}>Follow-up required</label>
+            <label style={{fontSize:13,color:"#f0f2fa",fontWeight:600}}>Follow-up required</label>
             {entry.follow_up_required&&<input type="date" style={{...INP,flex:1}} value={entry.follow_up_date} onChange={e=>setEntry(v=>({...v,follow_up_date:e.target.value}))}/>}
           </div>
           <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
@@ -2617,29 +2621,29 @@ function IncidentReports({items,onChange,currentUser}){
           </div>
         </div>
       )}
-      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No incidents recorded</div>}
+      {sorted.length===0&&!showForm&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No incidents recorded</div>}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {sorted.map(item=>{
           const sc=INCIDENT_SEV_COLORS[item.severity]||"#f59e0b";
           return(
-            <div key={item.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"12px 14px",borderLeft:"4px solid "+sc}}>
+            <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,padding:"12px 14px",borderLeft:"4px solid "+sc}}>
               <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
                 <div>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
-                    <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{item.type}</span>
+                    <span style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{item.type}</span>
                     <span style={{fontSize:11,fontWeight:800,padding:"2px 8px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40"}}>{item.severity}</span>
                   </div>
-                  <span style={{fontSize:11,color:"#64748b"}}>{new Date(item.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{item.time&&" at "+item.time}</span>
+                  <span style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>{new Date(item.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{item.time&&" at "+item.time}</span>
                 </div>
                 <div style={{display:"flex",gap:6,flexShrink:0}}>
-                  <button onClick={()=>openEdit(item)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#6366f1",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                  <button onClick={()=>openEdit(item)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#6366f1",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:"rgba(240,242,250,0.25)",fontSize:12}}>x</button>
                 </div>
               </div>
-              {item.description&&<div style={{fontSize:13,color:"#94a3b8",lineHeight:1.5,marginBottom:6}}>{item.description}</div>}
+              {item.description&&<div style={{fontSize:13,color:"rgba(240,242,250,0.45)",lineHeight:1.5,marginBottom:6}}>{item.description}</div>}
               <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                {item.action_taken&&<span style={{fontSize:11,color:"#64748b"}}>✓ {item.action_taken}</span>}
-                {item.reported_by&&<span style={{fontSize:11,color:"#475569"}}>By: {item.reported_by}</span>}
+                {item.action_taken&&<span style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>✓ {item.action_taken}</span>}
+                {item.reported_by&&<span style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>By: {item.reported_by}</span>}
                 {item.follow_up_required&&<span style={{fontSize:11,fontWeight:700,color:"#8b5cf6"}}>📋 Follow-up{item.follow_up_date?" "+item.follow_up_date:""}</span>}
               </div>
             </div>
@@ -2666,20 +2670,20 @@ function IntakeChecklist({items,onChange,currentUser}){
   return(
     <div>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
-        <div style={{flex:1,height:8,background:"#0f172a",borderRadius:4,overflow:"hidden"}}>
+        <div style={{flex:1,height:8,background:"rgba(255,255,255,0.03)",borderRadius:4,overflow:"hidden"}}>
           <div style={{height:"100%",width:pct+"%",background:pct===100?"#10b981":"#6366f1",borderRadius:4,transition:"width 0.3s"}}/>
         </div>
-        <span style={{fontSize:12,fontWeight:700,color:pct===100?"#10b981":"#94a3b8",whiteSpace:"nowrap"}}>{doneCount}/{full.length}{pct===100?" ✓ Complete":""}</span>
+        <span style={{fontSize:12,fontWeight:700,color:pct===100?"#10b981":"rgba(240,242,250,0.45)",whiteSpace:"nowrap"}}>{doneCount}/{full.length}{pct===100?" ✓ Complete":""}</span>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
         {full.map(item=>(
           <div key={item.key} onClick={()=>toggle(item.key)}
-            style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:9,border:"1px solid "+(item.done?"rgba(16,185,129,0.3)":"#334155"),background:item.done?"rgba(16,185,129,0.05)":"#0f172a",cursor:"pointer"}}>
-            <div style={{width:20,height:20,borderRadius:5,border:"2px solid "+(item.done?"#10b981":"#475569"),background:item.done?"#10b981":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12,color:"#fff",fontWeight:700}}>
+            style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:9,border:"1px solid "+(item.done?"rgba(16,185,129,0.3)":"rgba(255,255,255,0.1)"),background:item.done?"rgba(16,185,129,0.08)":"transparent",cursor:"pointer"}}>
+            <div style={{width:20,height:20,borderRadius:5,border:"2px solid "+(item.done?"#10b981":"rgba(240,242,250,0.25)"),background:item.done?"#10b981":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12,color:"#fff",fontWeight:700}}>
               {item.done?"✓":""}
             </div>
-            <span style={{flex:1,fontSize:13,color:item.done?"#10b981":"#e2e8f0",fontWeight:item.done?600:400}}>{item.label}</span>
-            {item.done&&item.completed_by&&<span style={{fontSize:10,color:"#475569",whiteSpace:"nowrap"}}>{item.completed_by}{item.completed_at?" · "+item.completed_at:""}</span>}
+            <span style={{flex:1,fontSize:13,color:item.done?"#10b981":"rgba(240,242,250,0.8)",fontWeight:item.done?600:400}}>{item.label}</span>
+            {item.done&&item.completed_by&&<span style={{fontSize:10,color:"rgba(240,242,250,0.25)",whiteSpace:"nowrap"}}>{item.completed_by}{item.completed_at?" · "+item.completed_at:""}</span>}
           </div>
         ))}
       </div>
@@ -2694,7 +2698,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
   const scols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6"};
   return(
     <div style={{paddingBottom:40}}>
-      <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
+      <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
         <PhotoUp value={d.photo_url} onChange={v=>s("photo_url",v)} clientId={d.id} t={t}/>
         <Sec icon="👤" title={t.personalInfo} defaultOpen={true}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -2703,7 +2707,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
             ))}
             <div><label style={LBL}>{t.drSpec}</label><input style={INP} value={d.dr_specialista||""} onChange={e=>s("dr_specialista",e.target.value)}/></div>
             <div><label style={LBL}>{t.status}</label>
-              <select style={{...INP,cursor:"pointer",color:scols[d.status]||"#e2e8f0",borderColor:scols[d.status]||"#334155"}} value={d.status||"Active"} onChange={e=>s("status",e.target.value)}>
+              <select style={{...INP,cursor:"pointer",color:scols[d.status]||"#e2e8f0",borderColor:scols[d.status]||"rgba(255,255,255,0.1)"}} value={d.status||"Active"} onChange={e=>s("status",e.target.value)}>
                 <option value="Active">{t.active}</option>
                 <option value="Inactive">{t.inactive}</option>
                 <option value="Discharged">{t.discharged}</option>
@@ -2732,9 +2736,9 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
       <Sec icon="💧" title="Continence Monitoring" accent="#06b6d4" defaultOpen={false}><ContinenceLog items={d.continence_logs||[]} onChange={v=>s("continence_logs",v)}/></Sec>
       <Sec icon="🥗" title="Nutritional Risk Screening (MUST)" accent="#10b981" defaultOpen={false}><NutritionScreening items={d.nutrition_assessments||[]} onChange={v=>s("nutrition_assessments",v)}/></Sec>
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
-        <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
+        <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.45)",fontWeight:600}}>{t.cancel}</button>
         <button onClick={()=>valid&&!saving&&onSave(d)} disabled={!valid||saving}
-          style={{padding:"10px 24px",borderRadius:8,border:"none",background:valid&&!saving?"#6366f1":"#334155",color:valid&&!saving?"#fff":"#64748b",fontWeight:700,fontSize:15}}>
+          style={{padding:"10px 24px",borderRadius:8,border:"none",background:valid&&!saving?"#6366f1":"rgba(255,255,255,0.1)",color:valid&&!saving?"#fff":"rgba(240,242,250,0.3)",fontWeight:700,fontSize:15}}>
           {saving?t.saving:t.save}
         </button>
       </div>
@@ -2780,12 +2784,12 @@ function EmergCard({client,onClose,t}){
   };
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}}>
-      <div style={{background:"#1c1f2e",borderRadius:16,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",border:"1px solid #334155"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid #334155"}}>
+      <div style={{background:"#111427",borderRadius:16,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",border:"1px solid rgba(255,255,255,0.08)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
           <span style={{fontWeight:700,color:"#ef4444",fontSize:16}}>Emergency Card</span>
           <div style={{display:"flex",gap:8}}>
             <button onClick={printCard} style={{padding:"7px 14px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontWeight:700,fontSize:12}}>Print</button>
-            <button onClick={onClose} style={{padding:"7px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontSize:12}}>Close</button>
+            <button onClick={onClose} style={{padding:"7px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.45)",fontSize:12}}>Close</button>
           </div>
         </div>
         <div style={{padding:20}}>
@@ -2796,7 +2800,7 @@ function EmergCard({client,onClose,t}){
           </div>
           <div style={{background:"rgba(239,68,68,0.1)",border:"2px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"12px 16px",marginBottom:12}}>
             <div style={{fontSize:11,fontWeight:800,color:"#ef4444",marginBottom:8}}>ALLERGIES</div>
-            {fa.length===0?<span style={{color:"#64748b",fontSize:13}}>{t.knownAllergies}</span>:fa.map(a=><span key={a.id} style={{display:"inline-block",background:"rgba(239,68,68,0.15)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.3)",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,margin:2}}>{a.value}</span>)}
+            {fa.length===0?<span style={{color:"rgba(240,242,250,0.35)",fontSize:13}}>{t.knownAllergies}</span>:fa.map(a=><span key={a.id} style={{display:"inline-block",background:"rgba(239,68,68,0.15)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.3)",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,margin:2}}>{a.value}</span>)}
           </div>
           {highRisk.length>0&&(
             <div style={{background:"rgba(245,158,11,0.1)",border:"2px solid rgba(245,158,11,0.3)",borderRadius:10,padding:"12px 16px",marginBottom:12}}>
@@ -2807,19 +2811,19 @@ function EmergCard({client,onClose,t}){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
             <div style={{background:"rgba(139,92,246,0.1)",border:"2px solid rgba(139,92,246,0.3)",borderRadius:10,padding:"12px 14px"}}>
               <div style={{fontSize:11,fontWeight:800,color:"#8b5cf6",marginBottom:6}}>EMERGENCY</div>
-              {client.emergency_contact?<><div style={{fontWeight:700,color:"#f1f5f9"}}>{client.emergency_contact}</div>{client.emergency_phone&&<div style={{fontSize:13,color:"#94a3b8"}}>{client.emergency_phone}</div>}</>:<div style={{color:"#64748b"}}>{t.notProvided}</div>}
+              {client.emergency_contact?<><div style={{fontWeight:700,color:"#f0f2fa"}}>{client.emergency_contact}</div>{client.emergency_phone&&<div style={{fontSize:13,color:"rgba(240,242,250,0.45)"}}>{client.emergency_phone}</div>}</>:<div style={{color:"rgba(240,242,250,0.35)"}}>{t.notProvided}</div>}
             </div>
             <div style={{background:"rgba(6,182,212,0.1)",border:"2px solid rgba(6,182,212,0.3)",borderRadius:10,padding:"12px 14px"}}>
               <div style={{fontSize:11,fontWeight:800,color:"#06b6d4",marginBottom:6}}>DOCTORS</div>
-              {client.dr_di_cas&&<div style={{fontSize:13,color:"#cbd5e1"}}><strong>GP:</strong> {client.dr_di_cas}</div>}
-              {client.dr_specialista&&<div style={{fontSize:13,color:"#cbd5e1"}}><strong>Spec:</strong> {client.dr_specialista}</div>}
-              {!client.dr_di_cas&&!client.dr_specialista&&<div style={{color:"#64748b"}}>{t.notProvided}</div>}
+              {client.dr_di_cas&&<div style={{fontSize:13,color:"rgba(240,242,250,0.7)"}}><strong>GP:</strong> {client.dr_di_cas}</div>}
+              {client.dr_specialista&&<div style={{fontSize:13,color:"rgba(240,242,250,0.7)"}}><strong>Spec:</strong> {client.dr_specialista}</div>}
+              {!client.dr_di_cas&&!client.dr_specialista&&<div style={{color:"rgba(240,242,250,0.35)"}}>{t.notProvided}</div>}
             </div>
           </div>
           {fm.length>0&&(
             <div style={{background:"rgba(16,185,129,0.1)",border:"2px solid rgba(16,185,129,0.3)",borderRadius:10,padding:"12px 16px"}}>
               <div style={{fontSize:11,fontWeight:800,color:"#10b981",marginBottom:8}}>ALL MEDICATIONS</div>
-              {fm.map(m=><div key={m.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid rgba(16,185,129,0.15)",fontSize:13}}><strong style={{color:"#f1f5f9"}}>{m.name}</strong><span style={{color:"#94a3b8"}}>{m.dosage} {m.frequency}</span></div>)}
+              {fm.map(m=><div key={m.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid rgba(16,185,129,0.15)",fontSize:13}}><strong style={{color:"#f0f2fa"}}>{m.name}</strong><span style={{color:"rgba(240,242,250,0.45)"}}>{m.dosage} {m.frequency}</span></div>)}
             </div>
           )}
         </div>
@@ -2890,26 +2894,26 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           <>
             <button onClick={doExport} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:600,fontSize:13}}>Export PDF</button>
             <button onClick={()=>setShowEmerg(true)} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontWeight:600,fontSize:13}}>Emergency Card</button>
-            <button onClick={doPrint} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:13}}>Print</button>
+            <button onClick={doPrint} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.45)",fontWeight:600,fontSize:13}}>Print</button>
             {canEdit&&<button onClick={onEdit} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontWeight:600,fontSize:13}}>{t.edit}</button>}
             {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #f59e0b",background:"rgba(245,158,11,0.1)",color:"#f59e0b",fontWeight:600,fontSize:13}}>📦 Archive</button>}
-            {!canEdit&&<span style={{fontSize:12,color:"#475569",alignSelf:"center",fontStyle:"italic"}}>View only</span>}
+            {!canEdit&&<span style={{fontSize:12,color:"rgba(240,242,250,0.25)",alignSelf:"center",fontStyle:"italic"}}>View only</span>}
           </>
         )}
       </div>
       <div id="pz">
         <div className="ph" style={{textAlign:"center",borderBottom:"2px solid #6366f1",paddingBottom:12,marginBottom:20}}>
-          <div style={{fontSize:22,fontWeight:700,color:"#1e293b",fontFamily:"serif"}}>CareManager - Client Profile</div>
-          <div style={{fontSize:11,color:"#64748b",marginTop:4}}>Printed on {new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</div>
+          <div style={{fontSize:22,fontWeight:700,color:"#111",fontFamily:"serif"}}>CareManager - Client Profile</div>
+          <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginTop:4}}>Printed on {new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</div>
         </div>
-        <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,marginBottom:16}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,marginBottom:16}}>
           <div style={{display:"flex",alignItems:"center",gap:18,padding:20}}>
             <div style={{width:72,height:72,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,fontWeight:800,color:"#fff",flexShrink:0,overflow:"hidden"}}>
               {client.photo_url?<img src={client.photo_url} alt={client.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(client.name)}
             </div>
             <div style={{flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:4}}>
-                <span style={{fontFamily:"Playfair Display,serif",fontSize:24,fontWeight:700,color:"#f1f5f9"}}>{client.name}</span>
+                <span style={{fontSize:22,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.5px"}}>{client.name}</span>
                 <span style={{fontSize:12,fontWeight:700,padding:"3px 10px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40"}}>{client.status||t.active}</span>
                 <button onClick={()=>setShowFallFactors(f=>!f)} title={fallRisk.factors.join(", ")||"No risk factors"}
                   style={{fontSize:11,fontWeight:800,padding:"3px 10px",borderRadius:20,background:fallRisk.color+"20",color:fallRisk.color,border:"1px solid "+fallRisk.color+"40",cursor:"pointer"}}>
@@ -2922,12 +2926,12 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
                   {fallRisk.factors.map((f,i)=><span key={i} style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:fallRisk.color+"20",color:fallRisk.color,fontWeight:600}}>{f}</span>)}
                 </div>
               )}
-              {client.date_of_birth&&<div style={{fontSize:14,color:"#94a3b8",marginBottom:4}}>{new Date(client.date_of_birth+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}{age!==null&&" - Age "+age}{client.room_or_address&&" - "+client.room_or_address}</div>}
+              {client.date_of_birth&&<div style={{fontSize:14,color:"rgba(240,242,250,0.45)",marginBottom:4}}>{new Date(client.date_of_birth+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}{age!==null&&" - Age "+age}{client.room_or_address&&" - "+client.room_or_address}</div>}
               <div style={{display:"flex",flexWrap:"wrap",gap:12}}>
-                {client.azv_number&&<span style={{fontSize:13,color:"#64748b"}}>ID: {client.azv_number}</span>}
-                {client.phone&&<span style={{fontSize:13,color:"#64748b"}}>Ph: {client.phone}</span>}
-                {client.emergency_contact&&<span style={{fontSize:13,color:"#64748b"}}>SOS: {client.emergency_contact}{client.emergency_phone&&" - "+client.emergency_phone}</span>}
-                {client.dr_di_cas&&<span style={{fontSize:13,color:"#64748b"}}>Dr: {client.dr_di_cas}{client.dr_specialista&&" - "+client.dr_specialista}</span>}
+                {client.azv_number&&<span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>ID: {client.azv_number}</span>}
+                {client.phone&&<span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>Ph: {client.phone}</span>}
+                {client.emergency_contact&&<span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>SOS: {client.emergency_contact}{client.emergency_phone&&" - "+client.emergency_phone}</span>}
+                {client.dr_di_cas&&<span style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>Dr: {client.dr_di_cas}{client.dr_specialista&&" - "+client.dr_specialista}</span>}
               </div>
             </div>
           </div>
@@ -2942,13 +2946,13 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {fa.length>0&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:10}}>ALLERGIES</div>
             {fa.map(a=><span key={a.id} style={{display:"inline-block",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:20,padding:"3px 10px",fontSize:12,color:"#f59e0b",fontWeight:600,margin:2}}>{a.value}</span>)}
           </div>
         )}
         {fd.length>0&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:10}}>DIAGNOSES</div>
             {fd.map(d=><span key={d.id} style={{display:"inline-block",background:"rgba(6,182,212,0.1)",border:"1px solid rgba(6,182,212,0.2)",borderRadius:20,padding:"3px 10px",fontSize:12,color:"#06b6d4",fontWeight:600,margin:2}}>{d.value}</span>)}
           </div>
@@ -2957,13 +2961,13 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           const sched=TSLOTS.map(slot=>({...slot,meds:fm.filter(m=>m.timing&&m.timing[slot.key])})).filter(s=>s.meds.length>0);
           const labs={morning:t.morning,afternoon:t.afternoon,evening:t.evening,night:t.night};
           return(
-            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+            <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
               <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:12}}>MEDICATIONS</div>
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:sched.length>0?16:0}}>
-                {fm.map(m=><div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"#0f172a",borderRadius:8}}>
-                  <span style={{fontWeight:700,color:"#f1f5f9",flex:2}}>{m.name}</span>
-                  {m.dosage&&<span style={{color:"#94a3b8",flex:1}}>{m.dosage}</span>}
-                  {m.frequency&&<span style={{color:"#64748b",flex:1,fontSize:12}}>{m.frequency}</span>}
+                {fm.map(m=><div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"rgba(255,255,255,0.03)",borderRadius:8}}>
+                  <span style={{fontWeight:700,color:"#f0f2fa",flex:2}}>{m.name}</span>
+                  {m.dosage&&<span style={{color:"rgba(240,242,250,0.45)",flex:1}}>{m.dosage}</span>}
+                  {m.frequency&&<span style={{color:"rgba(240,242,250,0.35)",flex:1,fontSize:12}}>{m.frequency}</span>}
                 </div>)}
               </div>
               {sched.length>0&&(
@@ -2973,7 +2977,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
                     {sched.map(slot=>(
                       <div key={slot.key} style={{background:slot.color+"10",border:"1px solid "+slot.color+"30",borderRadius:8,padding:"8px 10px"}}>
                         <div style={{fontWeight:700,fontSize:11,color:slot.color,marginBottom:6}}>{labs[slot.key]}</div>
-                        {slot.meds.map(m=><div key={m.id} style={{fontSize:12,color:"#cbd5e1"}}>{m.name}{m.dosage&&" - "+m.dosage}</div>)}
+                        {slot.meds.map(m=><div key={m.id} style={{fontSize:12,color:"rgba(240,242,250,0.7)"}}>{m.name}{m.dosage&&" - "+m.dosage}</div>)}
                       </div>
                     ))}
                   </div>
@@ -2983,25 +2987,25 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           );
         })()}
         {(client.inventory||[]).length>0&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <div style={{fontWeight:700,color:"#10b981",fontSize:13}}>INVENTORY</div>
-              <div style={{fontSize:12,color:"#64748b"}}>{(client.inventory||[]).length} items{(client.inventory||[]).reduce((s,i)=>s+(parseFloat(i.value)||0),0)>0&&" - AWG "+(client.inventory||[]).reduce((s,i)=>s+(parseFloat(i.value)||0),0).toFixed(2)}</div>
+              <div style={{fontSize:12,color:"rgba(240,242,250,0.35)"}}>{(client.inventory||[]).length} items{(client.inventory||[]).reduce((s,i)=>s+(parseFloat(i.value)||0),0)>0&&" - AWG "+(client.inventory||[]).reduce((s,i)=>s+(parseFloat(i.value)||0),0).toFixed(2)}</div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
               {(client.inventory||[]).map(item=>{
                 const cc={Excellent:"#10b981",Good:"#06b6d4",Fair:"#f59e0b",Poor:"#ef4444"};
-                const c=cc[item.condition]||"#64748b";
+                const c=cc[item.condition]||"rgba(240,242,250,0.3)";
                 return(
-                  <div key={item.id} style={{background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,overflow:"hidden",border:"1px solid #334155"}}>
-                    {item.photo_url?<img src={item.photo_url} alt={item.name} style={{width:"100%",height:90,objectFit:"cover",display:"block"}}/>:<div style={{width:"100%",height:90,background:"#1c1f2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"#475569"}}>+</div>}
+                  <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)"}}>
+                    {item.photo_url?<img src={item.photo_url} alt={item.name} style={{width:"100%",height:90,objectFit:"cover",display:"block"}}/>:<div style={{width:"100%",height:90,background:"#111427",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"rgba(240,242,250,0.25)"}}>+</div>}
                     <div style={{padding:"8px 10px"}}>
-                      <div style={{fontWeight:700,fontSize:12,color:"#f1f5f9",marginBottom:4}}>{item.name||"Item"}</div>
+                      <div style={{fontWeight:700,fontSize:12,color:"#f0f2fa",marginBottom:4}}>{item.name||"Item"}</div>
                       <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                         {item.condition&&<span style={{fontSize:10,padding:"1px 6px",borderRadius:20,background:c+"15",color:c,fontWeight:700}}>{item.condition}</span>}
                         {item.value&&<span style={{fontSize:10,padding:"1px 6px",borderRadius:20,background:"rgba(16,185,129,0.1)",color:"#10b981",fontWeight:700}}>AWG {item.value}</span>}
                       </div>
-                      {item.location&&<div style={{fontSize:10,color:"#64748b",marginTop:4}}>{item.location}</div>}
+                      {item.location&&<div style={{fontSize:10,color:"rgba(240,242,250,0.35)",marginTop:4}}>{item.location}</div>}
                     </div>
                   </div>
                 );
@@ -3010,7 +3014,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {(client.documents||[]).length>0&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>DOCUMENTS</div>
             {(client.documents||[]).map(doc=>{
               const days=daysUntil(doc.expiry);
@@ -3018,8 +3022,8 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
               return(
                 <div key={doc.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #1e293b"}}>
                   <div>
-                    <span style={{fontWeight:600,fontSize:13,color:"#f1f5f9"}}>{doc.name}</span>
-                    {doc.expiry&&<span style={{fontSize:12,color:"#64748b",marginLeft:8}}>Exp: {new Date(doc.expiry+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})}</span>}
+                    <span style={{fontWeight:600,fontSize:13,color:"#f0f2fa"}}>{doc.name}</span>
+                    {doc.expiry&&<span style={{fontSize:12,color:"rgba(240,242,250,0.35)",marginLeft:8}}>Exp: {new Date(doc.expiry+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})}</span>}
                   </div>
                   {badge&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:badge.bg,color:badge.color}}>{badge.label} {days!==null&&(days<0?Math.abs(days)+"d ago":days+"d")}</span>}
                 </div>
@@ -3028,29 +3032,29 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {(client.care_plan||[]).length>0&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>CARE PLAN</div>
             {(client.care_plan||[]).map(item=>{
               const gs=GSTATUSES.find(s=>s.value===item.status)||GSTATUSES[0];
               return(
                 <div key={item.id} style={{borderLeft:"3px solid "+gs.color,paddingLeft:12,marginBottom:12}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                    <span style={{fontWeight:700,color:"#f1f5f9"}}>{item.goal}</span>
+                    <span style={{fontWeight:700,color:"#f0f2fa"}}>{item.goal}</span>
                     <span style={{fontSize:11,padding:"2px 7px",borderRadius:20,background:gs.color+"20",color:gs.color,fontWeight:700}}>{item.status}</span>
                   </div>
-                  {item.plan&&<div style={{fontSize:13,color:"#94a3b8",lineHeight:1.6}}>{item.plan}</div>}
+                  {item.plan&&<div style={{fontSize:13,color:"rgba(240,242,250,0.45)",lineHeight:1.6}}>{item.plan}</div>}
                 </div>
               );
             })}
           </div>
         )}
         {(client.vitals||[]).length>0&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <VitalsTracker vitals={client.vitals||[]} onChange={()=>{}} t={t}/>
           </div>
         )}
         {fn.length>0&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:12}}>SESSION NOTES</div>
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               {fn.map(n=>(
@@ -3059,7 +3063,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
                     <span style={{fontSize:12,color:"#7c3aed",fontWeight:700}}>{new Date(n.date+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</span>
                     {(n.role||n.staff_name)&&<span style={{fontSize:11,background:"rgba(124,58,237,0.1)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:20,padding:"2px 8px",color:"#7c3aed",fontWeight:600}}>{n.role}{n.role&&n.staff_name&&" - "}{n.staff_name}</span>}
                   </div>
-                  <div style={{color:"#cbd5e1",fontSize:14,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{n.text}</div>
+                  <div style={{color:"rgba(240,242,250,0.7)",fontSize:14,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{n.text}</div>
                 </div>
               ))}
             </div>
@@ -3068,15 +3072,15 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
       </div>
         {/* Family Contacts */}
         {(client.family_contacts||[]).length>0&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#ec4899",fontSize:13,marginBottom:12}}>👨‍👩‍👧 FAMILY CONTACTS</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {(client.family_contacts||[]).map(c=>(
-                <div key={c.id} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 12px",background:"#0f172a",borderRadius:8}}>
+                <div key={c.id} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",borderRadius:8}}>
                   <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name||"?")}</div>
                   <div style={{flex:1}}>
-                    <div style={{fontWeight:600,fontSize:13,color:"#f1f5f9"}}>{c.name}{c.is_primary&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:20,background:"rgba(99,102,241,0.15)",color:"#a5b4fc",marginLeft:6}}>Primary</span>}</div>
-                    <div style={{fontSize:11,color:"#64748b"}}>{c.relationship}{c.phone?" · "+c.phone:""}{c.email?" · "+c.email:""}</div>
+                    <div style={{fontWeight:600,fontSize:13,color:"#f0f2fa"}}>{c.name}{c.is_primary&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:20,background:"rgba(99,102,241,0.15)",color:"#a5b4fc",marginLeft:6}}>Primary</span>}</div>
+                    <div style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>{c.relationship}{c.phone?" · "+c.phone:""}{c.email?" · "+c.email:""}</div>
                   </div>
                 </div>
               ))}
@@ -3085,57 +3089,57 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
         )}
         {/* Appointments */}
         {(client.appointments||[]).length>0&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>📅 APPOINTMENTS</div>
             <AppointmentLog items={client.appointments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("appointments",v):()=>{}}/>
           </div>
         )}
         {/* Incidents */}
         {(client.incidents||[]).length>0&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:12}}>⚠️ INCIDENT REPORTS</div>
             <IncidentReports items={client.incidents||[]} onChange={onInlineUpdate?v=>onInlineUpdate("incidents",v):()=>{}} currentUser={currentUser}/>
           </div>
         )}
         {/* Intake Checklist */}
         {(()=>{const ic=client.intake_checklist||[];return(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>✅ INTAKE CHECKLIST</div>
             <IntakeChecklist items={ic} onChange={onInlineUpdate?v=>onInlineUpdate("intake_checklist",v):()=>{}} currentUser={currentUser}/>
           </div>
         );})()}
         {/* ADL Tracking */}
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🧍 ADL TRACKING</div>
           <ADLTracker items={client.adl_logs||[]} onChange={onInlineUpdate?v=>onInlineUpdate("adl_logs",v):()=>{}}/>
         </div>
         {/* Pain Assessment */}
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:12}}>🩹 PAIN ASSESSMENT</div>
           <PainAssessment items={client.pain_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("pain_assessments",v):()=>{}}/>
         </div>
         {/* Wound & Skin Assessment */}
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🩺 WOUND & SKIN ASSESSMENT</div>
           <WoundAssessment items={client.wound_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("wound_assessments",v):()=>{}}/>
         </div>
         {/* Braden Scale */}
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>🛏 BRADEN SCALE — PRESSURE ULCER RISK</div>
           <BradenScale items={client.braden_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("braden_assessments",v):()=>{}}/>
         </div>
         {/* Cognitive Screening */}
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontWeight:700,color:"#a78bfa",fontSize:13,marginBottom:12}}>🧠 COGNITIVE SCREENING — MMSE / MoCA</div>
           <CognitiveScreening items={client.cognitive_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("cognitive_assessments",v):()=>{}}/>
         </div>
         {/* Continence Monitoring */}
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>💧 CONTINENCE MONITORING</div>
           <ContinenceLog items={client.continence_logs||[]} onChange={onInlineUpdate?v=>onInlineUpdate("continence_logs",v):()=>{}}/>
         </div>
         {/* Nutritional Risk Screening */}
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>🥗 NUTRITIONAL RISK SCREENING — MUST</div>
           <NutritionScreening items={client.nutrition_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("nutrition_assessments",v):()=>{}}/>
         </div>
@@ -3144,32 +3148,28 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
   );
 }
 
-function TiltCard({icon,label,value,color}){
+function TiltCard({icon,label,value,color,glowColor}){
   const ref=useRef(null);
   useEffect(()=>{
     const el=ref.current;if(!el)return;
-    const base="6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)";
-    const hot="10px 10px 20px rgba(0,0,0,0.6), -4px -4px 10px rgba(255,255,255,0.05)";
     const onMove=e=>{
       const r=el.getBoundingClientRect();
       const x=(e.clientX-r.left)/r.width-0.5;
       const y=(e.clientY-r.top)/r.height-0.5;
-      el.style.transform=`rotateX(${-y*18}deg) rotateY(${x*18}deg) translateZ(24px) scale(1.04)`;
-      el.style.boxShadow=hot;
+      el.style.transform=`rotateX(${-y*10}deg) rotateY(${x*10}deg) translateY(-3px)`;
+      el.style.boxShadow="0 20px 40px rgba(0,0,0,0.5)";
     };
-    const onLeave=()=>{el.style.transform="";el.style.boxShadow=base;};
+    const onLeave=()=>{el.style.transform="";el.style.boxShadow="0 1px 3px rgba(0,0,0,0.3)";};
     el.addEventListener("mousemove",onMove);
     el.addEventListener("mouseleave",onLeave);
     return()=>{el.removeEventListener("mousemove",onMove);el.removeEventListener("mouseleave",onLeave);};
   },[]);
   return(
-    <div ref={ref} style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:18,padding:"20px 24px",display:"flex",alignItems:"center",gap:16,transition:"transform 0.15s ease, box-shadow 0.15s ease",position:"relative",overflow:"hidden"}}>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:"50%",background:"linear-gradient(180deg,rgba(255,255,255,0.06),transparent)",pointerEvents:"none",borderRadius:"inherit"}}/>
-      <div style={{width:48,height:48,borderRadius:12,background:color+"25",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,boxShadow:"3px 3px 8px rgba(0,0,0,0.5), -1px -1px 4px rgba(255,255,255,0.04)"}}>{icon}</div>
-      <div>
-        <div style={{fontSize:28,fontWeight:800,color:"#cdd5e0",lineHeight:1}}>{value}</div>
-        <div style={{fontSize:13,color:"rgba(255,255,255,0.35)",marginTop:4}}>{label}</div>
-      </div>
+    <div ref={ref} style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:"14px 16px",cursor:"pointer",position:"relative",overflow:"hidden",transition:"transform 180ms ease, box-shadow 180ms ease"}}>
+      {/* Ambient glow */}
+      <div style={{position:"absolute",width:80,height:80,borderRadius:"50%",top:-20,right:-20,pointerEvents:"none",opacity:0.2,background:`radial-gradient(circle, ${glowColor||color} 0%, transparent 70%)`}}/>
+      <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"0.7px",color:"rgba(240,242,250,0.25)",marginBottom:8}}>{label}</div>
+      <div style={{fontSize:28,fontWeight:700,color:"#f0f2fa",fontFamily:"'DM Mono',monospace",letterSpacing:"-1px",lineHeight:1}}>{value}</div>
     </div>
   );
 }
@@ -3177,16 +3177,15 @@ function TiltCard({icon,label,value,color}){
 function FlipCard({frontIcon,frontLabel,backValue,backSub,backGradient}){
   const [flipped,setFlipped]=useState(false);
   return(
-    <div style={{height:130,perspective:"600px"}} onMouseEnter={()=>setFlipped(true)} onMouseLeave={()=>setFlipped(false)}>
-      <div style={{position:"relative",width:"100%",height:"100%",transformStyle:"preserve-3d",transition:"transform 0.45s cubic-bezier(0.4,0,0.2,1)",transform:flipped?"rotateY(180deg)":"rotateY(0deg)"}}>
-        <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:18,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,overflow:"hidden"}}>
-          <div style={{position:"absolute",top:0,left:0,right:0,height:"50%",background:"linear-gradient(180deg,rgba(255,255,255,0.06),transparent)",pointerEvents:"none"}}/>
-          <div style={{fontSize:32}}>{frontIcon}</div>
-          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.35)",letterSpacing:0.5,textTransform:"uppercase"}}>{frontLabel}</div>
+    <div style={{height:116,perspective:"600px"}} onMouseEnter={()=>setFlipped(true)} onMouseLeave={()=>setFlipped(false)}>
+      <div style={{position:"relative",width:"100%",height:"100%",transformStyle:"preserve-3d",transition:"transform 0.35s cubic-bezier(0.4,0,0.2,1)",transform:flipped?"rotateY(180deg)":"rotateY(0deg)"}}>
+        <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,overflow:"hidden"}}>
+          <div style={{fontSize:26}}>{frontIcon}</div>
+          <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.25)",letterSpacing:"0.9px",textTransform:"uppercase"}}>{frontLabel}</div>
         </div>
-        <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",background:backGradient,boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:18,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,transform:"rotateY(180deg)"}}>
-          <div style={{fontSize:36,fontWeight:800,color:"#fff",lineHeight:1}}>{backValue}</div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.72)",textAlign:"center",padding:"0 16px",lineHeight:1.5}}>{backSub}</div>
+        <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",background:backGradient,border:"1px solid rgba(255,255,255,0.1)",boxShadow:"0 8px 24px rgba(0,0,0,0.3)",borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,transform:"rotateY(180deg)"}}>
+          <div style={{fontSize:32,fontWeight:700,color:"#fff",lineHeight:1,fontFamily:"'DM Mono',monospace"}}>{backValue}</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",textAlign:"center",padding:"0 16px",lineHeight:1.5}}>{backSub}</div>
         </div>
       </div>
     </div>
@@ -3239,67 +3238,67 @@ function Dashboard({clients,onSelect,t,currentUser}){
   const highRiskMedsCount=clients.reduce((s,c)=>s+getMedFlags(c).highRisk.length,0);
   return(
     <div>
-      <div style={{marginBottom:24}}>
-        <div style={{fontFamily:"Playfair Display,serif",fontSize:28,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>{t.welcome}, {currentUser.displayName}!</div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:8}}>
-          {Object.entries(sc).map(([s,c])=>{const cols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6"};const col=cols[s];return <span key={s} style={{fontSize:12,fontWeight:700,padding:"4px 12px",borderRadius:20,background:col+"20",color:col,border:"1px solid "+col+"40"}}>{s}: {c}</span>;})}
-        </div>
+      {/* ── Stat cards ── */}
+      <div className="g4" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14,perspective:"800px"}}>
+        <TiltCard label={t.totalClients} value={total} color="#6366f1" glowColor="#6366f1"/>
+        <TiltCard label={t.totalMeds} value={totalMeds} color="#0ea5e9" glowColor="#0ea5e9"/>
+        <TiltCard label={t.allergyAlerts} value={totalAllergies} color="#34d399" glowColor="#34d399"/>
+        <TiltCard label={t.diagnosesLogged} value={totalDiag} color="#fbbf24" glowColor="#fbbf24"/>
       </div>
-      <div className="g4" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:20,perspective:"800px"}}>
-        <TiltCard icon="👥" label={t.totalClients} value={total} color="#6366f1"/>
-        <TiltCard icon="💊" label={t.totalMeds} value={totalMeds} color="#ef4444"/>
-        <TiltCard icon="⚠️" label={t.allergyAlerts} value={totalAllergies} color="#f59e0b"/>
-        <TiltCard icon="🩺" label={t.diagnosesLogged} value={totalDiag} color="#06b6d4"/>
+      {/* ── Status pills ── */}
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+        {Object.entries(sc).map(([s,c])=>{const cols={Active:"#34d399",Inactive:"#fbbf24",Discharged:"#818cf8"};const col=cols[s];return <span key={s} style={{fontSize:11,fontWeight:700,fontFamily:"'DM Mono',monospace",padding:"3px 12px",borderRadius:20,background:col+"18",color:col,border:"1px solid "+col+"30"}}>{s}: {c}</span>;})}
       </div>
-      <div className="g4" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,marginBottom:20}}>
-        <FlipCard frontIcon="💊" frontLabel="Medications" backValue={highRiskMedsCount} backSub="High-risk medication flags across all clients" backGradient="linear-gradient(135deg,#7f1d1d,#ef4444)"/>
-        <FlipCard frontIcon="📋" frontLabel="Intake Progress" backValue={intakePct+"%"} backSub={intakeDone+" of "+intakeTotal+" intake items completed"} backGradient="linear-gradient(135deg,#065f46,#10b981)"/>
-        <FlipCard frontIcon="⚠️" frontLabel="Incidents" backValue={incidentLast7} backSub="Incidents reported in the last 7 days" backGradient="linear-gradient(135deg,#78350f,#f59e0b)"/>
+      {/* ── Flip cards ── */}
+      <div className="g4" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+        <FlipCard frontIcon="💊" frontLabel="Med Flags" backValue={highRiskMedsCount} backSub="High-risk medication flags" backGradient="linear-gradient(135deg,#7f1d1d,#dc2626)"/>
+        <FlipCard frontIcon="📋" frontLabel="Intake" backValue={intakePct+"%"} backSub={intakeDone+" of "+intakeTotal+" items completed"} backGradient="linear-gradient(135deg,#064e3b,#10b981)"/>
+        <FlipCard frontIcon="⚠" frontLabel="Incidents" backValue={incidentLast7} backSub="Incidents in the last 7 days" backGradient="linear-gradient(135deg,#78350f,#f59e0b)"/>
       </div>
-      <div className="g2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
-          <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:14}}>ALLERGY ALERTS</div>
-          {allergyClients.length===0?<div style={{color:"#475569",fontSize:13}}>{t.noAllergies}</div>:allergyClients.map(c=>(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
-              <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
-              <div style={{flex:1}}><div style={{fontWeight:600,fontSize:13,color:"#f1f5f9"}}>{c.name}</div><div style={{fontSize:12,color:"#f59e0b"}}>{(c.allergies||[]).filter(a=>a.value&&a.value.trim()).map(a=>a.value).join(", ")}</div></div>
+      <div className="g2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16}}>
+          <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"0.9px",color:"rgba(240,242,250,0.25)",marginBottom:12}}>Allergy Alerts</div>
+          {allergyClients.length===0?<div style={{color:"rgba(240,242,250,0.25)",fontSize:12}}>{t.noAllergies}</div>:allergyClients.map(c=>(
+            <div key={c.id} onClick={()=>onSelect(c)} className="dash-row" style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:9,cursor:"pointer",marginBottom:4,borderLeft:"2px solid rgba(245,158,11,0.4)",background:"rgba(245,158,11,0.04)"}}>
+              <div style={{width:30,height:30,borderRadius:9,background:"rgba(245,158,11,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fbbf24",flexShrink:0}}>{initials(c.name)}</div>
+              <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12,color:"#f0f2fa"}}>{c.name}</div><div style={{fontSize:11,color:"#fbbf24",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(c.allergies||[]).filter(a=>a.value&&a.value.trim()).map(a=>a.value).join(", ")}</div></div>
             </div>
           ))}
         </div>
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
-          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:14}}>AGE DISTRIBUTION</div>
-          {total===0?<div style={{color:"#475569",fontSize:13}}>{t.noClients}</div>:Object.entries(ag).filter(([,v])=>v>0).map(([group,count])=>(
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16}}>
+          <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"0.9px",color:"rgba(240,242,250,0.25)",marginBottom:12}}>Age Distribution</div>
+          {total===0?<div style={{color:"rgba(240,242,250,0.25)",fontSize:12}}>{t.noClients}</div>:Object.entries(ag).filter(([,v])=>v>0).map(([group,count])=>(
             <div key={group} style={{marginBottom:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#64748b",marginBottom:4}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:4,fontFamily:"'DM Mono',monospace"}}>
                 <span>{group} {t.years}</span><span>{count}</span>
               </div>
-              <div style={{height:6,background:"#0f172a",borderRadius:3,overflow:"hidden"}}>
-                <div style={{height:"100%",width:(count/total*100)+"%",background:"#6366f1",borderRadius:3}}/>
+              <div style={{height:5,background:"rgba(255,255,255,0.05)",borderRadius:3,overflow:"hidden"}}>
+                <div style={{height:"100%",width:(count/total*100)+"%",background:"linear-gradient(90deg,#6366f1,#818cf8)",borderRadius:3}}/>
               </div>
             </div>
           ))}
         </div>
       </div>
       {expiring.length>0&&(
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
           <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:14}}>DOCUMENT EXPIRY ALERTS</div>
           {expiring.map((d,i)=>{const badge=expiryBadge(d.days);return(
-            <div key={i} onClick={()=>onSelect(d.client)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
+            <div key={i} onClick={()=>onSelect(d.client)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(d.clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(d.clientName)}</div>
-              <div style={{flex:1}}><span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{d.clientName}</span><span style={{fontSize:12,color:"#64748b"}}> - {d.name}</span></div>
+              <div style={{flex:1}}><span style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{d.clientName}</span><span style={{fontSize:12,color:"rgba(240,242,250,0.35)"}}> - {d.name}</span></div>
               {badge&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:badge.bg,color:badge.color,whiteSpace:"nowrap"}}>{d.days<0?"Expired":d.days+"d left"}</span>}
             </div>
           );})}
         </div>
       )}
       {flagged.length>0&&(
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
           <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:14}}>MEDICATION FLAGS</div>
           {flagged.map(c=>{const {highRisk,polypharmacy,medCount}=getMedFlags(c);return(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(c.name)}</div>
               <div style={{flex:1}}>
-                <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{c.name}</div>
+                <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:4}}>{c.name}</div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {polypharmacy&&<span style={{fontSize:11,background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:20,padding:"1px 8px",color:"#f59e0b",fontWeight:600}}>{medCount} {t.polypharmacy}</span>}
                   {highRisk.map(m=><span key={m.name} style={{fontSize:11,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:20,padding:"1px 8px",color:"#ef4444",fontWeight:600}}>{t.highRisk} {m.name}</span>)}
@@ -3311,17 +3310,17 @@ function Dashboard({clients,onSelect,t,currentUser}){
       )}
       {/* ── Birthdays ── */}
       {birthdays.length>0&&(
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
           <div style={{fontWeight:700,color:"#ec4899",fontSize:13,marginBottom:14}}>🎂 UPCOMING BIRTHDAYS</div>
           {birthdays.map(c=>{
             const thisWeek=c.bDays<=7;
             const age=calcAge(c.date_of_birth);
             return(
-              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
                 <div style={{flex:1}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{c.name}</span>
-                  <span style={{fontSize:12,color:"#64748b",marginLeft:8}}>turns {age!==null?age+1:""}</span>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{c.name}</span>
+                  <span style={{fontSize:12,color:"rgba(240,242,250,0.35)",marginLeft:8}}>turns {age!==null?age+1:""}</span>
                 </div>
                 <span style={{fontSize:11,fontWeight:700,padding:"2px 10px",borderRadius:20,background:thisWeek?"rgba(236,72,153,0.2)":"rgba(236,72,153,0.08)",color:"#ec4899",whiteSpace:"nowrap"}}>
                   {c.bDays===0?"Today 🎉":c.bDays===1?"Tomorrow":thisWeek?"in "+c.bDays+" days":"in "+c.bDays+" days"}
@@ -3334,13 +3333,13 @@ function Dashboard({clients,onSelect,t,currentUser}){
 
       {/* ── Abnormal Vitals ── */}
       {abnormalVitals.length>0&&(
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
           <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:14}}>🩺 ABNORMAL VITALS</div>
           {abnormalVitals.map(({client:c,clientName,date,flags})=>(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(clientName)}</div>
               <div style={{flex:1}}>
-                <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{clientName} <span style={{fontSize:11,color:"#475569",fontWeight:400}}>— recorded {new Date(date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></div>
+                <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:4}}>{clientName} <span style={{fontSize:11,color:"rgba(240,242,250,0.25)",fontWeight:400}}>— recorded {new Date(date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {flags.map((f,i)=>(
                     <span key={i} style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:f.sev==="high"?"rgba(239,68,68,0.15)":"rgba(245,158,11,0.15)",color:f.sev==="high"?"#f87171":"#fbbf24",border:"1px solid "+(f.sev==="high"?"rgba(239,68,68,0.3)":"rgba(245,158,11,0.3)")}}>
@@ -3356,14 +3355,14 @@ function Dashboard({clients,onSelect,t,currentUser}){
 
       {/* ── Allergy ↔ Med Conflicts ── */}
       {allergyMedAlerts.length>0&&(
-        <div style={{background:"#1c1f2e",border:"1px solid #ef4444",borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:"#111427",border:"1px solid #ef4444",borderRadius:12,padding:20,marginBottom:16}}>
           <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:4}}>⚠️ ALLERGY — MEDICATION CONFLICTS</div>
-          <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>A prescribed medication matches a known allergy. Review immediately.</div>
+          <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:12}}>A prescribed medication matches a known allergy. Review immediately.</div>
           {allergyMedAlerts.map(({client:c,clientName,conflicts})=>(
             <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 14px",background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(clientName)}</div>
               <div style={{flex:1}}>
-                <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:6}}>{clientName}</div>
+                <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:6}}>{clientName}</div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                   {conflicts.map((m,i)=>(
                     <span key={i} style={{fontSize:11,fontWeight:700,padding:"2px 10px",borderRadius:20,background:"rgba(239,68,68,0.15)",color:"#f87171",border:"1px solid rgba(239,68,68,0.3)"}}>
@@ -3383,14 +3382,14 @@ function Dashboard({clients,onSelect,t,currentUser}){
         const missedClients=clients.filter(c=>!c.archived).map(c=>({...c,ma:getMissedAppointments(c.appointments)})).filter(({ma})=>ma.pattern||ma.overdue.length>0||ma.noShows.length>0).sort((a,b)=>(b.ma.pattern?1:0)-(a.ma.pattern?1:0)||(b.ma.recentMissed.length-a.ma.recentMissed.length));
         if(missedClients.length===0)return null;
         return(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
             <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:4}}>📅 MISSED APPOINTMENT TRACKER</div>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with No-Show records or overdue scheduled appointments.</div>
+            <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:12}}>Clients with No-Show records or overdue scheduled appointments.</div>
             {missedClients.map(({ma,...c})=>(
-              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+(ma.pattern?"#ef4444":"#f59e0b")}}>
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+(ma.pattern?"#ef4444":"#f59e0b")}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{c.name}</div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:4}}>{c.name}</div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                     {ma.noShows.length>0&&<span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:"rgba(239,68,68,0.12)",color:"#f87171",border:"1px solid rgba(239,68,68,0.25)"}}>No-Shows: {ma.noShows.length}</span>}
                     {ma.overdue.length>0&&<span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:"rgba(245,158,11,0.12)",color:"#fbbf24",border:"1px solid rgba(245,158,11,0.25)"}}>Overdue: {ma.overdue.length}</span>}
@@ -3408,21 +3407,21 @@ function Dashboard({clients,onSelect,t,currentUser}){
         const adlClients=clients.filter(c=>!c.archived).map(c=>({...c,adlSum:calcAdlSummary(c.adl_logs)})).filter(({adlSum})=>adlSum&&adlSum.dep.label!=="Low").sort((a,b)=>(b.adlSum.score-a.adlSum.score));
         if(adlClients.length===0)return null;
         return(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:4}}>🧍 ADL DEPENDENCY</div>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with Moderate or High ADL dependency based on latest assessment.</div>
+            <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:12}}>Clients with Moderate or High ADL dependency based on latest assessment.</div>
             {adlClients.map(({adlSum,...c})=>(
-              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+adlSum.dep.color}}>
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+adlSum.dep.color}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:3}}>{c.name}</div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                     {ADL_ITEMS.map(k=>{const lvl=adlSum.latest.items?.[k]||"Independent";return lvl!=="Independent"?<span key={k} style={{fontSize:11,padding:"1px 7px",borderRadius:12,background:ADL_LEVEL_COLOR[lvl]+"18",color:ADL_LEVEL_COLOR[lvl],border:"1px solid "+ADL_LEVEL_COLOR[lvl]+"35"}}>{ADL_LABELS[k].split(" ")[0]} {lvl}</span>:null;})}
                   </div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{fontWeight:700,fontSize:13,color:adlSum.dep.color}}>{adlSum.dep.label}</div>
-                  <div style={{fontSize:11,color:"#64748b"}}>{adlSum.score}/18{adlSum.trend&&adlSum.trend!=="stable"?<span style={{color:adlSum.trend==="declining"?"#f87171":"#10b981"}}> {adlSum.trend==="declining"?"↓":"↑"}</span>:""}</div>
+                  <div style={{fontSize:11,color:"rgba(240,242,250,0.35)"}}>{adlSum.score}/18{adlSum.trend&&adlSum.trend!=="stable"?<span style={{color:adlSum.trend==="declining"?"#f87171":"#10b981"}}> {adlSum.trend==="declining"?"↓":"↑"}</span>:""}</div>
                 </div>
               </div>
             ))}
@@ -3435,17 +3434,17 @@ function Dashboard({clients,onSelect,t,currentUser}){
         const painClients=clients.filter(c=>!c.archived).map(c=>({...c,painSum:calcPainSummary(c.pain_assessments)})).filter(({painSum})=>painSum&&(painSum.latestScore>=4||painSum.persistent)).sort((a,b)=>b.painSum.latestScore-a.painSum.latestScore);
         if(painClients.length===0)return null;
         return(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
             <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:4}}>🩹 PAIN ALERTS</div>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with recent pain score ≥4/10 or persistent moderate-to-severe pain.</div>
+            <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:12}}>Clients with recent pain score ≥4/10 or persistent moderate-to-severe pain.</div>
             {painClients.map(({painSum,...c})=>(
-              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+painSum.level.color}}>
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+painSum.level.color}}>
                 <span style={{fontSize:22,flexShrink:0}}>{painSum.latestScore>=7?"😣":painSum.latestScore>=4?"😐":"😊"}</span>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:3}}>{c.name}</div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                    {painSum.latest.location&&<span style={{fontSize:12,color:"#94a3b8"}}>📍 {painSum.latest.location}</span>}
-                    {painSum.latest.character&&<span style={{fontSize:12,color:"#94a3b8"}}>〰 {painSum.latest.character}</span>}
+                    {painSum.latest.location&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>📍 {painSum.latest.location}</span>}
+                    {painSum.latest.character&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>〰 {painSum.latest.character}</span>}
                     {painSum.persistent&&<span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>Persistent</span>}
                   </div>
                 </div>
@@ -3464,17 +3463,17 @@ function Dashboard({clients,onSelect,t,currentUser}){
         const woundClients=clients.filter(c=>!c.archived).map(c=>({...c,ws:calcWoundSummary(c.wound_assessments)})).filter(({ws})=>ws&&ws.activeSites.length>0).sort((a,b)=>b.ws.deteriorating.length-a.ws.deteriorating.length||b.ws.highStage.length-a.ws.highStage.length||b.ws.activeSites.length-a.ws.activeSites.length);
         if(woundClients.length===0)return null;
         return(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:4}}>🩺 WOUND & SKIN ALERTS</div>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with active wounds. Deteriorating or high-stage cases shown first.</div>
+            <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:12}}>Clients with active wounds. Deteriorating or high-stage cases shown first.</div>
             {woundClients.map(({ws,...c})=>(
-              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+(ws.deteriorating.length>0?"#ef4444":ws.highStage.length>0?"#f59e0b":"#06b6d4")}}>
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+(ws.deteriorating.length>0?"#ef4444":ws.highStage.length>0?"#f59e0b":"#06b6d4")}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{c.name}</div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:4}}>{c.name}</div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                     {ws.activeSites.map(w=>{
-                      const hc=WOUND_HEALING_COLOR[w.healing_status]||"#64748b";
+                      const hc=WOUND_HEALING_COLOR[w.healing_status]||"rgba(240,242,250,0.3)";
                       return<span key={w.site} style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:hc+"18",color:hc,border:"1px solid "+hc+"35"}}>{w.site}{w.stage&&w.stage!=="N/A"?" "+w.stage:""} · {w.healing_status}</span>;
                     })}
                     {ws.healedCount>0&&<span style={{fontSize:11,color:"#8b5cf6"}}>+{ws.healedCount} healed</span>}
@@ -3491,20 +3490,20 @@ function Dashboard({clients,onSelect,t,currentUser}){
         const bradenClients=clients.filter(c=>!c.archived).map(c=>({...c,bs:calcBradenSummary(c.braden_assessments)})).filter(({bs})=>bs&&bs.score<=14).sort((a,b)=>a.bs.score-b.bs.score);
         if(bradenClients.length===0)return null;
         return(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
             <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:4}}>🛏 BRADEN SCALE — PRESSURE ULCER RISK</div>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients scored ≤14 (Moderate to Very High Risk). Lowest score shown first.</div>
+            <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:12}}>Clients scored ≤14 (Moderate to Very High Risk). Lowest score shown first.</div>
             {bradenClients.map(({bs,...c})=>(
-              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+bs.risk.color}}>
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+bs.risk.color}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
-                  <div style={{fontSize:11,color:"#475569"}}>🔄 {bs.latest.turning_schedule||bs.risk.turning}</div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:3}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>🔄 {bs.latest.turning_schedule||bs.risk.turning}</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{fontWeight:800,fontSize:18,color:bs.risk.color}}>{bs.score}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}>/{BRADEN_MAX}</span></div>
+                  <div style={{fontWeight:800,fontSize:18,color:bs.risk.color}}>{bs.score}<span style={{fontSize:11,fontWeight:400,color:"rgba(240,242,250,0.25)"}}>/{BRADEN_MAX}</span></div>
                   <div style={{fontSize:11,color:bs.risk.color,fontWeight:600}}>{bs.risk.label}</div>
-                  {bs.trend&&<div style={{fontSize:10,color:bs.trend==="improving"?"#10b981":bs.trend==="declining"?"#ef4444":"#64748b"}}>{bs.trend==="improving"?"↑":bs.trend==="declining"?"↓":"→"} {bs.trend}</div>}
+                  {bs.trend&&<div style={{fontSize:10,color:bs.trend==="improving"?"#10b981":bs.trend==="declining"?"#ef4444":"rgba(240,242,250,0.3)"}}>{bs.trend==="improving"?"↑":bs.trend==="declining"?"↓":"→"} {bs.trend}</div>}
                 </div>
               </div>
             ))}
@@ -3517,20 +3516,20 @@ function Dashboard({clients,onSelect,t,currentUser}){
         const cogClients=clients.filter(c=>!c.archived).map(c=>({...c,cog:calcCognitiveSummary(c.cognitive_assessments)})).filter(({cog})=>cog&&(cog.level.label==="Moderate Impairment"||cog.level.label==="Severe Impairment"||cog.trend==="declining")).sort((a,b)=>a.cog.score-b.cog.score);
         if(cogClients.length===0)return null;
         return(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
             <div style={{fontWeight:700,color:"#a78bfa",fontSize:13,marginBottom:4}}>🧠 COGNITIVE SCREENING</div>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with Moderate/Severe impairment or declining trend. Lowest score first.</div>
+            <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:12}}>Clients with Moderate/Severe impairment or declining trend. Lowest score first.</div>
             {cogClients.map(({cog,...c})=>(
-              <div key={c.id} onClick={()=>onSelect(c)} className="dash-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+cog.level.color}}>
+              <div key={c.id} onClick={()=>onSelect(c)} className="dash-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+cog.level.color}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
-                  <div style={{fontSize:11,color:"#475569"}}>{cog.latest.test_type||"MMSE"} · {cog.daysSince}d ago{cog.dueReassess?" · ⚠️ Reassessment overdue":""}</div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:3}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>{cog.latest.test_type||"MMSE"} · {cog.daysSince}d ago{cog.dueReassess?" · ⚠️ Reassessment overdue":""}</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{fontWeight:800,fontSize:18,color:cog.level.color}}>{cog.score}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}>/30</span></div>
+                  <div style={{fontWeight:800,fontSize:18,color:cog.level.color}}>{cog.score}<span style={{fontSize:11,fontWeight:400,color:"rgba(240,242,250,0.25)"}}>/30</span></div>
                   <div style={{fontSize:11,color:cog.level.color,fontWeight:600}}>{cog.level.label}</div>
-                  {cog.trend&&<div style={{fontSize:10,color:cog.trend==="improving"?"#10b981":cog.trend==="declining"?"#ef4444":"#64748b"}}>{cog.trend==="improving"?"↑":cog.trend==="declining"?"↓":"→"} {cog.trend}</div>}
+                  {cog.trend&&<div style={{fontSize:10,color:cog.trend==="improving"?"#10b981":cog.trend==="declining"?"#ef4444":"rgba(240,242,250,0.3)"}}>{cog.trend==="improving"?"↑":cog.trend==="declining"?"↓":"→"} {cog.trend}</div>}
                 </div>
               </div>
             ))}
@@ -3543,18 +3542,18 @@ function Dashboard({clients,onSelect,t,currentUser}){
         const contClients=clients.filter(c=>!c.archived).map(c=>({...c,cont:calcContinenceSummary(c.continence_logs)})).filter(({cont})=>cont&&(cont.skinIssue||cont.highFrequency||cont.recentCount>=2)).sort((a,b)=>(b.cont.skinIssue?1:0)-(a.cont.skinIssue?1:0)||(Number(b.cont.avgPerDay)-Number(a.cont.avgPerDay)));
         if(contClients.length===0)return null;
         return(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:4}}>💧 CONTINENCE MONITORING</div>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with ≥2 episodes in last 7 days, high frequency, or skin breakdown. Skin issues shown first.</div>
+            <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:12}}>Clients with ≥2 episodes in last 7 days, high frequency, or skin breakdown. Skin issues shown first.</div>
             {contClients.map(({cont,...c})=>(
-              <div key={c.id} onClick={()=>onSelect(c)} className="dash-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+(cont.skinIssue?"#ef4444":cont.highFrequency?"#f59e0b":"#06b6d4")}}>
+              <div key={c.id} onClick={()=>onSelect(c)} className="dash-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+(cont.skinIssue?"#ef4444":cont.highFrequency?"#f59e0b":"#06b6d4")}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
-                  <div style={{fontSize:11,color:"#475569"}}>{cont.mostCommonType||"Mixed"} · {cont.recentCount} ep in 7d</div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:3}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>{cont.mostCommonType||"Mixed"} · {cont.recentCount} ep in 7d</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{fontWeight:800,fontSize:18,color:cont.highFrequency?"#ef4444":"#06b6d4"}}>{cont.avgPerDay}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}>/day</span></div>
+                  <div style={{fontWeight:800,fontSize:18,color:cont.highFrequency?"#ef4444":"#06b6d4"}}>{cont.avgPerDay}<span style={{fontSize:11,fontWeight:400,color:"rgba(240,242,250,0.25)"}}>/day</span></div>
                   {cont.skinIssue&&<div style={{fontSize:11,fontWeight:700,color:"#ef4444"}}>⚠️ Skin issue</div>}
                 </div>
               </div>
@@ -3568,20 +3567,20 @@ function Dashboard({clients,onSelect,t,currentUser}){
         const nutrClients=clients.filter(c=>!c.archived).map(c=>({...c,nutr:calcNutritionSummary(c.nutrition_assessments)})).filter(({nutr})=>nutr&&nutr.score>=1).sort((a,b)=>b.nutr.score-a.nutr.score);
         if(nutrClients.length===0)return null;
         return(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
             <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:4}}>🥗 NUTRITIONAL RISK (MUST)</div>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with MUST score ≥1. Highest risk shown first.</div>
+            <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:12}}>Clients with MUST score ≥1. Highest risk shown first.</div>
             {nutrClients.map(({nutr,...c})=>(
-              <div key={c.id} onClick={()=>onSelect(c)} className="dash-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+nutr.risk.color}}>
+              <div key={c.id} onClick={()=>onSelect(c)} className="dash-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+nutr.risk.color}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
-                  <div style={{fontSize:11,color:"#475569"}}>{nutr.risk.action}{nutr.latest.swallowing_difficulty?" · ⚠️ Dysphagia":""}</div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:3}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>{nutr.risk.action}{nutr.latest.swallowing_difficulty?" · ⚠️ Dysphagia":""}</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{fontWeight:800,fontSize:18,color:nutr.risk.color}}>{nutr.score}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}> MUST</span></div>
+                  <div style={{fontWeight:800,fontSize:18,color:nutr.risk.color}}>{nutr.score}<span style={{fontSize:11,fontWeight:400,color:"rgba(240,242,250,0.25)"}}> MUST</span></div>
                   <div style={{fontSize:11,color:nutr.risk.color,fontWeight:600}}>{nutr.risk.label}</div>
-                  {nutr.trend&&<div style={{fontSize:10,color:nutr.trend==="improving"?"#10b981":nutr.trend==="worsening"?"#ef4444":"#64748b"}}>{nutr.trend==="improving"?"↑":nutr.trend==="worsening"?"↓":"→"} {nutr.trend}</div>}
+                  {nutr.trend&&<div style={{fontSize:10,color:nutr.trend==="improving"?"#10b981":nutr.trend==="worsening"?"#ef4444":"rgba(240,242,250,0.3)"}}>{nutr.trend==="improving"?"↑":nutr.trend==="worsening"?"↓":"→"} {nutr.trend}</div>}
                 </div>
               </div>
             ))}
@@ -3591,31 +3590,31 @@ function Dashboard({clients,onSelect,t,currentUser}){
 
       {/* ── Care Plan Staleness ── */}
       {stalePlans.length>0&&(
-        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
           <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:4}}>📋 CARE PLAN REVIEW OVERDUE</div>
-          <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Care plan items not reviewed in 90+ days.</div>
+          <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginBottom:12}}>Care plan items not reviewed in 90+ days.</div>
           {stalePlans.map(c=>(
-            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
+            <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
-              <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{c.name}</div></div>
+              <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{c.name}</div></div>
               <span style={{fontSize:11,fontWeight:700,padding:"2px 10px",borderRadius:20,background:"rgba(139,92,246,0.15)",color:"#a78bfa",whiteSpace:"nowrap"}}>{c.stalestDays}d since review</span>
             </div>
           ))}
         </div>
       )}
 
-      <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
+      <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:16}}>
         <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:14}}>RECENT SESSION NOTES</div>
-        {rn.length===0?<div style={{color:"#475569",fontSize:13}}>{t.noNotes}</div>:rn.map((n,i)=>(
-          <div key={i} onClick={()=>onSelect(n.client)} style={{display:"flex",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8}}>
+        {rn.length===0?<div style={{color:"rgba(240,242,250,0.25)",fontSize:13}}>{t.noNotes}</div>:rn.map((n,i)=>(
+          <div key={i} onClick={()=>onSelect(n.client)} style={{display:"flex",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8}}>
             <div style={{width:36,height:36,borderRadius:"50%",background:avatarColor(n.clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(n.clientName)}</div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
-                <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{n.clientName}</span>
+                <span style={{fontWeight:700,fontSize:13,color:"#f0f2fa"}}>{n.clientName}</span>
                 {(n.role||n.staff_name)&&<span style={{fontSize:11,background:"rgba(124,58,237,0.1)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:20,padding:"1px 7px",color:"#7c3aed",fontWeight:600}}>{n.role}{n.role&&n.staff_name&&" - "}{n.staff_name}</span>}
-                <span style={{fontSize:11,color:"#475569",marginLeft:"auto"}}>{new Date(n.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>
+                <span style={{fontSize:11,color:"rgba(240,242,250,0.25)",marginLeft:"auto"}}>{new Date(n.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>
               </div>
-              <div style={{fontSize:13,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{n.text}</div>
+              <div style={{fontSize:13,color:"rgba(240,242,250,0.35)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{n.text}</div>
             </div>
           </div>
         ))}
@@ -3671,12 +3670,12 @@ function AuditTrail({t,companyId,currentUser}){
   const sectionColor={
     "Client Profile":"#34d399","User Management":"#f59e0b","Appointments":"#60a5fa",
     "Incidents":"#f87171","Medications":"#a78bfa","Documents":"#fb923c",
-    "Vitals":"#2dd4bf","Notes":"#94a3b8","Intake":"#fbbf24",
+    "Vitals":"#2dd4bf","Notes":"rgba(240,242,250,0.45)","Intake":"#fbbf24",
   };
-  const secColor=s=>sectionColor[s]||"#64748b";
+  const secColor=s=>sectionColor[s]||"rgba(240,242,250,0.3)";
 
   // Role label color
-  const roleColor={superadmin:"#f59e0b",admin:"#a78bfa",power_user:"#34d399",user:"#64748b",inactive:"#ef4444"};
+  const roleColor={superadmin:"#f59e0b",admin:"#a78bfa",power_user:"#34d399",user:"rgba(240,242,250,0.3)",inactive:"#ef4444"};
 
   const doExport=()=>{
     const rows=filtered.map(l=>"<tr><td>"+new Date(l.performed_at).toLocaleString("en-US")+"</td><td>"+(l.performed_by||"-")+(l.performed_role?" ("+l.performed_role+")":"")+"</td><td>"+(l.section?l.section+" — ":"")+(l.action||"-")+"</td><td>"+(l.details||"-")+"</td><td>"+(l.client_name||"-")+"</td><td>"+coName(l.company_id)+"</td></tr>").join("");
@@ -3692,12 +3691,12 @@ function AuditTrail({t,companyId,currentUser}){
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-        <div style={{fontFamily:"Playfair Display,serif",fontSize:26,fontWeight:700,color:"#f1f5f9"}}>{t.auditTrail}</div>
+        <div style={{fontSize:22,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.5px"}}>{t.auditTrail}</div>
         <button onClick={doExport} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:600,fontSize:13}}>{t.exportAudit}</button>
       </div>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-        <div style={{color:"#64748b",fontSize:13}}>{filtered.length} {t.records}</div>
-        {hasFilter&&<button onClick={clearFilters} style={{padding:"3px 10px",borderRadius:6,border:"1px solid #334155",background:"transparent",color:"#f59e0b",fontSize:11,fontWeight:700}}>✕ Clear filters</button>}
+        <div style={{color:"rgba(240,242,250,0.35)",fontSize:13}}>{filtered.length} {t.records}</div>
+        {hasFilter&&<button onClick={clearFilters} style={{padding:"3px 10px",borderRadius:6,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"#f59e0b",fontSize:11,fontWeight:700}}>✕ Clear filters</button>}
       </div>
 
       {/* Filters — row 1: staff / action / section / company */}
@@ -3746,15 +3745,15 @@ function AuditTrail({t,companyId,currentUser}){
         </div>
       )}
 
-      <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
+      <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,overflow:"hidden"}}>
         {loading
-          ?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.loadingAudit}</div>
+          ?<div style={{padding:"40px",textAlign:"center",color:"rgba(240,242,250,0.25)"}}>{t.loadingAudit}</div>
           :filtered.length===0
-            ?<div style={{padding:"40px",textAlign:"center",color:"#475569"}}>{t.noAudit}</div>
+            ?<div style={{padding:"40px",textAlign:"center",color:"rgba(240,242,250,0.25)"}}>{t.noAudit}</div>
             :<div style={{overflow:"auto",maxHeight:"65vh",WebkitOverflowScrolling:"touch"}}>
               <table style={{borderCollapse:"collapse",minWidth:820,width:"100%"}}>
                 <thead style={{position:"sticky",top:0,zIndex:2}}>
-                  <tr style={{background:"#161927",borderBottom:"1px solid #334155"}}>
+                  <tr style={{background:"#161927",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
                     {["Date & Time","Staff","Action & Details","Client","Company"].map(h=>(
                       <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,whiteSpace:"nowrap"}}>{h}</th>
                     ))}
@@ -3768,29 +3767,29 @@ function AuditTrail({t,companyId,currentUser}){
                       <Fragment key={l.id}>
                         <tr style={{borderBottom:isExpanded?"none":"1px solid #1e293b",background:i%2===0?"transparent":"rgba(255,255,255,0.02)",cursor:hasDevice?"pointer":"default"}}
                           onClick={()=>hasDevice&&setExpandedRow(isExpanded?null:l.id)}>
-                          <td style={{padding:"10px 16px",fontSize:12,color:"#64748b",whiteSpace:"nowrap",verticalAlign:"top"}}>
+                          <td style={{padding:"10px 16px",fontSize:12,color:"rgba(240,242,250,0.35)",whiteSpace:"nowrap",verticalAlign:"top"}}>
                             {new Date(l.performed_at).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}
                           </td>
                           <td style={{padding:"10px 16px",verticalAlign:"top",whiteSpace:"nowrap"}}>
-                            <div style={{fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{l.performed_by||"—"}</div>
-                            {l.performed_role&&<div style={{fontSize:11,color:roleColor[l.performed_role]||"#64748b",marginTop:2,fontWeight:600,textTransform:"capitalize"}}>{l.performed_role.replace(/_/g," ")}</div>}
+                            <div style={{fontSize:13,fontWeight:600,color:"#f0f2fa"}}>{l.performed_by||"—"}</div>
+                            {l.performed_role&&<div style={{fontSize:11,color:roleColor[l.performed_role]||"rgba(240,242,250,0.3)",marginTop:2,fontWeight:600,textTransform:"capitalize"}}>{l.performed_role.replace(/_/g," ")}</div>}
                           </td>
                           <td style={{padding:"10px 16px",verticalAlign:"top",minWidth:260,maxWidth:360}}>
                             <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:l.details?4:0}}>
                               <span style={{background:"rgba(99,102,241,0.12)",color:"#a5b4fc",borderRadius:6,padding:"2px 8px",fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>{l.action||"—"}</span>
                               {l.section&&<span style={{background:"rgba(0,0,0,0.25)",color:secColor(l.section),border:"1px solid "+secColor(l.section)+"44",borderRadius:5,padding:"1px 7px",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>{l.section}</span>}
-                              {hasDevice&&<span style={{fontSize:10,color:"#334155",marginLeft:"auto"}}>▾</span>}
+                              {hasDevice&&<span style={{fontSize:10,color:"rgba(255,255,255,0.1)",marginLeft:"auto"}}>▾</span>}
                             </div>
-                            {l.details&&<div style={{fontSize:12,color:"#64748b",lineHeight:1.5,marginTop:2}}>{l.details}</div>}
+                            {l.details&&<div style={{fontSize:12,color:"rgba(240,242,250,0.35)",lineHeight:1.5,marginTop:2}}>{l.details}</div>}
                           </td>
-                          <td style={{padding:"10px 16px",fontSize:13,color:"#94a3b8",verticalAlign:"top",whiteSpace:"nowrap"}}>{l.client_name||"—"}</td>
-                          <td style={{padding:"10px 16px",fontSize:12,color:"#475569",verticalAlign:"top",whiteSpace:"nowrap"}}>{coName(l.company_id)}</td>
+                          <td style={{padding:"10px 16px",fontSize:13,color:"rgba(240,242,250,0.45)",verticalAlign:"top",whiteSpace:"nowrap"}}>{l.client_name||"—"}</td>
+                          <td style={{padding:"10px 16px",fontSize:12,color:"rgba(240,242,250,0.25)",verticalAlign:"top",whiteSpace:"nowrap"}}>{coName(l.company_id)}</td>
                         </tr>
                         {isExpanded&&hasDevice&&(
                           <tr style={{borderBottom:"1px solid #1e293b",background:"rgba(99,102,241,0.04)"}}>
                             <td colSpan={5} style={{padding:"6px 16px 10px 48px"}}>
-                              <div style={{fontSize:11,color:"#475569",display:"flex",alignItems:"flex-start",gap:8}}>
-                                <span style={{color:"#334155",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>🖥 Device:</span>
+                              <div style={{fontSize:11,color:"rgba(240,242,250,0.25)",display:"flex",alignItems:"flex-start",gap:8}}>
+                                <span style={{color:"rgba(255,255,255,0.1)",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>🖥 Device:</span>
                                 <span style={{wordBreak:"break-all",lineHeight:1.6}}>{l.device}</span>
                               </div>
                             </td>
@@ -3809,15 +3808,19 @@ function AuditTrail({t,companyId,currentUser}){
 
 function LangPicker({onSelect}){
   return(
-    <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{background:"#1c1f2e",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid #334155",textAlign:"center"}}>
-        <div style={{fontSize:52,marginBottom:16}}>+</div>
-        <div style={{fontFamily:"Playfair Display,serif",fontSize:28,fontWeight:700,color:"#f1f5f9",marginBottom:6}}>CareManager</div>
-        <div style={{fontSize:13,color:"#64748b",marginBottom:32}}>Select your language / Selecta bo idioma</div>
+    <div style={{minHeight:"100vh",background:"#07091c",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:"#111427",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid rgba(255,255,255,0.08)",textAlign:"center"}}>
+        <div style={{width:48,height:48,borderRadius:14,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",boxShadow:"0 8px 20px rgba(99,102,241,0.35)"}}>
+          <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+        </div>
+        <div style={{fontSize:24,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.5px",marginBottom:6}}>CareManager</div>
+        <div style={{fontSize:13,color:"rgba(240,242,250,0.35)",marginBottom:32}}>Select your language / Selecta bo idioma</div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {LANG_OPTIONS.map(l=>(
             <button key={l.code} onClick={()=>onSelect(l.code)}
-              style={{display:"flex",alignItems:"center",gap:16,padding:"14px 18px",borderRadius:12,border:"1px solid #334155",background:"#0f172a",color:"#e2e8f0",fontSize:16,fontWeight:600}}>
+              style={{display:"flex",alignItems:"center",gap:16,padding:"14px 18px",borderRadius:12,border:"1px solid rgba(255,255,255,0.08)",background:"rgba(255,255,255,0.03)",color:"#f0f2fa",fontSize:16,fontWeight:600}}>
               <span style={{fontSize:18,fontWeight:800,color:"#6366f1",width:40,textAlign:"center"}}>{l.emoji}</span><span>{l.label}</span>
             </button>
           ))}
@@ -3870,17 +3873,21 @@ function Login({onLogin,t}){
     setLoading(false);
   };
   return(
-    <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{background:"#1c1f2e",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid #334155"}}>
+    <div style={{minHeight:"100vh",background:"#07091c",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:"#111427",borderRadius:20,padding:"48px 40px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",maxWidth:420,width:"90%",border:"1px solid rgba(255,255,255,0.08)"}}>
         <div style={{textAlign:"center",marginBottom:32}}>
-          <div style={{fontSize:48,marginBottom:12}}>🔐</div>
-          <div style={{fontFamily:"Playfair Display,serif",fontSize:26,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>CareManager</div>
-          <div style={{fontSize:13,color:"#64748b"}}>{t.signIn}</div>
+          <div style={{width:48,height:48,borderRadius:14,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",boxShadow:"0 8px 20px rgba(99,102,241,0.35)"}}>
+            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          <div style={{fontSize:22,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.5px",marginBottom:4}}>CareManager</div>
+          <div style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{t.signIn}</div>
         </div>
-        {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:16,color:"#ef4444",fontSize:13}}>{error}</div>}
+        {error&&<div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:16,color:"#ef4444",fontSize:13}}>{error}</div>}
         <div style={{marginBottom:14}}><label style={LBL}>Email or Username</label><input type="text" style={INP} placeholder="your@email.com or username" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()}/></div>
-        <div style={{marginBottom:24}}><label style={LBL}>{t.password}</label><input type="password" style={INP} placeholder="..." value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()}/></div>
-        <button onClick={handle} disabled={loading} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:loading?"#334155":"#6366f1",color:loading?"#64748b":"#fff",fontWeight:700,fontSize:15}}>
+        <div style={{marginBottom:24}}><label style={LBL}>{t.password}</label><input type="password" style={INP} placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()}/></div>
+        <button onClick={handle} disabled={loading} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:loading?"rgba(255,255,255,0.08)":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:loading?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:15,boxShadow:loading?"none":"0 4px 14px rgba(99,102,241,0.35)"}}>
           {loading?t.signingIn:t.signIn}
         </button>
       </div>
@@ -3968,25 +3975,25 @@ function CompanyView({company,onUpdate,currentUser,t}){
           </div>
         )}
         <div>
-          <div style={{fontFamily:"Playfair Display,serif",fontSize:24,color:"#f1f5f9",fontWeight:700}}>{form.name||"Company Settings"}</div>
-          {form.mission_statement&&<div style={{color:"#64748b",fontSize:13,marginTop:4,fontStyle:"italic"}}>"{form.mission_statement}"</div>}
+          <div style={{fontSize:20,color:"#f0f2fa",fontWeight:700,letterSpacing:"-0.4px"}}>{form.name||"Company Settings"}</div>
+          {form.mission_statement&&<div style={{color:"rgba(240,242,250,0.35)",fontSize:13,marginTop:4,fontStyle:"italic"}}>"{form.mission_statement}"</div>}
         </div>
       </div>
-      <div style={{display:"flex",gap:2,marginBottom:24,borderBottom:"1px solid #334155"}}>
+      <div style={{display:"flex",gap:2,marginBottom:24,borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
         {TABS.map(tab_=>(<button key={tab_.id} onClick={()=>setTab(tab_.id)}
-          style={{padding:"8px 16px",border:"none",borderBottom:tab===tab_.id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:tab===tab_.id?"#6366f1":"#64748b",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
+          style={{padding:"8px 16px",border:"none",borderBottom:tab===tab_.id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:tab===tab_.id?"#6366f1":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
           {tab_.label}</button>))}
       </div>
       <form onSubmit={onSave}>
         {tab==="info"&&(
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
-            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
-              <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>🖼 Company Logo</div>
+            <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:16}}>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>🖼 Company Logo</div>
               <div style={{display:"flex",gap:16,alignItems:"center"}}>
-                <div style={{width:120,height:120,border:"2px dashed #334155",borderRadius:12,background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+                <div style={{width:120,height:120,border:"2px dashed rgba(255,255,255,0.15)",borderRadius:12,background:"rgba(255,255,255,0.03)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
                   {logoPreview
                     ?<div style={{background:"#fff",width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",padding:8}}><img src={logoPreview} alt="preview" style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain"}}/></div>
-                    :<span style={{color:"#475569",fontSize:12}}>No logo</span>}
+                    :<span style={{color:"rgba(240,242,250,0.25)",fontSize:12}}>No logo</span>}
                 </div>
                 <div>
                   <input ref={fileRef} type="file" accept="image/*" onChange={onLogoSelect} style={{display:"none"}}/>
@@ -3994,13 +4001,13 @@ function CompanyView({company,onUpdate,currentUser,t}){
                     style={{padding:"8px 16px",borderRadius:8,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontSize:13,fontWeight:600,marginBottom:8,display:"block"}}>
                     {uploading?"Uploading...":"Choose Logo"}
                   </button>
-                  <div style={{fontSize:11,color:"#475569"}}>PNG or JPG · Max 5MB</div>
-                  <div style={{fontSize:11,color:"#475569"}}>Will appear in sidebar</div>
+                  <div style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>PNG or JPG · Max 5MB</div>
+                  <div style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>Will appear in sidebar</div>
                 </div>
               </div>
             </div>
-            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
-              <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>🏢 Basic Information</div>
+            <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:16}}>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>🏢 Basic Information</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 {fld("Company Name *","name")}
                 {fld("Registration Number","registration_number")}
@@ -4016,8 +4023,8 @@ function CompanyView({company,onUpdate,currentUser,t}){
                   style={{...inp,resize:"vertical",lineHeight:1.5}}/>
               </div>
             </div>
-            <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
-              <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>👤 Director / Contact</div>
+            <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:16}}>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>👤 Director / Contact</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 {fld("Director Name","director_name","text","e.g. Maria Johnson")}
                 {fld("Director Contact","director_contact","email","director@company.aw")}
@@ -4026,12 +4033,12 @@ function CompanyView({company,onUpdate,currentUser,t}){
           </div>
         )}
         {tab==="hours"&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
-            <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:16,fontWeight:700}}>🕐 Hours of Operation</div>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:16}}>
+            <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:16,textTransform:"uppercase",letterSpacing:"0.8px"}}>🕐 Hours of Operation</div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {DAYS.map(day=>(
                 <div key={day} style={{display:"flex",alignItems:"center",gap:12}}>
-                  <label style={{width:90,fontSize:13,fontWeight:600,color:"#94a3b8",textTransform:"capitalize",flexShrink:0}}>{day}</label>
+                  <label style={{width:90,fontSize:13,fontWeight:600,color:"rgba(240,242,250,0.45)",textTransform:"capitalize",flexShrink:0}}>{day}</label>
                   <input type="text" value={form.hours_of_operation[day]||""} onChange={e=>onHour(day,e.target.value)}
                     placeholder='e.g. 8:00 AM - 5:00 PM or Closed' style={{...inp,flex:1}}/>
                 </div>
@@ -4040,8 +4047,8 @@ function CompanyView({company,onUpdate,currentUser,t}){
           </div>
         )}
         {tab==="emergency"&&(
-          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20}}>
-            <div style={{fontFamily:"Playfair Display,serif",fontSize:15,color:"#f1f5f9",marginBottom:14,fontWeight:700}}>🚨 Emergency Contact</div>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:16}}>
+            <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>🚨 Emergency Contact</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               {fld("Emergency Contact Name","emergency_contact","text","e.g. Emergency Hotline")}
               {fld("Emergency Phone","emergency_phone","tel","+297-999-8888")}
@@ -4050,7 +4057,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
         )}
         <div style={{marginTop:20}}>
           <button type="submit" disabled={saving||uploading}
-            style={{padding:"11px 28px",borderRadius:10,border:"none",background:saving?"#334155":"#10b981",color:saving?"#64748b":"#fff",fontWeight:700,fontSize:14}}>
+            style={{padding:"11px 28px",borderRadius:10,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:14}}>
             {saving?"Saving...":"Save Company Information"}
           </button>
         </div>
@@ -4432,7 +4439,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     }catch{return"—";}
   };
 
-  const roleColor={superadmin:"#f59e0b",admin:"#6366f1",power_user:"#06b6d4",user:"#10b981",inactive:"#475569"};
+  const roleColor={superadmin:"#f59e0b",admin:"#6366f1",power_user:"#06b6d4",user:"#10b981",inactive:"rgba(240,242,250,0.25)"};
   const roleBg={superadmin:"rgba(245,158,11,0.1)",admin:"rgba(99,102,241,0.1)",power_user:"rgba(6,182,212,0.1)",user:"rgba(16,185,129,0.1)",inactive:"rgba(71,85,105,0.1)"};
   const companyName=id=>companies.find(c=>c.id===id)?.name||"—";
 
@@ -4460,8 +4467,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
         <div>
-          <div style={{fontFamily:"Playfair Display,serif",fontSize:26,fontWeight:700,color:"#f1f5f9"}}>👥 User Management</div>
-          <div style={{fontSize:13,color:"#64748b",marginTop:4}}>{users.length} users · {companies.length} companies</div>
+          <div style={{fontSize:22,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.5px"}}>👥 User Management</div>
+          <div style={{fontSize:13,color:"rgba(240,242,250,0.35)",marginTop:4}}>{users.length} users · {companies.length} companies</div>
         </div>
         <div style={{display:"flex",gap:8}}>
           {mainTab==="users"&&(
@@ -4479,7 +4486,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           {mainTab==="companies"&&(
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <button onClick={()=>setShowArchived(s=>!s)}
-                style={{padding:"10px 16px",borderRadius:10,border:"1px solid "+(showArchived?"#f59e0b":"#334155"),background:showArchived?"rgba(245,158,11,0.12)":"transparent",color:showArchived?"#f59e0b":"#64748b",fontWeight:600,fontSize:13}}>
+                style={{padding:"10px 16px",borderRadius:10,border:"1px solid "+(showArchived?"#f59e0b":"rgba(255,255,255,0.1)"),background:showArchived?"rgba(245,158,11,0.12)":"transparent",color:showArchived?"#f59e0b":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13}}>
                 {showArchived?"Hide Archived":"Show Archived"}
               </button>
               {currentUser?.role==="superadmin"&&(
@@ -4494,10 +4501,10 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
       </div>
 
       {/* Main Tabs */}
-      <div style={{display:"flex",gap:2,borderBottom:"1px solid #334155",marginBottom:20}}>
+      <div style={{display:"flex",gap:2,borderBottom:"1px solid rgba(255,255,255,0.07)",marginBottom:20}}>
         {[["users","👥 Users"],["companies","🏢 Companies"],["activity","📊 Activity"]].map(([id,label])=>(
           <button key={id} onClick={()=>{setMainTab(id);setShowUserForm(false);setShowCompanyForm(false);setSearch("");}}
-            style={{padding:"9px 20px",border:"none",borderBottom:mainTab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:mainTab===id?"#6366f1":"#64748b",fontWeight:600,fontSize:14,cursor:"pointer",marginBottom:-1}}>
+            style={{padding:"9px 20px",border:"none",borderBottom:mainTab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:mainTab===id?"#6366f1":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:14,cursor:"pointer",marginBottom:-1}}>
             {label}
           </button>
         ))}
@@ -4508,9 +4515,9 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
         <>
           {/* Add Existing User Form */}
           {showExistingForm&&(
-            <div style={{background:"#1c1f2e",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
-              <div style={{fontFamily:"Playfair Display,serif",fontSize:16,color:"#f1f5f9",fontWeight:700,marginBottom:6}}>Add Existing User to Company</div>
-              <div style={{fontSize:12,color:"#64748b",marginBottom:16}}>For users who already have an account — give them access to this company.</div>
+            <div style={{background:"#111427",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
+              <div style={{fontSize:14,color:"#f0f2fa",fontWeight:700,marginBottom:6,letterSpacing:"-0.2px"}}>Add Existing User to Company</div>
+              <div style={{fontSize:12,color:"rgba(240,242,250,0.35)",marginBottom:16}}>For users who already have an account — give them access to this company.</div>
               <form onSubmit={addExistingUser}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                   <div style={{gridColumn:"1/-1"}}>
@@ -4536,9 +4543,9 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   </div>
                   <div style={{gridColumn:"1/-1"}}>
                     <label style={LBL}>Companies * (select one or more)</label>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"#0f172a",borderRadius:8,padding:12,border:"1px solid #334155"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"rgba(255,255,255,0.03)",borderRadius:8,padding:12,border:"1px solid rgba(255,255,255,0.08)"}}>
                       {companies.map(c=>(
-                        <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#e2e8f0",cursor:"pointer"}}>
+                        <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#f0f2fa",cursor:"pointer"}}>
                           <input type="checkbox" checked={existingForm.company_ids.includes(c.id)} onChange={()=>onToggleCompany(c.id)} style={{accentColor:"#6366f1",width:15,height:15}}/>
                           {c.name}
                         </label>
@@ -4547,7 +4554,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   </div>
                 </div>
                 <button type="submit" disabled={saving}
-                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"#334155":"#6366f1",color:saving?"#64748b":"#fff",fontWeight:700,fontSize:14}}>
+                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"#6366f1",color:saving?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:14}}>
                   {saving?"Adding...":"Add to Company"}
                 </button>
               </form>
@@ -4556,14 +4563,14 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
 
           {/* Create New User Form */}
           {showUserForm&&(
-            <div style={{background:"#1c1f2e",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
-              <div style={{fontFamily:"Playfair Display,serif",fontSize:16,color:"#f1f5f9",fontWeight:700,marginBottom:16}}>Create New User</div>
+            <div style={{background:"#111427",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
+              <div style={{fontSize:14,color:"#f0f2fa",fontWeight:700,marginBottom:16,letterSpacing:"-0.2px"}}>Create New User</div>
               <form onSubmit={createUser}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                   <div><label style={LBL}>Full Name *</label><input name="name" value={userForm.name} onChange={onChangeUser} placeholder="e.g. Maria Johnson" style={INP2}/></div>
                   <div><label style={LBL}>Email *</label><input name="email" type="email" value={userForm.email} onChange={onChangeUser} placeholder="user@company.aw" style={INP2}/></div>
                   <div><label style={LBL}>Temporary Password *</label><input name="password" type="password" value={userForm.password} onChange={onChangeUser} placeholder="Min. 10 characters" style={INP2}/><PasswordStrengthMeter password={userForm.password}/></div>
-                  <div><label style={LBL}>Username <span style={{color:"#475569",fontWeight:400}}>(optional)</span></label><input name="username" value={userForm.username} onChange={onChangeUser} placeholder="e.g. maria.j" style={INP2}/></div>
+                  <div><label style={LBL}>Username <span style={{color:"rgba(240,242,250,0.25)",fontWeight:400}}>(optional)</span></label><input name="username" value={userForm.username} onChange={onChangeUser} placeholder="e.g. maria.j" style={INP2}/></div>
                   <div><label style={LBL}>Role *</label>
                     <select name="role" value={userForm.role} onChange={onChangeUser} style={{...INP2,cursor:"pointer"}}>
                       <option value="user">User</option>
@@ -4574,9 +4581,9 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   </div>
                   <div style={{gridColumn:"1/-1"}}>
                     <label style={LBL}>Companies * (select one or more)</label>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"#0f172a",borderRadius:8,padding:12,border:"1px solid #334155"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"rgba(255,255,255,0.03)",borderRadius:8,padding:12,border:"1px solid rgba(255,255,255,0.08)"}}>
                       {companies.map(c=>(
-                        <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#e2e8f0",cursor:"pointer"}}>
+                        <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#f0f2fa",cursor:"pointer"}}>
                           <input type="checkbox" checked={userForm.company_ids.includes(c.id)} onChange={()=>onToggleUserCompany(c.id)} style={{accentColor:"#6366f1",width:15,height:15}}/>
                           {c.name}
                         </label>
@@ -4588,7 +4595,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   ⚠️ User will be required to change their password on first login.
                 </div>
                 <button type="submit" disabled={saving}
-                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"#334155":"#10b981",color:saving?"#64748b":"#fff",fontWeight:700,fontSize:14}}>
+                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:14}}>
                   {saving?"Creating...":"Create User"}
                 </button>
               </form>
@@ -4597,10 +4604,10 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
 
           {/* User filter tabs + search */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <div style={{display:"flex",gap:2,borderBottom:"1px solid #334155"}}>
+            <div style={{display:"flex",gap:2,borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
               {[["all","All"],["active","Active"],["inactive","Inactive"]].map(([id,label])=>(
                 <button key={id} onClick={()=>setUserTab(id)}
-                  style={{padding:"7px 16px",border:"none",borderBottom:userTab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:userTab===id?"#6366f1":"#64748b",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
+                  style={{padding:"7px 16px",border:"none",borderBottom:userTab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:userTab===id?"#6366f1":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
                   {label}
                 </button>
               ))}
@@ -4609,14 +4616,14 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           </div>
 
           {/* User List */}
-          {loading?<div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(
-            <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflowX:"auto"}}>
+          {loading?<div style={{color:"rgba(240,242,250,0.25)",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(
+            <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,overflowX:"auto"}}>
               {filteredUsers.length===0?(
-                <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>No users found</div>
+                <div style={{color:"rgba(240,242,250,0.25)",textAlign:"center",padding:"40px 0"}}>No users found</div>
               ):(
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
                   <thead>
-                    <tr style={{borderBottom:"1px solid #334155"}}>
+                    <tr style={{borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
                       {[["Name",160],["Email",160],["Role",110],["Companies",null],["Actions",180]].map(([h,minW])=>(
                         <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
                       ))}
@@ -4629,29 +4636,29 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                       const isMe=u.user_id===currentUser.id;
                       const rowBg=isEditing?"rgba(99,102,241,0.06)":isDeleteConfirm?"rgba(220,38,38,0.06)":i%2===0?"transparent":"rgba(255,255,255,0.02)";
                       return(
-                      <tr key={u.user_id} style={{borderBottom:"1px solid #1e293b",background:rowBg}}>
+                      <tr key={u.user_id} style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:rowBg}}>
                         {/* Name / Username / Last Login cell */}
-                        <td style={{padding:"10px 16px",fontWeight:600,color:"#f1f5f9",fontSize:13}}>
+                        <td style={{padding:"10px 16px",fontWeight:600,color:"#f0f2fa",fontSize:13}}>
                           {isEditing?(
                             <div style={{display:"flex",flexDirection:"column",gap:4}}>
                               <input value={editForm.name} onChange={e=>setEditForm(p=>({...p,name:e.target.value}))}
-                                placeholder="Full name" style={{background:"#0f172a",border:"1px solid #6366f1",borderRadius:6,padding:"4px 8px",color:"#f1f5f9",fontSize:12,width:140}}/>
+                                placeholder="Full name" style={{background:"rgba(255,255,255,0.03)",border:"1px solid #6366f1",borderRadius:6,padding:"4px 8px",color:"#f0f2fa",fontSize:12,width:140}}/>
                               <input value={editForm.username} onChange={e=>setEditForm(p=>({...p,username:e.target.value}))}
-                                placeholder="username (optional)" style={{background:"#0f172a",border:"1px solid #334155",borderRadius:6,padding:"4px 8px",color:"#94a3b8",fontSize:11,width:140}}/>
+                                placeholder="username (optional)" style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:6,padding:"4px 8px",color:"rgba(240,242,250,0.45)",fontSize:11,width:140}}/>
                             </div>
                           ):(
                             <div>
                               <div>{u.name||"—"}</div>
-                              {u.username&&<div style={{fontSize:11,color:"#475569",fontWeight:400}}>@{u.username}</div>}
-                              <div style={{fontSize:10,color:"#334155",fontWeight:400,marginTop:2}}>🕐 {fmtLastLogin(u.login_history)}</div>
+                              {u.username&&<div style={{fontSize:11,color:"rgba(240,242,250,0.25)",fontWeight:400}}>@{u.username}</div>}
+                              <div style={{fontSize:10,color:"rgba(255,255,255,0.1)",fontWeight:400,marginTop:2}}>🕐 {fmtLastLogin(u.login_history)}</div>
                             </div>
                           )}
                         </td>
                         {/* Email cell */}
-                        <td style={{padding:"10px 16px",color:"#64748b",fontSize:13}}>
+                        <td style={{padding:"10px 16px",color:"rgba(240,242,250,0.35)",fontSize:13}}>
                           {isEditing?(
                             <input value={editForm.email} onChange={e=>setEditForm(p=>({...p,email:e.target.value}))}
-                              placeholder="Email" style={{background:"#0f172a",border:"1px solid #6366f1",borderRadius:6,padding:"4px 8px",color:"#f1f5f9",fontSize:12,width:160}}/>
+                              placeholder="Email" style={{background:"rgba(255,255,255,0.03)",border:"1px solid #6366f1",borderRadius:6,padding:"4px 8px",color:"#f0f2fa",fontSize:12,width:160}}/>
                           ):(u.email||"—")}
                         </td>
                         {/* Role cell */}
@@ -4665,7 +4672,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                               if(currentUser.role!=="superadmin"&&(RORD[u.role]??9)<=(RORD[currentUser.role]??9)){showToast("error","You cannot change the role of a user with an equal or higher role");return;}
                               setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});
                             }}
-                            style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"#64748b",border:"1px solid "+(roleColor[u.role]||"#334155"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                            style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"rgba(240,242,250,0.3)",border:"1px solid "+(roleColor[u.role]||"rgba(255,255,255,0.1)"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
                             <option value="user">User</option>
                             <option value="power_user">Power User</option>
                             <option value="admin">Admin</option>
@@ -4681,7 +4688,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                 {companyName(r.company_id)}
                                 {!isMe&&(
                                   <span onClick={()=>setPendingAction({type:"remove_company",userId:u.user_id,userName:u.name||u.email,meta:{companyId:r.company_id,companyName:companyName(r.company_id)}})}
-                                    style={{cursor:"pointer",color:"#64748b",fontWeight:700,fontSize:13,lineHeight:1,marginLeft:2}} title="Remove from company">×</span>
+                                    style={{cursor:"pointer",color:"rgba(240,242,250,0.35)",fontWeight:700,fontSize:13,lineHeight:1,marginLeft:2}} title="Remove from company">×</span>
                                 )}
                               </span>
                             ))}
@@ -4694,7 +4701,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                     </span>
                                   ))
                                 : <span onClick={()=>setExpandedUser(u.user_id)}
-                                    style={{display:"inline-flex",alignItems:"center",background:"transparent",border:"1px dashed #475569",borderRadius:12,padding:"2px 8px",fontSize:11,color:"#475569",cursor:"pointer",whiteSpace:"nowrap"}}>
+                                    style={{display:"inline-flex",alignItems:"center",background:"transparent",border:"1px dashed #475569",borderRadius:12,padding:"2px 8px",fontSize:11,color:"rgba(240,242,250,0.25)",cursor:"pointer",whiteSpace:"nowrap"}}>
                                     + add
                                   </span>
                             )}
@@ -4709,7 +4716,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                 {saving?"…":"Save"}
                               </button>
                               <button onClick={()=>setEditingUser(null)}
-                                style={{padding:"4px 11px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
+                                style={{padding:"4px 11px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.35)",fontSize:11,fontWeight:600}}>
                                 Cancel
                               </button>
                             </div>
@@ -4721,7 +4728,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                 {saving?"…":"Yes"}
                               </button>
                               <button onClick={()=>setDeleteConfirmUser(null)}
-                                style={{padding:"4px 11px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
+                                style={{padding:"4px 11px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.35)",fontSize:11,fontWeight:600}}>
                                 No
                               </button>
                             </div>
@@ -4730,7 +4737,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                               {!isMe&&(
                                 <>
                                   <button onClick={()=>startEditUser(u)} title="Edit user"
-                                    style={{padding:"4px 9px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontSize:12}}>
+                                    style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.45)",fontSize:12}}>
                                     ✏️
                                   </button>
                                   {currentUser.role==="superadmin"&&(
@@ -4744,14 +4751,14 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                     const canDeactivate=u.role!=="inactive"&&(currentUser.role==="superadmin"||(RORD[u.role]??9)>(RORD[currentUser.role]??9));
                                     return canDeactivate?(
                                       <button onClick={()=>setPendingAction({type:"deactivate",userId:u.user_id,userName:u.name||u.email,meta:{}})}
-                                        style={{padding:"4px 12px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>
+                                        style={{padding:"4px 12px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.35)",fontSize:11,fontWeight:600}}>
                                         Deactivate
                                       </button>
                                     ):null;
                                   })()}
                                 </>
                               )}
-                              {isMe&&<span style={{fontSize:11,color:"#475569",fontStyle:"italic"}}>You</span>}
+                              {isMe&&<span style={{fontSize:11,color:"rgba(240,242,250,0.25)",fontStyle:"italic"}}>You</span>}
                             </div>
                           )}
                         </td>
@@ -4771,12 +4778,12 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
         <div>
           <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:20,flexWrap:"wrap"}}>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <label style={{fontSize:12,color:"#64748b",fontWeight:600}}>From</label>
+              <label style={{fontSize:12,color:"rgba(240,242,250,0.35)",fontWeight:600}}>From</label>
               <input type="date" value={activityDateFrom} onChange={e=>setActivityDateFrom(e.target.value)}
                 style={{...INP2,width:150}}/>
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <label style={{fontSize:12,color:"#64748b",fontWeight:600}}>To</label>
+              <label style={{fontSize:12,color:"rgba(240,242,250,0.35)",fontWeight:600}}>To</label>
               <input type="date" value={activityDateTo} onChange={e=>setActivityDateTo(e.target.value)}
                 style={{...INP2,width:150}}/>
             </div>
@@ -4784,20 +4791,20 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
               style={{padding:"8px 18px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:700,fontSize:13}}>Apply</button>
             {(activityDateFrom||activityDateTo)&&(
               <button onClick={()=>{setActivityDateFrom("");setActivityDateTo("");loadActivity("","");}}
-                style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:13,fontWeight:600}}>Clear</button>
+                style={{padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.35)",fontSize:13,fontWeight:600}}>Clear</button>
             )}
             <button onClick={()=>loadActivity(activityDateFrom,activityDateTo)}
-              style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#475569",fontSize:13}}>↻ Refresh</button>
+              style={{padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.25)",fontSize:13}}>↻ Refresh</button>
           </div>
           {activityLoading?(
-            <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading activity...</div>
+            <div style={{color:"rgba(240,242,250,0.25)",textAlign:"center",padding:"40px 0"}}>Loading activity...</div>
           ):activityData.length===0?(
-            <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>No activity recorded in this period.</div>
+            <div style={{color:"rgba(240,242,250,0.25)",textAlign:"center",padding:"40px 0"}}>No activity recorded in this period.</div>
           ):(
-            <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
+            <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,overflow:"hidden"}}>
               <table style={{width:"100%",borderCollapse:"collapse"}}>
                 <thead>
-                  <tr style={{borderBottom:"1px solid #334155"}}>
+                  <tr style={{borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
                     {[["Staff Member",200],["Total Actions",130],["Last Active",170],["Top Action",null]].map(([h,minW])=>(
                       <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
                     ))}
@@ -4813,7 +4820,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                       <Fragment key={s.name}>
                         <tr style={{borderBottom:"1px solid #1e293b",background:isExpanded?"rgba(99,102,241,0.06)":i%2===0?"transparent":"rgba(255,255,255,0.02)",cursor:"pointer"}}
                           onClick={()=>setExpandedStaff(isExpanded?null:s.name)}>
-                          <td style={{padding:"12px 16px",fontWeight:600,color:"#f1f5f9",fontSize:13}}>
+                          <td style={{padding:"12px 16px",fontWeight:600,color:"#f0f2fa",fontSize:13}}>
                             <div style={{display:"flex",alignItems:"center",gap:10}}>
                               <div style={{width:34,height:34,borderRadius:"50%",background:"rgba(99,102,241,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#a5b4fc",flexShrink:0}}>
                                 {(s.name||"?").charAt(0).toUpperCase()}
@@ -4824,7 +4831,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                           <td style={{padding:"12px 16px"}}>
                             <span style={{background:"rgba(99,102,241,0.15)",color:"#a5b4fc",border:"1px solid rgba(99,102,241,0.3)",borderRadius:20,padding:"3px 14px",fontSize:13,fontWeight:700}}>{s.count}</span>
                           </td>
-                          <td style={{padding:"12px 16px",color:"#64748b",fontSize:12}}>{lastDate}</td>
+                          <td style={{padding:"12px 16px",color:"rgba(240,242,250,0.35)",fontSize:12}}>{lastDate}</td>
                           <td style={{padding:"12px 16px"}}>
                             {topAction&&(
                               <span style={{background:"rgba(16,185,129,0.1)",color:"#10b981",border:"1px solid rgba(16,185,129,0.25)",borderRadius:12,padding:"3px 10px",fontSize:11,fontWeight:600}}>
@@ -4832,18 +4839,18 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                               </span>
                             )}
                           </td>
-                          <td style={{padding:"12px 16px",color:"#475569",fontSize:12,textAlign:"right"}}>{isExpanded?"▲":"▼"}</td>
+                          <td style={{padding:"12px 16px",color:"rgba(240,242,250,0.25)",fontSize:12,textAlign:"right"}}>{isExpanded?"▲":"▼"}</td>
                         </tr>
                         {isExpanded&&(
-                          <tr style={{background:"rgba(99,102,241,0.04)",borderBottom:"1px solid #334155"}}>
+                          <tr style={{background:"rgba(99,102,241,0.04)",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
                             <td colSpan={5} style={{padding:"12px 20px 16px"}}>
                               <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>
                                 <div style={{flex:1,minWidth:200}}>
                                   <div style={{fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,marginBottom:8}}>ACTION BREAKDOWN</div>
                                   <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                                     {Object.entries(s.actions).sort((a,b)=>b[1]-a[1]).map(([action,count])=>(
-                                      <span key={action} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:8,padding:"4px 10px",fontSize:12,color:"#94a3b8"}}>
-                                        <span style={{color:"#f1f5f9",fontWeight:700}}>{count}×</span> {action}
+                                      <span key={action} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:8,padding:"4px 10px",fontSize:12,color:"rgba(240,242,250,0.45)"}}>
+                                        <span style={{color:"#f0f2fa",fontWeight:700}}>{count}×</span> {action}
                                       </span>
                                     ))}
                                   </div>
@@ -4853,7 +4860,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                     <div style={{fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,marginBottom:8}}>RECENT CLIENTS</div>
                                     <div style={{display:"flex",flexDirection:"column",gap:4}}>
                                       {s.recentClients.map(c=>(
-                                        <span key={c} style={{fontSize:12,color:"#94a3b8"}}>• {c}</span>
+                                        <span key={c} style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>• {c}</span>
                                       ))}
                                     </div>
                                   </div>
@@ -4877,8 +4884,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
         <>
           {/* Create Company Form */}
           {showCompanyForm&&(
-            <div style={{background:"#1c1f2e",border:"1px solid #10b981",borderRadius:12,padding:20,marginBottom:20}}>
-              <div style={{fontFamily:"Playfair Display,serif",fontSize:16,color:"#f1f5f9",fontWeight:700,marginBottom:16}}>Create New Company</div>
+            <div style={{background:"#111427",border:"1px solid #10b981",borderRadius:12,padding:20,marginBottom:20}}>
+              <div style={{fontSize:14,color:"#f0f2fa",fontWeight:700,marginBottom:16,letterSpacing:"-0.2px"}}>Create New Company</div>
               <form onSubmit={createCompany}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                   <div><label style={LBL}>Company Name *</label><input name="name" value={companyForm.name} onChange={onChangeCompany} placeholder="e.g. Sunrise Care Center" style={INP2}/></div>
@@ -4892,7 +4899,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   ✓ Default hours of operation will be set automatically. You can update them in Company Settings.
                 </div>
                 <button type="submit" disabled={saving}
-                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"#334155":"#10b981",color:saving?"#64748b":"#fff",fontWeight:700,fontSize:14}}>
+                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:14}}>
                   {saving?"Creating...":"Create Company"}
                 </button>
               </form>
@@ -4900,12 +4907,12 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           )}
 
           {/* Company List */}
-          {loading?<div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(()=>{
+          {loading?<div style={{color:"rgba(240,242,250,0.25)",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(()=>{
             const visibleCompanies=companies.filter(c=>showArchived?true:!c.archived_at);
             return(
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
                 {visibleCompanies.length===0?(
-                  <div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>
+                  <div style={{color:"rgba(240,242,250,0.25)",textAlign:"center",padding:"40px 0"}}>
                     {showArchived?"No archived companies.":" No companies yet. Create your first one."}
                   </div>
                 ):visibleCompanies.map((c)=>{
@@ -4914,7 +4921,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   const isArchived=!!c.archived_at;
                   const isSuperAdmin=currentUser?.role==="superadmin";
                   return(
-                    <div key={c.id} style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,opacity:isArchived?0.72:1,border:isArchived?"1px solid rgba(245,158,11,0.25)":"1px solid transparent"}}>
+                    <div key={c.id} style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:16,opacity:isArchived?0.72:1,border:isArchived?"1px solid rgba(245,158,11,0.25)":"1px solid transparent"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
                         <div style={{flex:1,minWidth:200}}>
                           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
@@ -4925,17 +4932,17 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                             )}
                             <div>
                               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                <div style={{fontFamily:"Playfair Display,serif",fontSize:17,fontWeight:700,color:isArchived?"#94a3b8":"#f1f5f9"}}>{c.name}</div>
+                                <div style={{fontSize:15,fontWeight:700,color:isArchived?"rgba(240,242,250,0.4)":"#f0f2fa",letterSpacing:"-0.2px"}}>{c.name}</div>
                                 {isArchived&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>ARCHIVED</span>}
                               </div>
-                              {c.mission_statement&&<div style={{fontSize:11,color:"#64748b",fontStyle:"italic",marginTop:2}}>"{c.mission_statement}"</div>}
+                              {c.mission_statement&&<div style={{fontSize:11,color:"rgba(240,242,250,0.35)",fontStyle:"italic",marginTop:2}}>"{c.mission_statement}"</div>}
                             </div>
                           </div>
                           <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8}}>
-                            {c.address&&<span style={{fontSize:12,color:"#94a3b8"}}>📍 {c.address}</span>}
-                            {c.phone&&<span style={{fontSize:12,color:"#94a3b8"}}>📞 {c.phone}</span>}
-                            {c.email&&<span style={{fontSize:12,color:"#94a3b8"}}>✉️ {c.email}</span>}
-                            {c.website&&<span style={{fontSize:12,color:"#94a3b8"}}>🌐 {c.website}</span>}
+                            {c.address&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>📍 {c.address}</span>}
+                            {c.phone&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>📞 {c.phone}</span>}
+                            {c.email&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>✉️ {c.email}</span>}
+                            {c.website&&<span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>🌐 {c.website}</span>}
                           </div>
                           {/* Superadmin action buttons */}
                           {isSuperAdmin&&(
@@ -4964,16 +4971,16 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                         <div style={{display:"flex",gap:8,flexShrink:0,flexWrap:"wrap"}}>
                           <div style={{textAlign:"center",background:"rgba(16,185,129,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
                             <div style={{fontSize:22,fontWeight:700,color:"#10b981"}}>{st.clients}</div>
-                            <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>CLIENTS</div>
-                            {st.archivedClients>0&&<div style={{fontSize:9,color:"#475569",marginTop:2}}>{st.archivedClients} archived</div>}
+                            <div style={{fontSize:10,color:"rgba(240,242,250,0.35)",fontWeight:600}}>CLIENTS</div>
+                            {st.archivedClients>0&&<div style={{fontSize:9,color:"rgba(240,242,250,0.25)",marginTop:2}}>{st.archivedClients} archived</div>}
                           </div>
                           <div style={{textAlign:"center",background:"rgba(99,102,241,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
                             <div style={{fontSize:22,fontWeight:700,color:"#6366f1"}}>{st.users}</div>
-                            <div style={{fontSize:10,color:"#64748b",fontWeight:600}}>USERS</div>
+                            <div style={{fontSize:10,color:"rgba(240,242,250,0.35)",fontWeight:600}}>USERS</div>
                           </div>
                           <div style={{textAlign:"center",background:"rgba(71,85,105,0.2)",borderRadius:10,padding:"10px 16px",minWidth:80}}>
-                            <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",lineHeight:1.3}}>{lastAct}</div>
-                            <div style={{fontSize:10,color:"#64748b",fontWeight:600,marginTop:4}}>LAST ACTIVITY</div>
+                            <div style={{fontSize:11,fontWeight:700,color:"rgba(240,242,250,0.45)",lineHeight:1.3}}>{lastAct}</div>
+                            <div style={{fontSize:10,color:"rgba(240,242,250,0.35)",fontWeight:600,marginTop:4}}>LAST ACTIVITY</div>
                           </div>
                         </div>
                       </div>
@@ -4987,15 +4994,15 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           {/* ── Archive Company Confirmation ── */}
           {archiveConfirmCompany&&(
             <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-              <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+              <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
                 <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>📦</div>
-                <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#f1f5f9",textAlign:"center",marginBottom:10}}>Archive Company</div>
-                <div style={{fontSize:13,color:"#94a3b8",textAlign:"center",lineHeight:1.7,marginBottom:28}}>
-                  Archive <strong style={{color:"#f1f5f9"}}>{archiveConfirmCompany.name}</strong>? It will be hidden from the company picker and all active lists. No data is deleted. You can restore it at any time.
+                <div style={{fontSize:16,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px",textAlign:"center",marginBottom:10}}>Archive Company</div>
+                <div style={{fontSize:13,color:"rgba(240,242,250,0.45)",textAlign:"center",lineHeight:1.7,marginBottom:28}}>
+                  Archive <strong style={{color:"#f0f2fa"}}>{archiveConfirmCompany.name}</strong>? It will be hidden from the company picker and all active lists. No data is deleted. You can restore it at any time.
                 </div>
                 <div style={{display:"flex",gap:10,justifyContent:"center"}}>
                   <button onClick={()=>setArchiveConfirmCompany(null)}
-                    style={{padding:"10px 28px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                    style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.45)",fontWeight:600,fontSize:14,cursor:"pointer"}}>
                     Cancel
                   </button>
                   <button disabled={saving} onClick={()=>archiveCompany(archiveConfirmCompany)}
@@ -5016,17 +5023,17 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
             const canConfirm=!hasData&&deleteCompanyInput===confirmWord;
             return(
               <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.80)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-                <div style={{background:"#1c1f2e",border:"1px solid #ef4444",borderRadius:16,padding:36,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+                <div style={{background:"#111427",border:"1px solid #ef4444",borderRadius:16,padding:36,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
                   <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>🗑</div>
-                  <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#ef4444",textAlign:"center",marginBottom:10}}>Delete Company Permanently</div>
+                  <div style={{fontSize:16,fontWeight:700,color:"#ef4444",textAlign:"center",marginBottom:10,letterSpacing:"-0.2px"}}>Delete Company Permanently</div>
                   {hasData?(
                     <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"14px 16px",marginBottom:20,fontSize:13,color:"#fca5a5",textAlign:"center",lineHeight:1.6}}>
                       ⛔ Cannot delete — <strong>{deleteConfirmCompany.name}</strong> still has{totalClients>0?` ${totalClients} client${totalClients!==1?"s":""}`:""}{totalClients>0&&st.users>0?" and":""}{st.users>0?` ${st.users} user${st.users!==1?"s":""}`:""} assigned. Remove them first.
                     </div>
                   ):(
-                    <div style={{fontSize:13,color:"#94a3b8",textAlign:"center",lineHeight:1.7,marginBottom:20}}>
-                      This action <strong style={{color:"#f1f5f9"}}>cannot be undone</strong>. All company settings and history will be permanently removed.<br/><br/>
-                      Type <strong style={{color:"#f1f5f9",fontFamily:"monospace"}}>{confirmWord}</strong> to confirm:
+                    <div style={{fontSize:13,color:"rgba(240,242,250,0.45)",textAlign:"center",lineHeight:1.7,marginBottom:20}}>
+                      This action <strong style={{color:"#f0f2fa"}}>cannot be undone</strong>. All company settings and history will be permanently removed.<br/><br/>
+                      Type <strong style={{color:"#f0f2fa",fontFamily:"monospace"}}>{confirmWord}</strong> to confirm:
                     </div>
                   )}
                   {!hasData&&(
@@ -5034,16 +5041,16 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                       value={deleteCompanyInput}
                       onChange={e=>setDeleteCompanyInput(e.target.value)}
                       placeholder={`Type "${confirmWord}" to confirm`}
-                      style={{width:"100%",padding:"10px 14px",borderRadius:9,border:"1px solid "+(canConfirm?"#ef4444":"#334155"),background:"#161927",color:"#f1f5f9",fontSize:14,marginBottom:20,outline:"none"}}
+                      style={{width:"100%",padding:"10px 14px",borderRadius:9,border:"1px solid "+(canConfirm?"#ef4444":"rgba(255,255,255,0.1)"),background:"#161927",color:"#f0f2fa",fontSize:14,marginBottom:20,outline:"none"}}
                     />
                   )}
                   <div style={{display:"flex",gap:10,justifyContent:"center"}}>
                     <button onClick={()=>{setDeleteConfirmCompany(null);setDeleteCompanyInput("");}}
-                      style={{padding:"10px 28px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                      style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.45)",fontWeight:600,fontSize:14,cursor:"pointer"}}>
                       Cancel
                     </button>
                     <button disabled={saving||!canConfirm} onClick={()=>deleteCompany(deleteConfirmCompany)}
-                      style={{padding:"10px 28px",borderRadius:9,border:"none",background:canConfirm?"#dc2626":"#334155",color:canConfirm?"#fff":"#475569",fontWeight:700,fontSize:14,cursor:canConfirm?"pointer":"not-allowed",opacity:saving?0.6:1}}>
+                      style={{padding:"10px 28px",borderRadius:9,border:"none",background:canConfirm?"#dc2626":"rgba(255,255,255,0.1)",color:canConfirm?"#fff":"rgba(240,242,250,0.25)",fontWeight:700,fontSize:14,cursor:canConfirm?"pointer":"not-allowed",opacity:saving?0.6:1}}>
                       {saving?"Deleting…":"Delete Permanently"}
                     </button>
                   </div>
@@ -5057,23 +5064,23 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
       {/* ═══════════════ CONFIRM ACTION MODAL ═══════════════ */}
       {pendingAction&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
             <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>
               {pendingAction.type==="deactivate"?"🔒":pendingAction.type==="role_change"?"🔄":"🏢"}
             </div>
-            <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#f1f5f9",textAlign:"center",marginBottom:10}}>
+            <div style={{fontSize:16,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px",textAlign:"center",marginBottom:10}}>
               {pendingAction.type==="deactivate"&&"Deactivate User"}
               {pendingAction.type==="role_change"&&"Change Role"}
               {pendingAction.type==="remove_company"&&"Remove from Company"}
             </div>
-            <div style={{fontSize:13,color:"#94a3b8",textAlign:"center",lineHeight:1.7,marginBottom:28}}>
-              {pendingAction.type==="deactivate"&&<>Deactivate <strong style={{color:"#f1f5f9"}}>{pendingAction.userName}</strong>? They will be unable to log in. Their data and history are preserved.</>}
-              {pendingAction.type==="role_change"&&<>Change <strong style={{color:"#f1f5f9"}}>{pendingAction.userName}</strong>'s role from <span style={{color:roleColor[pendingAction.meta.oldRole]||"#94a3b8",fontWeight:700}}>{pendingAction.meta.oldRole.replace(/_/g," ")}</span> → <span style={{color:roleColor[pendingAction.meta.newRole]||"#94a3b8",fontWeight:700}}>{pendingAction.meta.newRole.replace(/_/g," ")}</span>. Access changes take effect immediately.</>}
-              {pendingAction.type==="remove_company"&&<>Remove <strong style={{color:"#f1f5f9"}}>{pendingAction.userName}</strong> from <strong style={{color:"#f1f5f9"}}>{pendingAction.meta.companyName}</strong>? They will lose access to all clients in that company.</>}
+            <div style={{fontSize:13,color:"rgba(240,242,250,0.45)",textAlign:"center",lineHeight:1.7,marginBottom:28}}>
+              {pendingAction.type==="deactivate"&&<>Deactivate <strong style={{color:"#f0f2fa"}}>{pendingAction.userName}</strong>? They will be unable to log in. Their data and history are preserved.</>}
+              {pendingAction.type==="role_change"&&<>Change <strong style={{color:"#f0f2fa"}}>{pendingAction.userName}</strong>'s role from <span style={{color:roleColor[pendingAction.meta.oldRole]||"rgba(240,242,250,0.45)",fontWeight:700}}>{pendingAction.meta.oldRole.replace(/_/g," ")}</span> → <span style={{color:roleColor[pendingAction.meta.newRole]||"rgba(240,242,250,0.45)",fontWeight:700}}>{pendingAction.meta.newRole.replace(/_/g," ")}</span>. Access changes take effect immediately.</>}
+              {pendingAction.type==="remove_company"&&<>Remove <strong style={{color:"#f0f2fa"}}>{pendingAction.userName}</strong> from <strong style={{color:"#f0f2fa"}}>{pendingAction.meta.companyName}</strong>? They will lose access to all clients in that company.</>}
             </div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
               <button onClick={()=>setPendingAction(null)}
-                style={{padding:"10px 28px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.45)",fontWeight:600,fontSize:14,cursor:"pointer"}}>
                 Cancel
               </button>
               <button disabled={saving} onClick={async()=>{
@@ -5120,24 +5127,24 @@ function CompanyPicker({onSelect,currentUser,t}){
   };
 
   return(
-    <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{minHeight:"100vh",background:"#07091c",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{maxWidth:600,width:"100%"}}>
         <div style={{textAlign:"center",marginBottom:32}}>
           <div style={{fontSize:48,marginBottom:12}}>🏢</div>
-          <div style={{fontFamily:"Playfair Display,serif",fontSize:28,fontWeight:700,color:"#f1f5f9",marginBottom:6}}>Select Company</div>
-          <div style={{fontSize:13,color:"#64748b"}}>Choose which company to manage</div>
+          <div style={{fontSize:24,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.5px",marginBottom:6}}>Select Company</div>
+          <div style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>Choose which company to manage</div>
         </div>
         {loading?(
-          <div style={{textAlign:"center",color:"#475569",padding:"40px 0"}}>Loading companies...</div>
+          <div style={{textAlign:"center",color:"rgba(240,242,250,0.25)",padding:"40px 0"}}>Loading companies...</div>
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {companies.map(c=>{
               const roleForCompany=currentUser?.allRoles?.find(r=>r.company_id===c.id);
               const roleColors={superadmin:"#f59e0b",admin:"#6366f1",power_user:"#06b6d4",user:"#10b981"};
-              const rc=roleColors[roleForCompany?.role]||"#64748b";
+              const rc=roleColors[roleForCompany?.role]||"rgba(240,242,250,0.3)";
               return(
                 <button key={c.id} onClick={()=>handleSelect(c.id)}
-                  style={{display:"flex",alignItems:"center",gap:16,padding:"20px 24px",borderRadius:16,border:"1px solid #334155",background:"#1c1f2e",cursor:"pointer",textAlign:"left",width:"100%"}}>
+                  style={{display:"flex",alignItems:"center",gap:16,padding:"20px 24px",borderRadius:16,border:"1px solid rgba(255,255,255,0.08)",background:"#111427",cursor:"pointer",textAlign:"left",width:"100%"}}>
                   {c.logo_url?(
                     <div style={{background:"#fff",borderRadius:10,padding:"6px 8px",flexShrink:0}}>
                       <img src={c.logo_url} alt={c.name} style={{height:48,maxWidth:120,objectFit:"contain",display:"block"}}/>
@@ -5146,10 +5153,10 @@ function CompanyPicker({onSelect,currentUser,t}){
                     <div style={{width:64,height:64,borderRadius:12,background:"rgba(99,102,241,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🏥</div>
                   )}
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>{c.name}</div>
-                    {c.mission_statement&&<div style={{fontSize:12,color:"#64748b",fontStyle:"italic",marginBottom:6}}>"{c.mission_statement}"</div>}
+                    <div style={{fontSize:16,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px",marginBottom:4}}>{c.name}</div>
+                    {c.mission_statement&&<div style={{fontSize:12,color:"rgba(240,242,250,0.35)",fontStyle:"italic",marginBottom:6}}>"{c.mission_statement}"</div>}
                     <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
-                      {c.address&&<span style={{fontSize:11,color:"#475569"}}>📍 {c.address}</span>}
+                      {c.address&&<span style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>📍 {c.address}</span>}
                       {roleForCompany&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:rc+"20",color:rc,border:"1px solid "+rc+"40",textTransform:"capitalize"}}>{roleForCompany.role.replace("_"," ")}</span>}
                     </div>
                   </div>
@@ -5277,15 +5284,15 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
         <div>
-          <div style={{fontFamily:"Playfair Display,serif",fontSize:26,fontWeight:700,color:"#f1f5f9"}}>🔐 Permissions</div>
-          <div style={{fontSize:13,color:"#64748b",marginTop:4}}>Control what each role can do</div>
+          <div style={{fontSize:22,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.5px"}}>🔐 Permissions</div>
+          <div style={{fontSize:13,color:"rgba(240,242,250,0.35)",marginTop:4}}>Control what each role can do</div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
           {/* View toggle */}
-          <div style={{display:"flex",border:"1px solid #334155",borderRadius:8,overflow:"hidden"}}>
+          <div style={{display:"flex",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,overflow:"hidden"}}>
             {[["grid","⊞ Grid"],["table","☰ Table"]].map(([id,label])=>(
               <button key={id} onClick={()=>setViewMode(id)}
-                style={{padding:"7px 14px",border:"none",background:viewMode===id?"#6366f1":"transparent",color:viewMode===id?"#fff":"#64748b",fontWeight:600,fontSize:12}}>
+                style={{padding:"7px 14px",border:"none",background:viewMode===id?"#6366f1":"transparent",color:viewMode===id?"#fff":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:12}}>
                 {label}
               </button>
             ))}
@@ -5298,36 +5305,36 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
           </select>
           {/* Save */}
           <button onClick={saveChanges} disabled={saving||!hasPending}
-            style={{padding:"8px 20px",borderRadius:8,border:"none",background:hasPending?"#10b981":"#334155",color:hasPending?"#fff":"#64748b",fontWeight:700,fontSize:13}}>
+            style={{padding:"8px 20px",borderRadius:8,border:"none",background:hasPending?"#10b981":"rgba(255,255,255,0.1)",color:hasPending?"#fff":"rgba(240,242,250,0.3)",fontWeight:700,fontSize:13}}>
             {saving?"Saving...":`Save${hasPending?` (${Object.keys(pendingChanges).length})`:""}` }
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{display:"flex",gap:2,borderBottom:"1px solid #334155",marginBottom:20}}>
+      <div style={{display:"flex",gap:2,borderBottom:"1px solid rgba(255,255,255,0.07)",marginBottom:20}}>
         {[["global","🌐 Global Defaults"],["company","🏢 Company Override"]].map(([id,label])=>(
           <button key={id} onClick={()=>setTab(id)}
-            style={{padding:"9px 20px",border:"none",borderBottom:tab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:tab===id?"#6366f1":"#64748b",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
+            style={{padding:"9px 20px",border:"none",borderBottom:tab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:tab===id?"#6366f1":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
             {label}
           </button>
         ))}
       </div>
 
       {tab==="company"&&!activeCompanyId&&(
-        <div style={{padding:20,background:"#1c1f2e",borderRadius:12,color:"#64748b",textAlign:"center"}}>
+        <div style={{padding:20,background:"#111427",borderRadius:12,color:"rgba(240,242,250,0.35)",textAlign:"center"}}>
           Select a company first to manage company-specific overrides.
         </div>
       )}
 
-      {loading?<div style={{color:"#475569",textAlign:"center",padding:"40px 0"}}>Loading permissions...</div>:(
+      {loading?<div style={{color:"rgba(240,242,250,0.25)",textAlign:"center",padding:"40px 0"}}>Loading permissions...</div>:(
 
         <>
           {/* Pending changes banner */}
           {hasPending&&(
             <div style={{background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:10,padding:"10px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <span style={{fontSize:13,color:"#f59e0b",fontWeight:600}}>⚠️ {Object.keys(pendingChanges).length} unsaved change{Object.keys(pendingChanges).length!==1?"s":""}</span>
-              <button onClick={()=>setPendingChanges({})} style={{border:"none",background:"transparent",color:"#64748b",fontSize:12,fontWeight:600}}>Discard</button>
+              <button onClick={()=>setPendingChanges({})} style={{border:"none",background:"transparent",color:"rgba(240,242,250,0.35)",fontSize:12,fontWeight:600}}>Discard</button>
             </div>
           )}
 
@@ -5337,9 +5344,9 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
               <table style={{width:"100%",borderCollapse:"collapse",minWidth:600}}>
                 <thead>
                   <tr>
-                    <th style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,background:"#1c1f2e",borderRadius:"8px 0 0 0"}}>ACTION</th>
+                    <th style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,background:"#111427",borderRadius:"8px 0 0 0"}}>ACTION</th>
                     {ROLES.map(role=>(
-                      <th key={role} style={{padding:"12px 16px",textAlign:"center",fontSize:11,fontWeight:700,color:ROLE_COLORS[role],letterSpacing:0.5,background:"#1c1f2e"}}>
+                      <th key={role} style={{padding:"12px 16px",textAlign:"center",fontSize:11,fontWeight:700,color:ROLE_COLORS[role],letterSpacing:0.5,background:"#111427"}}>
                         {ROLE_LABELS[role].toUpperCase()}
                       </th>
                     ))}
@@ -5347,10 +5354,10 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
                 </thead>
                 <tbody>
                   {ACTIONS.map((action,i)=>(
-                    <tr key={action.key} style={{background:i%2===0?"#0f172a":"#1e293b"}}>
+                    <tr key={action.key} style={{background:i%2===0?"transparent":"rgba(255,255,255,0.03)"}}>
                       <td style={{padding:"14px 16px"}}>
-                        <div style={{fontWeight:600,color:"#f1f5f9",fontSize:13}}>{action.label}</div>
-                        <div style={{fontSize:11,color:"#475569",marginTop:2}}>{action.desc}</div>
+                        <div style={{fontWeight:600,color:"#f0f2fa",fontSize:13}}>{action.label}</div>
+                        <div style={{fontSize:11,color:"rgba(240,242,250,0.25)",marginTop:2}}>{action.desc}</div>
                       </td>
                       {ROLES.map(role=>{
                         const val=getPermValue(role,action.key,isCompanyTab&&!!activeCompanyId);
@@ -5364,7 +5371,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
                               onClick={()=>!isLocked&&togglePerm(role,action.key,isCompanyTab&&!!activeCompanyId)}
                               style={{
                                 width:44,height:24,borderRadius:12,border:"none",
-                                background:val?"#10b981":"#334155",
+                                background:val?"#10b981":"rgba(255,255,255,0.1)",
                                 position:"relative",cursor:isLocked?"not-allowed":"pointer",
                                 transition:"background 0.2s",
                                 boxShadow:isPending?"0 0 0 2px #f59e0b":"none",
@@ -5390,10 +5397,10 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
           {viewMode==="table"&&(
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               {ROLES.map(role=>(
-                <div key={role} style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,overflow:"hidden"}}>
-                  <div style={{padding:"12px 16px",borderBottom:"1px solid #334155",display:"flex",alignItems:"center",gap:10}}>
+                <div key={role} style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,overflow:"hidden"}}>
+                  <div style={{padding:"12px 16px",borderBottom:"1px solid rgba(255,255,255,0.07)",display:"flex",alignItems:"center",gap:10}}>
                     <span style={{fontWeight:700,color:ROLE_COLORS[role],fontSize:14}}>{ROLE_LABELS[role]}</span>
-                    <span style={{fontSize:11,color:"#475569"}}>
+                    <span style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>
                       {ACTIONS.filter(a=>getPermValue(role,a.key,isCompanyTab&&!!activeCompanyId)).length} of {ACTIONS.length} permissions enabled
                     </span>
                   </div>
@@ -5407,8 +5414,8 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
                         <div key={action.key}
                           style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 16px",borderBottom:i<ACTIONS.length-2?"1px solid #0f172a":"none",background:isPending?"rgba(245,158,11,0.05)":"transparent"}}>
                           <div>
-                            <div style={{fontSize:13,fontWeight:600,color:val?"#f1f5f9":"#475569"}}>{action.label}</div>
-                            <div style={{fontSize:11,color:"#475569"}}>{action.desc}</div>
+                            <div style={{fontSize:13,fontWeight:600,color:val?"#f1f5f9":"rgba(240,242,250,0.25)"}}>{action.label}</div>
+                            <div style={{fontSize:11,color:"rgba(240,242,250,0.25)"}}>{action.desc}</div>
                           </div>
                           <input type="checkbox" checked={val} disabled={isLocked}
                             onChange={()=>!isLocked&&togglePerm(role,action.key,isCompanyTab&&!!activeCompanyId)}
@@ -5697,24 +5704,24 @@ function ReportsView({clients,company,currentUser}){
 
   return(
     <div style={{maxWidth:780,margin:"0 auto"}}>
-      <div style={{fontFamily:"Playfair Display,serif",fontSize:26,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>Reports & Exports</div>
-      <div style={{fontSize:13,color:"#64748b",marginBottom:28}}>Generate PDF reports for clinical review, compliance, and operational planning.</div>
+      <div style={{fontSize:22,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.5px",marginBottom:4}}>Reports & Exports</div>
+      <div style={{fontSize:13,color:"rgba(240,242,250,0.35)",marginBottom:28}}>Generate PDF reports for clinical review, compliance, and operational planning.</div>
 
       {/* Report type selector */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:28}} className="g4">
         {REPORTS.map(r=>(
           <div key={r.id} onClick={()=>{setReport(r.id);setClientId("");}}
-            style={{background:"#1c1f2e",border:"2px solid "+(report===r.id?r.col:"#334155"),borderRadius:14,padding:"18px 16px",cursor:"pointer",transition:"border-color .2s",boxShadow:report===r.id?`0 0 0 1px ${r.col}35`:"6px 6px 14px rgba(0,0,0,.45),-3px -3px 8px rgba(255,255,255,.04)"}}>
+            style={{background:"#111427",border:"2px solid "+(report===r.id?r.col:"rgba(255,255,255,0.1)"),borderRadius:14,padding:"18px 16px",cursor:"pointer",transition:"border-color .2s",boxShadow:report===r.id?`0 0 0 1px ${r.col}35`:"6px 6px 14px rgba(0,0,0,.45),-3px -3px 8px rgba(255,255,255,.04)"}}>
             <div style={{fontSize:28,marginBottom:8}}>{r.icon}</div>
-            <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:5}}>{r.title}</div>
-            <div style={{fontSize:11,color:"#64748b",lineHeight:1.5}}>{r.desc}</div>
+            <div style={{fontWeight:700,fontSize:13,color:"#f0f2fa",marginBottom:5}}>{r.title}</div>
+            <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",lineHeight:1.5}}>{r.desc}</div>
           </div>
         ))}
       </div>
 
       {report&&(
-        <div style={{background:"#1c1f2e",border:"1px solid "+activeCol+"55",borderRadius:14,padding:24,boxShadow:"6px 6px 14px rgba(0,0,0,.5),-3px -3px 8px rgba(255,255,255,.04)"}}>
-          <div style={{fontWeight:700,color:"#f1f5f9",fontSize:15,marginBottom:18}}>
+        <div style={{background:"#111427",border:"1px solid "+activeCol+"55",borderRadius:14,padding:24,boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}>
+          <div style={{fontWeight:700,color:"#f0f2fa",fontSize:15,marginBottom:18}}>
             {REPORTS.find(r=>r.id===report)?.icon} Configure: {REPORTS.find(r=>r.id===report)?.title}
           </div>
           <div style={{display:"grid",gridTemplateColumns:needsClient?"1fr 1fr 1fr":"1fr 1fr",gap:12,marginBottom:16}}>
@@ -5752,10 +5759,10 @@ function ReportsView({clients,company,currentUser}){
 
           <div style={{display:"flex",alignItems:"center",gap:14}}>
             <button onClick={report==="monthly"?genMonthly:report==="mar"?genMAR:genCensus} disabled={!canGenerate}
-              style={{padding:"12px 28px",borderRadius:10,border:"none",background:canGenerate?activeCol:"#334155",color:canGenerate?"#fff":"#64748b",fontWeight:700,fontSize:14,cursor:canGenerate?"pointer":"not-allowed",transition:"background .2s"}}>
+              style={{padding:"12px 28px",borderRadius:10,border:"none",background:canGenerate?activeCol:"rgba(255,255,255,0.1)",color:canGenerate?"#fff":"rgba(240,242,250,0.3)",fontWeight:700,fontSize:14,cursor:canGenerate?"pointer":"not-allowed",transition:"background .2s"}}>
               {generating?"Generating PDF…":report==="monthly"?"📋 Generate Summary PDF":report==="mar"?"💊 Print MAR":"📊 Generate Census PDF"}
             </button>
-            {needsClient&&!clientId&&<span style={{fontSize:12,color:"#64748b"}}>← Select a client to continue</span>}
+            {needsClient&&!clientId&&<span style={{fontSize:12,color:"rgba(240,242,250,0.35)"}}>← Select a client to continue</span>}
           </div>
         </div>
       )}
@@ -5844,23 +5851,23 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
     {id:"sessions",label:"📱 Sessions"},
   ];
 
-  const INP3={background:"#0f172a",border:"1px solid #334155",borderRadius:8,padding:"10px 14px",color:"#f1f5f9",fontSize:14,width:"100%"};
-  const LB={fontSize:12,color:"#94a3b8",fontWeight:600,marginBottom:4,display:"block"};
+  const INP3={background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:8,padding:"10px 14px",color:"#f0f2fa",fontSize:14,width:"100%"};
+  const LB={fontSize:12,color:"rgba(240,242,250,0.45)",fontWeight:600,marginBottom:4,display:"block"};
 
   return(
     <div style={{maxWidth:640,margin:"0 auto",padding:"24px 16px"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24}}>
-        <div style={{fontFamily:"Playfair Display,serif",fontSize:22,fontWeight:700,color:"#f1f5f9"}}>My Profile</div>
-        <button onClick={onClose} style={{background:"none",border:"1px solid #334155",borderRadius:8,padding:"6px 14px",color:"#94a3b8",fontSize:13,fontWeight:600}}>← Back</button>
+        <div style={{fontSize:20,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.4px"}}>My Profile</div>
+        <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,padding:"6px 14px",color:"rgba(240,242,250,0.45)",fontSize:13,fontWeight:600}}>← Back</button>
       </div>
 
       {msg&&<div style={{padding:"10px 14px",borderRadius:8,marginBottom:16,background:msg.type==="error"?"rgba(239,68,68,0.1)":"rgba(34,197,94,0.1)",border:`1px solid ${msg.type==="error"?"#ef4444":"#22c55e"}`,color:msg.type==="error"?"#ef4444":"#22c55e",fontSize:13}}>{msg.text}</div>}
 
       {/* Tabs */}
-      <div style={{display:"flex",gap:4,marginBottom:20,background:"#1c1f2e",borderRadius:10,padding:4}}>
+      <div style={{display:"flex",gap:4,marginBottom:20,background:"#111427",borderRadius:10,padding:4}}>
         {TABS.map(tb=>(
           <button key={tb.id} onClick={()=>{setTab(tb.id);setMsg(null);}}
-            style={{flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:tab===tb.id?"#6366f1":"transparent",color:tab===tb.id?"#fff":"#64748b",fontWeight:600,fontSize:12,cursor:"pointer"}}>
+            style={{flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:tab===tb.id?"#6366f1":"transparent",color:tab===tb.id?"#fff":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:12,cursor:"pointer"}}>
             {tb.label}
           </button>
         ))}
@@ -5868,7 +5875,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Profile Tab */}
       {tab==="profile"&&(
-        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+        <div style={{background:"#111427",borderRadius:12,padding:24,border:"1px solid rgba(255,255,255,0.08)"}}>
           {/* Avatar */}
           <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
             <div style={{position:"relative"}}>
@@ -5882,7 +5889,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
                 {uploading?"Uploading...":"📷 Change Photo"}
                 <input type="file" accept="image/*" onChange={uploadAvatar} style={{display:"none"}} disabled={uploading}/>
               </label>
-              <div style={{fontSize:11,color:"#64748b",marginTop:4}}>Max 2MB · JPG, PNG, GIF</div>
+              <div style={{fontSize:11,color:"rgba(240,242,250,0.35)",marginTop:4}}>Max 2MB · JPG, PNG, GIF</div>
             </div>
           </div>
           {/* Form */}
@@ -5892,7 +5899,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
               <input style={INP3} value={form.displayName} onChange={e=>setForm(f=>({...f,displayName:e.target.value}))} placeholder="Your full name"/>
             </div>
             <div>
-              <label style={LB}>Username <span style={{color:"#475569"}}>(optional — used for login)</span></label>
+              <label style={LB}>Username <span style={{color:"rgba(240,242,250,0.25)"}}>(optional — used for login)</span></label>
               <input style={INP3} value={form.username} onChange={e=>setForm(f=>({...f,username:e.target.value}))} placeholder="e.g. maria_j"/>
             </div>
             <div>
@@ -5912,7 +5919,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Password Tab */}
       {tab==="password"&&(
-        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+        <div style={{background:"#111427",borderRadius:12,padding:24,border:"1px solid rgba(255,255,255,0.08)"}}>
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             <div>
               <label style={LB}>New Password</label>
@@ -5936,17 +5943,17 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Login History Tab */}
       {tab==="history"&&(
-        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
+        <div style={{background:"#111427",borderRadius:12,padding:24,border:"1px solid rgba(255,255,255,0.08)"}}>
           {loginHistory.length===0?
-            <div style={{color:"#475569",textAlign:"center",padding:"24px 0"}}>No login history yet</div>:
+            <div style={{color:"rgba(240,242,250,0.25)",textAlign:"center",padding:"24px 0"}}>No login history yet</div>:
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {loginHistory.map((h,i)=>(
-                <div key={i} style={{background:"#0f172a",borderRadius:8,padding:"12px 14px",border:"1px solid #334155"}}>
+                <div key={i} style={{background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"12px 14px",border:"1px solid rgba(255,255,255,0.08)"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                     <span style={{color:"#22c55e",fontSize:13,fontWeight:600}}>✓ Login</span>
-                    <span style={{color:"#475569",fontSize:12}}>{new Date(h.at).toLocaleString()}</span>
+                    <span style={{color:"rgba(240,242,250,0.25)",fontSize:12}}>{new Date(h.at).toLocaleString()}</span>
                   </div>
-                  <div style={{fontSize:12,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h.device}</div>
+                  <div style={{fontSize:12,color:"rgba(240,242,250,0.35)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h.device}</div>
                 </div>
               ))}
             </div>
@@ -5956,12 +5963,12 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
 
       {/* Sessions Tab */}
       {tab==="sessions"&&(
-        <div style={{background:"#1c1f2e",borderRadius:12,padding:24,border:"1px solid #334155"}}>
-          <div style={{background:"#0f172a",borderRadius:8,padding:"14px",border:"1px solid #22c55e",marginBottom:16}}>
+        <div style={{background:"#111427",borderRadius:12,padding:24,border:"1px solid rgba(255,255,255,0.08)"}}>
+          <div style={{background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"14px",border:"1px solid #22c55e",marginBottom:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{color:"#22c55e",fontWeight:600,fontSize:13}}>● Current Session</div>
-                <div style={{color:"#64748b",fontSize:12,marginTop:2}}>{navigator.userAgent.slice(0,60)}...</div>
+                <div style={{color:"rgba(240,242,250,0.35)",fontSize:12,marginTop:2}}>{navigator.userAgent.slice(0,60)}...</div>
               </div>
               <span style={{background:"rgba(34,197,94,0.1)",border:"1px solid #22c55e",borderRadius:6,padding:"2px 8px",color:"#22c55e",fontSize:11,fontWeight:600}}>Active</span>
             </div>
@@ -5969,7 +5976,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
           <button onClick={signOutAll} style={{width:"100%",background:"rgba(239,68,68,0.1)",border:"1px solid #ef4444",borderRadius:8,padding:"10px",color:"#ef4444",fontWeight:700,fontSize:14,cursor:"pointer"}}>
             🚪 Sign Out All Devices
           </button>
-          <div style={{fontSize:11,color:"#475569",textAlign:"center",marginTop:8}}>This will sign you out everywhere immediately</div>
+          <div style={{fontSize:11,color:"rgba(240,242,250,0.25)",textAlign:"center",marginTop:8}}>This will sign you out everywhere immediately</div>
         </div>
       )}
     </div>
@@ -6001,43 +6008,47 @@ function ForcePasswordChange({currentUser,onDone}){
   };
 
   return(
-    <div style={{position:"fixed",inset:0,zIndex:9998,background:"#1c1f2e",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div style={{position:"fixed",inset:0,zIndex:9998,background:"#111427",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{width:"100%",maxWidth:420}}>
         {/* Header */}
         <div style={{textAlign:"center",marginBottom:32}}>
-          <div style={{fontSize:48,marginBottom:12}}>🔑</div>
-          <div style={{fontFamily:"Playfair Display,serif",fontSize:24,fontWeight:700,color:"#f1f5f9",marginBottom:6}}>Set your password</div>
-          <div style={{fontSize:13,color:"#64748b",lineHeight:1.6}}>
-            Welcome, <strong style={{color:"#94a3b8"}}>{currentUser.displayName||currentUser.email}</strong>.<br/>
+          <div style={{width:48,height:48,borderRadius:14,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",boxShadow:"0 8px 20px rgba(99,102,241,0.35)"}}>
+            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <rect x={3} y={11} width={18} height={11} rx={2} ry={2}/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div style={{fontSize:22,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.5px",marginBottom:6}}>Set your password</div>
+          <div style={{fontSize:13,color:"rgba(240,242,250,0.35)",lineHeight:1.6}}>
+            Welcome, <strong style={{color:"rgba(240,242,250,0.45)"}}>{currentUser.displayName||currentUser.email}</strong>.<br/>
             Your account was created with a temporary password.<br/>
             Please choose a new password before continuing.
           </div>
         </div>
-        <div style={{background:"#161929",border:"1px solid #334155",borderRadius:14,padding:28}}>
+        <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:28}}>
           {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:16,color:"#ef4444",fontSize:13}}>{error}</div>}
           <div style={{marginBottom:16}}>
-            <label style={{display:"block",fontSize:11,fontWeight:700,color:"#64748b",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"}}>New Password</label>
+            <label style={{display:"block",fontSize:11,fontWeight:700,color:"rgba(240,242,250,0.35)",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"}}>New Password</label>
             <input type="password" value={pw} onChange={e=>setPw(e.target.value)}
               placeholder="Min. 10 characters"
-              style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid #334155",background:"#0f172a",color:"#e2e8f0",fontSize:14}}
+              style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.03)",color:"#f0f2fa",fontSize:14}}
               onKeyDown={e=>e.key==="Enter"&&document.getElementById("fpc-confirm")?.focus()}/>
             <PasswordStrengthMeter password={pw}/>
           </div>
           <div style={{marginBottom:20}}>
-            <label style={{display:"block",fontSize:11,fontWeight:700,color:"#64748b",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"}}>Confirm Password</label>
+            <label style={{display:"block",fontSize:11,fontWeight:700,color:"rgba(240,242,250,0.35)",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"}}>Confirm Password</label>
             <input id="fpc-confirm" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)}
               placeholder="Repeat new password"
-              style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid "+(confirm&&pw&&confirm!==pw?"#ef4444":"#334155"),background:"#0f172a",color:"#e2e8f0",fontSize:14}}
+              style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid "+(confirm&&pw&&confirm!==pw?"#ef4444":"rgba(255,255,255,0.1)"),background:"rgba(255,255,255,0.03)",color:"#f0f2fa",fontSize:14}}
               onKeyDown={e=>e.key==="Enter"&&handle()}/>
             {confirm&&pw&&confirm!==pw&&<div style={{fontSize:11,color:"#ef4444",marginTop:5}}>⚠ Passwords do not match</div>}
           </div>
           <button onClick={handle} disabled={!canSubmit}
-            style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:canSubmit?"#6366f1":"#334155",color:canSubmit?"#fff":"#64748b",fontWeight:700,fontSize:15,cursor:canSubmit?"pointer":"not-allowed",transition:"background 0.2s"}}>
+            style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:canSubmit?"linear-gradient(135deg,#6366f1,#8b5cf6)":"rgba(255,255,255,0.08)",color:canSubmit?"#fff":"rgba(240,242,250,0.3)",fontWeight:700,fontSize:15,cursor:canSubmit?"pointer":"not-allowed",boxShadow:canSubmit?"0 4px 14px rgba(99,102,241,0.35)":"none",transition:"background 0.2s"}}>
             {saving?"Setting password…":"Set Password & Continue →"}
           </button>
           <div style={{textAlign:"center",marginTop:14}}>
             <button onClick={async()=>{await supabase.auth.signOut();window.location.reload();}}
-              style={{background:"none",border:"none",color:"#475569",fontSize:12,cursor:"pointer",textDecoration:"underline"}}>
+              style={{background:"none",border:"none",color:"rgba(240,242,250,0.25)",fontSize:12,cursor:"pointer",textDecoration:"underline"}}>
               Sign out instead
             </button>
           </div>
@@ -6052,11 +6063,11 @@ function SessionTimeoutModal({countdown,onStayLoggedIn,onLogoutNow}){
   const col=countdown<=10?"#ef4444":countdown<=30?"#f59e0b":"#06b6d4";
   return(
     <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>
-      <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:18,padding:"36px 40px",maxWidth:400,width:"90%",textAlign:"center",boxShadow:"0 24px 64px rgba(0,0,0,0.7)"}}>
+      <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:18,padding:"36px 40px",maxWidth:400,width:"90%",textAlign:"center",boxShadow:"0 24px 64px rgba(0,0,0,0.7)"}}>
         {/* Countdown ring */}
         <div style={{position:"relative",width:96,height:96,margin:"0 auto 20px"}}>
           <svg width={96} height={96} style={{transform:"rotate(-90deg)"}}>
-            <circle cx={48} cy={48} r={42} fill="none" stroke="#1e293b" strokeWidth={8}/>
+            <circle cx={48} cy={48} r={42} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={8}/>
             <circle cx={48} cy={48} r={42} fill="none" stroke={col} strokeWidth={8}
               strokeDasharray={2*Math.PI*42}
               strokeDashoffset={2*Math.PI*42*(1-pct/100)}
@@ -6065,14 +6076,14 @@ function SessionTimeoutModal({countdown,onStayLoggedIn,onLogoutNow}){
           </svg>
           <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:26,color:col}}>{countdown}</div>
         </div>
-        <div style={{fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:8}}>Still there?</div>
-        <div style={{fontSize:13,color:"#64748b",marginBottom:28,lineHeight:1.6}}>
+        <div style={{fontSize:20,fontWeight:700,color:"#f0f2fa",marginBottom:8}}>Still there?</div>
+        <div style={{fontSize:13,color:"rgba(240,242,250,0.35)",marginBottom:28,lineHeight:1.6}}>
           You've been inactive for 30 minutes.<br/>
           You'll be signed out automatically in <strong style={{color:col}}>{countdown} second{countdown!==1?"s":""}</strong>.
         </div>
         <div style={{display:"flex",gap:12,justifyContent:"center"}}>
           <button onClick={onLogoutNow}
-            style={{padding:"10px 20px",borderRadius:9,border:"1px solid #475569",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:13,cursor:"pointer"}}>
+            style={{padding:"10px 20px",borderRadius:9,border:"1px solid #475569",background:"transparent",color:"rgba(240,242,250,0.45)",fontWeight:600,fontSize:13,cursor:"pointer"}}>
             Sign out now
           </button>
           <button onClick={onStayLoggedIn}
@@ -6401,7 +6412,7 @@ export default function App(){
     :[]
   ,[clients,search,searchMode]);
 
-  if(!authChecked)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#1c1f2e",color:"#6366f1",fontSize:18,fontFamily:"serif"}}>Loading...</div>;
+  if(!authChecked)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#111427",color:"#6366f1",fontSize:18,fontFamily:"serif"}}>Loading...</div>;
   if(!currentUser)return lang?<Login onLogin={setCurrentUser} t={t}/>:<LangPicker onSelect={selectLang}/>;
   if(!lang)return <LangPicker onSelect={selectLang}/>;
   // Force password change — must complete before accessing any part of the app
@@ -6418,139 +6429,181 @@ export default function App(){
   }
 
   return(
-    <div style={{minHeight:"100vh",background:"#1c1f2e",fontFamily:"Inter,Helvetica Neue,sans-serif"}}>
+    <div style={{minHeight:"100vh",background:"#07091c",fontFamily:"'DM Sans',system-ui,sans-serif"}}>
       <style dangerouslySetInnerHTML={{__html:GCSS}}/>
       {/* ── Session timeout warning overlay ── */}
       {idleWarning&&<SessionTimeoutModal countdown={idleCountdown} onStayLoggedIn={stayLoggedIn} onLogoutNow={handleLogout}/>}
       {appMsg&&(
-        <div style={{position:"fixed",top:20,right:24,zIndex:1200,padding:"12px 20px",borderRadius:10,background:appMsg.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)",animation:"slideIn 0.2s ease"}}>
-          {appMsg.type==="success"?"✓ ":"✗ "}{appMsg.text}
+        <div style={{position:"fixed",top:20,right:24,zIndex:1200,padding:"11px 18px",borderRadius:10,background:appMsg.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:13,fontWeight:600,boxShadow:"0 4px 24px rgba(0,0,0,0.5)",animation:"slideIn 0.2s ease",display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:14}}>{appMsg.type==="success"?"✓":"✗"}</span>{appMsg.text}
         </div>
       )}
       <div className="mob-hdr">
-        <button onClick={()=>setSidebarOpen(o=>!o)} style={{background:"none",border:"none",color:"#94a3b8",fontSize:22}}>=</button>
-        <span style={{fontFamily:"Playfair Display,serif",fontSize:16,fontWeight:700,color:"#f1f5f9"}}>CareManager</span>
-        {can(currentUser.role,"add")&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} style={{background:"#6366f1",border:"none",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:700}}>+</button>}
+        <button onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>☰</button>
+        <span style={{fontSize:15,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px"}}>CareManager</span>
+        {can(currentUser.role,"add")&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" style={{background:"linear-gradient(135deg,#4f6ef7,#6366f1)",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
       </div>
       <div className={"overlay"+(sidebarOpen?" show":"")} onClick={()=>setSidebarOpen(false)}/>
       <div style={{display:"flex",minHeight:"100vh"}}>
-        <div className={"sidebar"+(sidebarOpen?" open":"")} style={{width:280,background:"#1a1d2b",boxShadow:"6px 0 18px rgba(0,0,0,0.45)",display:"flex",flexDirection:"column",flexShrink:0}}>
-          <div style={{padding:"20px 20px 14px",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
-            <div style={{fontFamily:"Playfair Display,serif",fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:2}}>CareManager</div>
-            <div style={{fontSize:11,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:12}}>Elder Care Platform</div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
-                {currentUser.avatar_url?<img src={currentUser.avatar_url} alt="avatar" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",border:"2px solid #6366f1"}}/>:<div style={{width:32,height:32,borderRadius:"50%",background:"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff"}}>{(currentUser.displayName||"?")[0].toUpperCase()}</div>}
-                <div>
-                  <div style={{fontSize:13,fontWeight:600,color:"#f1f5f9"}}>{currentUser.displayName}</div>
-                  <div style={{fontSize:11,color:currentUser.role==="superadmin"?"#f59e0b":currentUser.role==="admin"?"#a78bfa":currentUser.role==="power_user"?"#34d399":"#64748b"}}>{currentUser.role==="superadmin"?"Super Admin":currentUser.role==="admin"?"Admin":currentUser.role==="power_user"?"Power User":currentUser.role==="inactive"?"Inactive":"Staff"}</div>
-                </div>
+        <div className={"sidebar"+(sidebarOpen?" open":"")} style={{width:224,background:"#0c0f1f",borderRight:"1px solid rgba(255,255,255,0.07)",display:"flex",flexDirection:"column",flexShrink:0}}>
+
+          {/* ── Brand ── */}
+          <div style={{padding:"16px 14px 12px",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+              <div style={{width:34,height:34,borderRadius:10,background:"linear-gradient(145deg,#4f6ef7,#7c3aed)",boxShadow:"0 0 0 1px rgba(99,102,241,0.3),0 8px 20px rgba(99,102,241,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2.5v11M3 7.5h10" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
               </div>
-              <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                {(()=>{const notifs=notifications;const unread=notifs.filter(n=>!readNotifIds.has(n.id)).length;return(
-                  <button onClick={()=>setNotifOpen(o=>!o)} title="Notifications (b)" style={{position:"relative",background:"none",border:"1px solid #334155",borderRadius:7,padding:"4px 9px",color:"#64748b",fontSize:14}}>
-                    🔔{unread>0&&<span style={{position:"absolute",top:-5,right:-5,background:"#ef4444",color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{unread>9?"9+":unread}</span>}
-                  </button>
-                );})()}
-                <button onClick={()=>setDarkMode(d=>!d)} title="Toggle light/dark" style={{background:"none",border:"1px solid #334155",borderRadius:7,padding:"4px 9px",color:"#64748b",fontSize:14}}>{darkMode?"☀️":"🌙"}</button>
-                <button onClick={handleLogout} style={{background:"none",border:"1px solid #334155",borderRadius:7,padding:"4px 10px",color:"#64748b",fontSize:11,fontWeight:600}}>{t.signOut}</button>
+              <div>
+                <div style={{fontSize:14,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px",lineHeight:1.2}}>CareManager</div>
+                <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.25)",marginTop:1}}>{SUPABASE_URL.includes("kpwzeawgrqdsezflvjkm")?"staging":"production"}</div>
               </div>
             </div>
+            {/* Company chip */}
+            {company&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:8}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:"#34d399",boxShadow:"0 0 6px #34d399",flexShrink:0}}/>
+              <span style={{fontSize:11,fontWeight:500,color:"rgba(240,242,250,0.55)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{company.name||"Company"}</span>
+            </div>}
           </div>
+
+          {/* ── Company logo (optional) ── */}
           {company?.logo_url&&(
-            <div style={{padding:"14px 20px 10px",borderBottom:"1px solid #1e293b",textAlign:"center",background:"#1c1f2e"}}>
-              <div style={{background:"#fff",borderRadius:12,padding:"10px 12px",display:"inline-block",boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}}>
-                <img src={company.logo_url} alt={company.name||"Company logo"} style={{maxHeight:72,maxWidth:200,objectFit:"contain",display:"block"}}/>
+            <div style={{padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,0.07)",display:"flex",justifyContent:"center"}}>
+              <div style={{background:"#fff",borderRadius:8,padding:"6px 10px",display:"inline-block"}}>
+                <img src={company.logo_url} alt={company.name||"Company logo"} style={{maxHeight:40,maxWidth:140,objectFit:"contain",display:"block"}}/>
               </div>
-              {company.name&&<div style={{fontSize:11,color:"#64748b",marginTop:8,fontWeight:600,letterSpacing:0.3}}>{company.name}</div>}
-              {company.mission_statement&&<div style={{fontSize:10,color:"#475569",marginTop:2,fontStyle:"italic",lineHeight:1.4,padding:"0 4px"}}>"{company.mission_statement}"</div>}
             </div>
           )}
+
+          {/* ── Switch Company ── */}
           {(currentUser?.allRoles||[]).length>1&&(
-            <div style={{padding:"8px 20px",borderBottom:"1px solid #334155",textAlign:"center"}}>
+            <div style={{padding:"8px 14px",borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
               <button onClick={()=>{setSelectedCompany(null);setCompany(null);setClients([]);setSelected(null);setView("dashboard");}}
-                style={{padding:"5px 0",borderRadius:20,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600,width:"100%"}}>
-                🔄 Switch Company
+                style={{width:"100%",padding:"6px 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.07)",background:"rgba(255,255,255,0.03)",color:"rgba(240,242,250,0.45)",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"left"}}>
+                ↔ Switch Company
               </button>
             </div>
           )}
-          <div style={{padding:"12px 12px 6px"}}>
-            <button onClick={()=>{setView("dashboard");setSelected(null);setSidebarOpen(false);}}
-              style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="dashboard"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="dashboard"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="dashboard"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
-              Dashboard
-            </button>
-            {can(currentUser.role,"audit")&&(
-              <button onClick={()=>{setView("audit");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="audit"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="audit"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="audit"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
-                {t.auditTrail}
-              </button>
-            )}
-            <button onClick={()=>{setView("reports");setSelected(null);setSidebarOpen(false);}}
-              style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="reports"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="reports"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="reports"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
-              📊 Reports
-            </button>
-            {can(currentUser.role,"company")&&(
-              <button onClick={()=>{setView("company");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="company"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="company"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="company"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
-                🏢 Company Settings
-              </button>
-            )}
-            {can(currentUser.role,"users")&&(
-              <button onClick={()=>{setView("users");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="users"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="users"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="users"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
-                👥 User Management
-              </button>
-            )}
-            {can(currentUser.role,"permissions")&&(
-              <button onClick={()=>{setView("permissions");setSelected(null);setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px 12px",borderRadius:9,border:"none",background:view==="permissions"?"rgba(99,102,241,0.15)":"transparent",boxShadow:view==="permissions"?"inset 3px 3px 7px rgba(0,0,0,0.4), inset -1px -1px 4px rgba(255,255,255,0.03)":"none",color:view==="permissions"?"#7dd3fc":"#64748b",fontWeight:600,fontSize:13,textAlign:"left",marginBottom:2}}>
-                🔐 Permissions
-              </button>
+
+          {/* ── Nav ── */}
+          <div style={{padding:"8px 8px 4px",flex:"0 0 auto"}}>
+            {/* MAIN group */}
+            <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"8px 0 4px"}}>Main</div>
+            {(()=>{
+              const navBtn=(v,label,icon)=>{
+                const active=view===v&&!selected;
+                return(
+                  <button key={v} onClick={()=>{setView(v);setSelected(null);setSidebarOpen(false);}}
+                    className="nav-item"
+                    style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:active?"rgba(99,102,241,0.12)":"transparent",color:active?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
+                    {active&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
+                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">{icon}</svg>
+                    {label}
+                  </button>
+                );
+              };
+              return navBtn("dashboard","Dashboard",'<rect x="1" y="1" width="5" height="5" rx="1.5"/><rect x="9" y="1" width="5" height="5" rx="1.5"/><rect x="1" y="9" width="5" height="5" rx="1.5"/><rect x="9" y="9" width="5" height="5" rx="1.5"/>');
+            })()}
+            {/* MANAGEMENT group */}
+            <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Management</div>
+            {(()=>{
+              const navBtn=(v,label,pathD,guard=true)=>{
+                if(!guard)return null;
+                const active=view===v;
+                return(
+                  <button key={v} onClick={()=>{setView(v);setSelected(null);setSidebarOpen(false);}}
+                    className="nav-item"
+                    style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:active?"rgba(99,102,241,0.12)":"transparent",color:active?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
+                    {active&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
+                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true" dangerouslySetInnerHTML={{__html:pathD}}/>
+                    {label}
+                  </button>
+                );
+              };
+              return(<>
+                {navBtn("reports","Reports",'<rect x="2" y="1" width="11" height="13" rx="1.5"/><line x1="4.5" y1="5" x2="10.5" y2="5"/><line x1="4.5" y1="8" x2="10.5" y2="8"/><line x1="4.5" y1="11" x2="8" y2="11"/>')}
+                {navBtn("users","Staff / Users",'<circle cx="6" cy="5" r="3"/><path d="M1 13c0-2.8 2.2-5 5-5"/><circle cx="11.5" cy="9" r="2.5"/><line x1="11.5" y1="11.5" x2="11.5" y2="14"/><line x1="10" y1="12.5" x2="13" y2="12.5"/>',can(currentUser.role,"users"))}
+                {navBtn("audit",t.auditTrail,'<circle cx="7.5" cy="7.5" r="6"/><polyline points="7.5,4.5 7.5,7.5 9.5,9.5"/>',can(currentUser.role,"audit"))}
+              </>);
+            })()}
+            {/* ADMIN group — only if at least one admin view accessible */}
+            {(can(currentUser.role,"company")||can(currentUser.role,"permissions"))&&(
+              <>
+                <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Admin</div>
+                {can(currentUser.role,"company")&&(
+                  <button onClick={()=>{setView("company");setSelected(null);setSidebarOpen(false);}}
+                    className="nav-item"
+                    style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:view==="company"?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:view==="company"?"rgba(99,102,241,0.12)":"transparent",color:view==="company"?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
+                    {view==="company"&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
+                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="2" y="5" width="11" height="9" rx="1"/><polyline points="5,5 5,2.5 10,2.5 10,5"/><line x1="7.5" y1="8" x2="7.5" y2="11"/><line x1="6" y1="9.5" x2="9" y2="9.5"/></svg>
+                    Company
+                  </button>
+                )}
+                {can(currentUser.role,"permissions")&&(
+                  <button onClick={()=>{setView("permissions");setSelected(null);setSidebarOpen(false);}}
+                    className="nav-item"
+                    style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:view==="permissions"?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:view==="permissions"?"rgba(99,102,241,0.12)":"transparent",color:view==="permissions"?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
+                    {view==="permissions"&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
+                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="4" y="6" width="7" height="7" rx="1"/><path d="M5.5 6V4.5a2 2 0 014 0V6"/></svg>
+                    Permissions
+                  </button>
+                )}
+              </>
             )}
           </div>
-          <div style={{padding:"0 12px 8px"}}>
-            <div style={{display:"flex",gap:4,marginBottom:6}}>
+
+          {/* ── Search + filters ── */}
+          <div style={{padding:"8px 8px 4px",borderTop:"1px solid rgba(255,255,255,0.07)"}}>
+            <div style={{display:"flex",gap:3,marginBottom:6}}>
               {[["clients","Clients"],["notes","Notes"]].map(([mode,label])=>(
                 <button key={mode} onClick={()=>{setSearchMode(mode);setSearch("");}}
-                  style={{flex:1,padding:"5px",borderRadius:7,border:"none",background:searchMode===mode?"rgba(99,102,241,0.15)":"#0f172a",color:searchMode===mode?"#6366f1":"#475569",fontSize:11,fontWeight:700}}>
+                  style={{flex:1,padding:"5px",borderRadius:7,border:"none",background:searchMode===mode?"rgba(99,102,241,0.15)":"rgba(255,255,255,0.03)",color:searchMode===mode?"#a5b4fc":"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>
                   {label}
                 </button>
               ))}
             </div>
-            <input id="cm-search" style={{...INP,background:"#0f172a",borderColor:"#1e293b"}} placeholder={searchMode==="notes"?t.searchNotes:t.search} value={search} onChange={e=>setSearch(e.target.value)}/>
+            <input id="cm-search" aria-label="Search clients" style={{width:"100%",height:32,padding:"0 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.07)",background:"rgba(255,255,255,0.04)",color:"rgba(240,242,250,0.6)",fontSize:12,fontFamily:"'DM Sans',sans-serif"}} placeholder={searchMode==="notes"?t.searchNotes:t.search} value={search} onChange={e=>setSearch(e.target.value)}/>
             {currentUser?.role==="superadmin"&&(
               <button onClick={()=>{setSearchAllCompanies(s=>!s);setSearch("");}}
-                style={{width:"100%",marginTop:6,padding:"5px",borderRadius:7,border:"1px solid "+(searchAllCompanies?"#6366f1":"#334155"),background:searchAllCompanies?"rgba(99,102,241,0.12)":"transparent",color:searchAllCompanies?"#6366f1":"#475569",fontSize:10,fontWeight:700}}>
-                🌐 {searchAllCompanies?"All Companies (on)":"Search All Companies"}
+                style={{width:"100%",marginTop:5,padding:"4px",borderRadius:7,border:"1px solid "+(searchAllCompanies?"rgba(99,102,241,0.4)":"rgba(255,255,255,0.07)"),background:searchAllCompanies?"rgba(99,102,241,0.12)":"transparent",color:searchAllCompanies?"#a5b4fc":"rgba(240,242,250,0.3)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
+                {searchAllCompanies?"ALL COMPANIES (ON)":"SEARCH ALL COMPANIES"}
               </button>
             )}
           </div>
-          <div style={{padding:"0 12px 4px",display:"flex",gap:3,flexWrap:"wrap"}}>
+
+          {/* ── Status filter ── */}
+          <div style={{padding:"0 8px 4px",display:"flex",gap:3,flexWrap:"wrap"}}>
             {["Active","Inactive","Discharged","All","Archived"].map(s=>{
-              const cols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6",All:"#6366f1",Archived:"#ef4444"};
-              const active=statusFilter===s;
+              const cols={Active:"#34d399",Inactive:"#fbbf24",Discharged:"#818cf8",All:"#6366f1",Archived:"#f87171"};
+              const act=statusFilter===s;
               return(
                 <button key={s} onClick={()=>setStatusFilter(s)}
-                  style={{flex:1,padding:"4px 2px",borderRadius:7,border:"none",background:active?cols[s]+"20":"#0f172a",color:active?cols[s]:"#475569",fontSize:10,fontWeight:700,minWidth:0}}>
+                  style={{flex:1,padding:"4px 2px",borderRadius:6,border:act?"1px solid "+cols[s]+"40":"1px solid transparent",background:act?cols[s]+"18":"transparent",color:act?cols[s]:"rgba(240,242,250,0.3)",fontSize:10,fontWeight:700,minWidth:0,cursor:"pointer"}}>
                   {s==="Active"?"Act":s==="Inactive"?"Inac":s==="Discharged"?"Disc":s==="Archived"?"Arc":"All"}
                 </button>
               );
             })}
           </div>
-          <div style={{padding:"2px 12px 4px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <span style={{fontSize:10,color:"#475569",fontWeight:600}}>{filtered.length} clients</span>
+
+          {/* ── Client count + bulk toggle ── */}
+          <div style={{padding:"2px 10px 4px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.25)",fontWeight:500}}>{filtered.length} clients</span>
             <button onClick={()=>{setBulkMode(b=>!b);setBulkSelected(new Set());}}
-              style={{background:bulkMode?"rgba(99,102,241,0.15)":"none",border:"1px solid "+(bulkMode?"#6366f1":"#334155"),borderRadius:6,padding:"2px 8px",color:bulkMode?"#6366f1":"#475569",fontSize:10,fontWeight:700}}>
-              {bulkMode?"✕ Cancel":"☑ Select"}
+              style={{background:bulkMode?"rgba(99,102,241,0.15)":"transparent",border:"1px solid "+(bulkMode?"rgba(99,102,241,0.3)":"rgba(255,255,255,0.07)"),borderRadius:6,padding:"2px 8px",color:bulkMode?"#a5b4fc":"rgba(240,242,250,0.3)",fontSize:10,fontWeight:600,cursor:"pointer"}}>
+              {bulkMode?"✕ Cancel":"Select"}
             </button>
           </div>
-          <div style={{flex:1,overflowY:"auto",padding:"0 8px"}}>
-            {filtered.length===0&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"24px 10px"}}>{clients.length===0?t.noClients:t.noResults}</div>}
+
+          {/* ── Client list ── */}
+          <div style={{flex:1,overflowY:"auto",padding:"0 6px"}}>
+            {filtered.length===0&&<div style={{color:"rgba(240,242,250,0.22)",fontSize:12,textAlign:"center",padding:"20px 8px"}}>{clients.length===0?t.noClients:t.noResults}</div>}
             {filtered.map(c=>{
               const isActive=selected?.id===c.id&&view!=="add";
-              const color=avatarColor(c.name);
+              const avatarColors=["rgba(99,102,241,0.25)","rgba(14,165,233,0.25)","rgba(34,197,94,0.25)","rgba(245,158,11,0.25)"];
+              let hi=0;for(const ch of(c.name||""))hi=(hi*31+ch.charCodeAt(0))%avatarColors.length;
+              const avatarBg=avatarColors[hi];
+              const avatarTextColors=["#a5b4fc","#7dd3fc","#6ee7b7","#fbbf24"];
               const age=calcAge(c.date_of_birth);
-              const scols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6"};
+              const scols={Active:"#34d399",Inactive:"#fbbf24",Discharged:"#818cf8"};
               const isChecked=bulkSelected.has(c.id);
               const fr=calcFallRisk(c);
               return(
@@ -6561,40 +6614,42 @@ export default function App(){
                     setSelected(c);setView("detail");setDeleteConfirm(false);setSidebarOpen(false);trackRecent(c);
                   }
                 }}
-                  className="client-row" style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 8px",borderRadius:10,border:"none",background:isChecked?"rgba(99,102,241,0.15)":isActive?"rgba(99,102,241,0.12)":c.archived?"rgba(239,68,68,0.04)":"transparent",cursor:"pointer",marginBottom:2,textAlign:"left"}}>
+                  className="client-row" style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 8px",borderRadius:9,border:"none",background:isChecked?"rgba(99,102,241,0.12)":isActive?"rgba(99,102,241,0.1)":c.archived?"rgba(239,68,68,0.03)":"transparent",cursor:"pointer",marginBottom:1,textAlign:"left",borderLeft:isActive?"3px solid #6366f1":"3px solid transparent"}}>
                   {bulkMode&&(
-                    <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(isChecked?"#6366f1":"#475569"),background:isChecked?"#6366f1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:10,color:"#fff",fontWeight:700}}>{isChecked?"✓":""}</div>
+                    <div style={{width:16,height:16,borderRadius:4,border:"1.5px solid "+(isChecked?"#6366f1":"rgba(255,255,255,0.2)"),background:isChecked?"#6366f1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:9,color:"#fff",fontWeight:700}}>{isChecked?"✓":""}</div>
                   )}
-                  <div style={{width:36,height:36,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff",flexShrink:0,overflow:"hidden",border:isActive?"2px solid #6366f1":"2px solid transparent",opacity:c.archived?0.5:1}}>
-                    {c.photo_url?<img src={c.photo_url} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(c.name)}
+                  <div style={{width:32,height:32,borderRadius:9,background:c.photo_url?"transparent":avatarBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:avatarTextColors[hi],flexShrink:0,overflow:"hidden",opacity:c.archived?0.5:1}}>
+                    {c.photo_url?<img src={c.photo_url} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:9}}/>:initials(c.name)}
                   </div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:4}}>
-                      <span style={{color:c.archived?"#64748b":"#e2e8f0",fontWeight:600,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
-                      {c.archived&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:10,background:"rgba(239,68,68,0.15)",color:"#f87171",flexShrink:0}}>Arc</span>}
-                      {!c.archived&&(c.status||"Active")!=="Active"&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:10,background:(scols[c.status]||"#64748b")+"20",color:scols[c.status]||"#64748b",flexShrink:0}}>{c.status}</span>}
-                      {fr.level!=="Low"&&<span style={{fontSize:9,fontWeight:800,padding:"1px 5px",borderRadius:10,background:fr.color+"20",color:fr.color,flexShrink:0}}>{fr.level[0]}FR</span>}
+                    <div style={{display:"flex",alignItems:"center",gap:3}}>
+                      <span style={{color:c.archived?"rgba(240,242,250,0.3)":"#f0f2fa",fontWeight:600,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
+                      {c.archived&&<span style={{fontSize:9,fontWeight:700,padding:"1px 4px",borderRadius:4,background:"rgba(239,68,68,0.15)",color:"#f87171",flexShrink:0}}>Arc</span>}
+                      {!c.archived&&(c.status||"Active")!=="Active"&&<span style={{fontSize:9,fontWeight:700,padding:"1px 4px",borderRadius:4,background:(scols[c.status]||"rgba(240,242,250,0.3)")+"18",color:scols[c.status]||"rgba(240,242,250,0.3)",flexShrink:0}}>{(c.status||"Active").slice(0,4)}</span>}
+                      {fr.level!=="Low"&&<span style={{fontSize:9,fontWeight:800,padding:"1px 4px",borderRadius:4,background:fr.color+"18",color:fr.color,flexShrink:0}}>{fr.level[0]}FR</span>}
                     </div>
-                    <div style={{color:"#475569",fontSize:11}}>{age!==null?"Age "+age:""}{c.room_or_address?(age!==null?" - ":"")+c.room_or_address:""}</div>
-                    {searchAllCompanies&&companiesMap[c.company_id]&&<div style={{color:"#6366f1",fontSize:10,fontWeight:600}}>{companiesMap[c.company_id]}</div>}
+                    <div style={{color:"rgba(240,242,250,0.25)",fontSize:10,fontFamily:"'DM Mono',monospace",marginTop:1}}>{age!==null?""+age+"y":""}{c.room_or_address?(age!==null?" · ":"")+c.room_or_address:""}</div>
+                    {searchAllCompanies&&companiesMap[c.company_id]&&<div style={{color:"#a5b4fc",fontSize:10,fontWeight:600,fontFamily:"'DM Mono',monospace"}}>{companiesMap[c.company_id]}</div>}
                   </div>
                 </button>
               );
             })}
           </div>
-          <div style={{padding:12}}>
+
+          {/* ── Bulk actions + add button ── */}
+          <div style={{padding:"8px 10px"}}>
             {bulkMode&&bulkSelected.size>0&&(
-              <div style={{marginBottom:8,display:"flex",flexDirection:"column",gap:6}}>
-                <div style={{fontSize:12,color:"#a5b4fc",fontWeight:700,textAlign:"center"}}>{bulkSelected.size} client{bulkSelected.size!==1?"s":""} selected</div>
-                <div style={{display:"flex",gap:6}}>
+              <div style={{marginBottom:8,display:"flex",flexDirection:"column",gap:5}}>
+                <div style={{fontSize:11,color:"#a5b4fc",fontWeight:700,textAlign:"center",fontFamily:"'DM Mono',monospace"}}>{bulkSelected.size} selected</div>
+                <div style={{display:"flex",gap:5}}>
                   <button onClick={bulkExportCSV}
-                    style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontSize:11,fontWeight:700}}>
-                    ⬇ Export
+                    style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid rgba(99,102,241,0.3)",background:"rgba(99,102,241,0.1)",color:"#a5b4fc",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                    Export
                   </button>
                   {can(currentUser.role,"delete")&&statusFilter!=="Archived"&&(
                     <button onClick={()=>setBulkArchiveConfirm(true)}
-                      style={{flex:1,padding:"8px",borderRadius:8,border:"1px solid #f59e0b",background:"rgba(245,158,11,0.1)",color:"#f59e0b",fontSize:11,fontWeight:700}}>
-                      📦 Archive
+                      style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid rgba(245,158,11,0.3)",background:"rgba(245,158,11,0.1)",color:"#fbbf24",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                      Archive
                     </button>
                   )}
                 </div>
@@ -6602,39 +6657,100 @@ export default function App(){
             )}
             {!bulkMode&&can(currentUser.role,"add")&&(
               <button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}}
-                style={{width:"100%",padding:"11px",borderRadius:10,border:"none",background:"#6366f1",color:"#fff",fontWeight:700,fontSize:14}}>
+                style={{width:"100%",padding:"9px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",boxShadow:"0 4px 14px rgba(99,102,241,0.3)"}}>
                 {t.newClient}
               </button>
             )}
             {!bulkMode&&filtered.length>0&&(
-              <div style={{display:"flex",gap:6,marginTop:8}}>
+              <div style={{display:"flex",gap:5,marginTop:6}}>
                 <button onClick={exportCSV}
-                  style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:700}}>
-                  ⬇ CSV
+                  style={{flex:1,padding:"6px",borderRadius:7,border:"1px solid rgba(255,255,255,0.07)",background:"transparent",color:"rgba(240,242,250,0.3)",fontSize:10,fontWeight:600,cursor:"pointer"}}>
+                  CSV
                 </button>
                 <button onClick={exportPDF}
-                  style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:700}}>
-                  🖨 PDF
+                  style={{flex:1,padding:"6px",borderRadius:7,border:"1px solid rgba(255,255,255,0.07)",background:"transparent",color:"rgba(240,242,250,0.3)",fontSize:10,fontWeight:600,cursor:"pointer"}}>
+                  PDF
                 </button>
               </div>
             )}
           </div>
-          <div style={{padding:"0 12px 8px",display:"flex",justifyContent:"center",gap:4,flexWrap:"wrap"}}>
-            {LANG_OPTIONS.map(l=>(
-              <button key={l.code} onClick={()=>selectLang(l.code)} title={l.label}
-                style={{background:lang===l.code?"rgba(99,102,241,0.2)":"transparent",border:"none",borderRadius:6,padding:"4px 6px",fontSize:11,fontWeight:800,color:lang===l.code?"#6366f1":"#475569"}}>
-                {l.emoji}
+
+          {/* ── Footer: user + icon buttons ── */}
+          <div style={{borderTop:"1px solid rgba(255,255,255,0.07)",padding:"10px 12px",display:"flex",alignItems:"center",gap:8}}>
+            <div onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}}
+              style={{width:30,height:30,borderRadius:8,background:currentUser.avatar_url?"transparent":"linear-gradient(135deg,#6366f1,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,cursor:"pointer",overflow:"hidden"}}>
+              {currentUser.avatar_url?<img src={currentUser.avatar_url} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(currentUser.displayName||"?")}
+            </div>
+            <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}}>
+              <div style={{fontSize:11,fontWeight:600,color:"rgba(240,242,250,0.65)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser.displayName}</div>
+              <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)"}}>{currentUser.role==="superadmin"?"superadmin":currentUser.role==="admin"?"admin":currentUser.role==="power_user"?"power_user":currentUser.role||"user"}</div>
+            </div>
+            <div style={{display:"flex",gap:4}}>
+              {(()=>{const unread=notifications.filter(n=>!readNotifIds.has(n.id)).length;return(
+                <button onClick={()=>setNotifOpen(o=>!o)} aria-label="Notifications" style={{position:"relative",width:28,height:28,borderRadius:7,border:"1px solid rgba(255,255,255,0.07)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+                  <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M7.5 1.5a4 4 0 014 4v3l1 1.5H2.5L3.5 8.5v-3a4 4 0 014-4z"/><line x1="6" y1="12" x2="9" y2="12"/></svg>
+                  {unread>0&&<span style={{position:"absolute",top:3,right:3,width:5,height:5,borderRadius:"50%",background:"#ef4444",border:"1.5px solid #0c0f1f"}}/>}
+                </button>
+              );})()}
+              <button onClick={()=>setDarkMode(d=>!d)} aria-label="Toggle theme" style={{width:28,height:28,borderRadius:7,border:"1px solid rgba(255,255,255,0.07)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+                {darkMode
+                  ?<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><circle cx="7" cy="7" r="2.5"/><line x1="7" y1="1" x2="7" y2="2.5"/><line x1="7" y1="11.5" x2="7" y2="13"/><line x1="1" y1="7" x2="2.5" y2="7"/><line x1="11.5" y1="7" x2="13" y2="7"/><line x1="2.9" y1="2.9" x2="3.9" y2="3.9"/><line x1="10.1" y1="10.1" x2="11.1" y2="11.1"/><line x1="11.1" y1="2.9" x2="10.1" y2="3.9"/><line x1="3.9" y1="10.1" x2="2.9" y2="11.1"/></svg>
+                  :<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M12 8.5A5.5 5.5 0 015.5 2a5.5 5.5 0 000 11A5.5 5.5 0 0012 8.5z"/></svg>
+                }
               </button>
-            ))}
-            <button onClick={()=>setShowShortcuts(true)} title="Keyboard shortcuts (?)" style={{background:"transparent",border:"none",borderRadius:6,padding:"4px 6px",fontSize:11,fontWeight:800,color:"#334155"}}>⌨️</button>
+              <button onClick={handleLogout} aria-label="Sign out" title={t.signOut} style={{width:28,height:28,borderRadius:7,border:"1px solid rgba(255,255,255,0.07)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M9 1H12a1 1 0 011 1v10a1 1 0 01-1 1H9"/><polyline points="6,10 9,7 6,4"/><line x1="9" y1="7" x2="1" y2="7"/></svg>
+              </button>
+            </div>
           </div>
-          <div style={{padding:"0 12px 16px",color:"#334155",fontSize:11,textAlign:"center"}}>
-            {clients.length} {t.clients} - {t.synced}
+
+          {/* ── Lang + keyboard hint ── */}
+          <div style={{padding:"6px 10px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid rgba(255,255,255,0.04)"}}>
+            <div style={{display:"flex",gap:3}}>
+              {LANG_OPTIONS.map(l=>(
+                <button key={l.code} onClick={()=>selectLang(l.code)} title={l.label}
+                  style={{background:lang===l.code?"rgba(99,102,241,0.18)":"transparent",border:"none",borderRadius:5,padding:"3px 5px",fontSize:10,fontWeight:700,fontFamily:"'DM Mono',monospace",color:lang===l.code?"#a5b4fc":"rgba(240,242,250,0.22)",cursor:"pointer"}}>
+                  {l.emoji}
+                </button>
+              ))}
+            </div>
+            <button onClick={()=>setShowShortcuts(true)} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" style={{background:"transparent",border:"none",borderRadius:5,padding:"3px 6px",fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:600,color:"rgba(240,242,250,0.18)",cursor:"pointer"}}>⌨</button>
+          </div>
+          <div style={{padding:"0 10px 10px",fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.15)",fontSize:10,textAlign:"center"}}>
+            {clients.length} {t.clients}
           </div>
         </div>
-        <div className="main-pad" style={{flex:1,minWidth:0,overflowY:"auto",padding:"28px 32px"}}>
-          {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#ef4444",fontSize:14}}>{error}</div>}
-          {loading&&view==="dashboard"&&<div style={{color:"#475569",textAlign:"center",padding:"60px 0"}}>Loading...</div>}
+        <div className="main-pad" style={{flex:1,minWidth:0,overflowY:"auto",background:"#07091c",display:"flex",flexDirection:"column"}}>
+          {/* ── Top bar ── */}
+          {(()=>{
+            const hour=new Date().getHours();
+            const greeting=hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
+            const firstName=(currentUser.displayName||currentUser.email||"").split(" ")[0];
+            const activeCount=clients.filter(c=>!c.archived&&(c.status||"Active")==="Active").length;
+            const dateStr=new Date().toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}).toUpperCase();
+            return(
+              <div style={{background:"#0c0f1f",borderBottom:"1px solid rgba(255,255,255,0.07)",padding:"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,position:"sticky",top:0,zIndex:50}}>
+                <div>
+                  <div style={{fontSize:17,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px"}}>{greeting}, {firstName}.</div>
+                  <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)",marginTop:3}}>{dateStr} · {activeCount} ACTIVE CLIENTS{company?.name?" · "+company.name.toUpperCase():""}</div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  {can(currentUser.role,"add")&&(
+                    <button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client"
+                      style={{height:34,padding:"0 16px",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:12,borderRadius:9,boxShadow:"0 4px 16px rgba(99,102,241,0.3)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
+                      + {t.newClient.replace("+ ","")}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+          <div style={{flex:1,padding:"24px 28px"}}>
+          {error&&<div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.18)",borderRadius:10,padding:"11px 16px",marginBottom:20,color:"#f87171",fontSize:13,display:"flex",alignItems:"center",gap:8}}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#f87171" strokeWidth="1.5" aria-hidden="true"><circle cx="7" cy="7" r="6"/><line x1="7" y1="4" x2="7" y2="7.5"/><circle cx="7" cy="10" r="0.5" fill="#f87171"/></svg>
+            {error}
+          </div>}
+          {loading&&view==="dashboard"&&<div style={{color:"rgba(240,242,250,0.25)",textAlign:"center",padding:"60px 0",fontFamily:"'DM Mono',monospace",fontSize:13}}>Loading...</div>}
           {!loading&&view==="audit"&&can(currentUser.role,"audit")&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
           {!loading&&view==="reports"&&<ReportsView clients={clients} company={company} currentUser={currentUser} t={t}/>}
           {!loading&&view==="company"&&can(currentUser.role,"company")&&(
@@ -6656,21 +6772,21 @@ export default function App(){
           )}
           {!loading&&view!=="audit"&&searchMode==="notes"&&search.trim().length>1?(
             <div>
-              <div style={{fontFamily:"Playfair Display,serif",fontSize:24,color:"#f1f5f9",marginBottom:6}}>{t.noteSearch}</div>
-              <div style={{color:"#64748b",fontSize:13,marginBottom:20}}>{noteResults.length} {t.noteSearchFor} "{search}"</div>
-              {noteResults.length===0?<div style={{color:"#475569",fontSize:14,textAlign:"center",padding:"40px 0"}}>{t.noNoteResults} "{search}"</div>:(
+              <div style={{fontSize:20,color:"#f0f2fa",marginBottom:6,fontWeight:700,letterSpacing:"-0.4px"}}>{t.noteSearch}</div>
+              <div style={{color:"rgba(240,242,250,0.35)",fontSize:13,marginBottom:20}}>{noteResults.length} {t.noteSearchFor} "{search}"</div>
+              {noteResults.length===0?<div style={{color:"rgba(240,242,250,0.25)",fontSize:14,textAlign:"center",padding:"40px 0"}}>{t.noNoteResults} "{search}"</div>:(
                 <div style={{display:"flex",flexDirection:"column",gap:12}}>
                   {noteResults.map((n,i)=>(
                     <div key={`${n.clientName}-${n.date}-${i}`} onClick={()=>{setSelected(n.client);setView("detail");setSearch("");setSearchMode("clients");setSidebarOpen(false);trackRecent(n.client);}}
-                      style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:12,padding:"14px 18px",cursor:"pointer"}}>
+                      style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"14px 18px",cursor:"pointer"}}>
                       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                         <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(n.clientName),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(n.clientName)}</div>
                         <div>
-                          <div style={{fontWeight:700,fontSize:14,color:"#f1f5f9"}}>{n.clientName}</div>
-                          <div style={{fontSize:12,color:"#64748b"}}>{new Date(n.date+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}{n.role&&" - "+n.role}{n.staff_name&&" - "+n.staff_name}</div>
+                          <div style={{fontWeight:700,fontSize:14,color:"#f0f2fa"}}>{n.clientName}</div>
+                          <div style={{fontSize:12,color:"rgba(240,242,250,0.35)"}}>{new Date(n.date+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}{n.role&&" - "+n.role}{n.staff_name&&" - "+n.staff_name}</div>
                         </div>
                       </div>
-                      <div style={{fontSize:13,color:"#94a3b8",lineHeight:1.6}}>
+                      <div style={{fontSize:13,color:"rgba(240,242,250,0.45)",lineHeight:1.6}}>
                         {(()=>{
                           const text=n.text;
                           const idx=text.toLowerCase().indexOf(search.toLowerCase());
@@ -6688,17 +6804,17 @@ export default function App(){
             <>
               {recentClients.length>0&&(
                 <div style={{marginBottom:24}}>
-                  <div style={{fontSize:11,fontWeight:700,color:"#475569",letterSpacing:0.5,textTransform:"uppercase",marginBottom:8}}>⏱ Recently Viewed</div>
+                  <div style={{fontSize:11,fontWeight:700,color:"rgba(240,242,250,0.25)",letterSpacing:0.5,textTransform:"uppercase",marginBottom:8}}>⏱ Recently Viewed</div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                     {recentClients.map(rc=>{
                       const full=clients.find(c=>c.id===rc.id);
                       return(
                         <button key={rc.id} onClick={()=>{const c=full||rc;setSelected(c);setView("detail");trackRecent(c);}}
-                          className="client-row" style={{display:"flex",alignItems:"center",gap:8,background:"#1c1f2e",boxShadow:"4px 4px 10px rgba(0,0,0,0.45), -2px -2px 6px rgba(255,255,255,0.03)",borderRadius:10,padding:"7px 12px",cursor:"pointer",maxWidth:180,border:"none"}}>
+                          className="client-row" style={{display:"flex",alignItems:"center",gap:8,background:"#111427",boxShadow:"4px 4px 10px rgba(0,0,0,0.45), -2px -2px 6px rgba(255,255,255,0.03)",borderRadius:10,padding:"7px 12px",cursor:"pointer",maxWidth:180,border:"none"}}>
                           <div style={{width:28,height:28,borderRadius:"50%",background:avatarColor(rc.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,overflow:"hidden"}}>
                             {rc.photo_url?<img src={rc.photo_url} alt={rc.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(rc.name)}
                           </div>
-                          <span style={{fontSize:12,fontWeight:600,color:"#e2e8f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rc.name}</span>
+                          <span style={{fontSize:12,fontWeight:600,color:"#f0f2fa",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rc.name}</span>
                         </button>
                       );
                     })}
@@ -6710,13 +6826,13 @@ export default function App(){
           )}
           {view==="add"&&can(currentUser.role,"add")&&(
             <div>
-              <div style={{fontFamily:"Playfair Display,serif",fontSize:26,color:"#f1f5f9",marginBottom:24}}>{t.newClient}</div>
+              <div style={{fontSize:17,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px",marginBottom:20}}>{t.newClient}</div>
               <ClientForm client={emptyClient()} onSave={saveClient} onCancel={()=>setView(selected?"detail":"dashboard")} saving={saving} t={t} currentUser={currentUser}/>
             </div>
           )}
           {view==="edit"&&selected&&can(currentUser.role,"edit")&&(
             <div>
-              <div style={{fontFamily:"Playfair Display,serif",fontSize:26,color:"#f1f5f9",marginBottom:24}}>Edit - {selected.name}</div>
+              <div style={{fontSize:17,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px",marginBottom:20}}>Edit — {selected.name}</div>
               <ClientForm client={selected} onSave={saveClient} onCancel={()=>setView("detail")} saving={saving} t={t} currentUser={currentUser}/>
             </div>
           )}
@@ -6727,24 +6843,24 @@ export default function App(){
                 <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser}/>
                 {deleteConfirm&&(
                   <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400}}>
-                    <div style={{background:"#1c1f2e",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid #334155"}}>
+                    <div style={{background:"#111427",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid rgba(255,255,255,0.08)"}}>
                       {fresh.archived?(
                         <>
-                          <div style={{fontFamily:"Playfair Display,serif",fontSize:20,marginBottom:10,color:"#f1f5f9"}}>🗑️ Permanently Delete</div>
-                          <div style={{color:"#64748b",marginBottom:6}}>This will <strong style={{color:"#ef4444"}}>permanently delete</strong> <strong style={{color:"#f1f5f9"}}>{fresh.name}</strong>. This cannot be undone.</div>
+                          <div style={{fontSize:16,marginBottom:10,color:"#f0f2fa",fontWeight:700,letterSpacing:"-0.2px"}}>🗑️ Permanently Delete</div>
+                          <div style={{color:"rgba(240,242,250,0.35)",marginBottom:6}}>This will <strong style={{color:"#ef4444"}}>permanently delete</strong> <strong style={{color:"#f0f2fa"}}>{fresh.name}</strong>. This cannot be undone.</div>
                           <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#f87171",marginBottom:20}}>⚠️ All clinical data, notes, and documents will be lost forever.</div>
                           <div style={{display:"flex",gap:10}}>
-                            <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"10px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
+                            <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"10px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.45)",fontWeight:600}}>{t.cancel}</button>
                             <button onClick={hardDeleteClient} style={{flex:1,padding:"10px",borderRadius:9,border:"none",background:"#ef4444",color:"#fff",fontWeight:700}}>Delete Forever</button>
                           </div>
                         </>
                       ):(
                         <>
-                          <div style={{fontFamily:"Playfair Display,serif",fontSize:20,marginBottom:10,color:"#f1f5f9"}}>📦 Archive Client</div>
-                          <div style={{color:"#64748b",marginBottom:6}}>Archive <strong style={{color:"#f1f5f9"}}>{fresh.name}</strong>? They will be hidden from the active list but all data is preserved.</div>
+                          <div style={{fontSize:16,marginBottom:10,color:"#f0f2fa",fontWeight:700,letterSpacing:"-0.2px"}}>📦 Archive Client</div>
+                          <div style={{color:"rgba(240,242,250,0.35)",marginBottom:6}}>Archive <strong style={{color:"#f0f2fa"}}>{fresh.name}</strong>? They will be hidden from the active list but all data is preserved.</div>
                           <div style={{background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#a5b4fc",marginBottom:20}}>✓ You can restore this client at any time from the Archived filter.</div>
                           <div style={{display:"flex",gap:10}}>
-                            <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"10px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
+                            <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"10px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.45)",fontWeight:600}}>{t.cancel}</button>
                             <button onClick={archiveClient} style={{flex:1,padding:"10px",borderRadius:9,border:"none",background:"#f59e0b",color:"#fff",fontWeight:700}}>📦 Archive</button>
                           </div>
                         </>
@@ -6755,18 +6871,19 @@ export default function App(){
               </>
             );
           })()}
+          </div>{/* end inner padding div */}
         </div>
       </div>
 
       {/* ═══ BULK ARCHIVE CONFIRM ═══ */}
       {bulkArchiveConfirm&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:32,maxWidth:400,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:32,maxWidth:400,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
             <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>📦</div>
-            <div style={{fontFamily:"Playfair Display,serif",fontSize:18,fontWeight:700,color:"#f1f5f9",textAlign:"center",marginBottom:10}}>Archive {bulkSelected.size} Client{bulkSelected.size!==1?"s":""}?</div>
-            <div style={{fontSize:13,color:"#94a3b8",textAlign:"center",lineHeight:1.7,marginBottom:28}}>They will be hidden from the active list. All data is preserved and can be restored from the Archived filter.</div>
+            <div style={{fontSize:16,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px",textAlign:"center",marginBottom:10}}>Archive {bulkSelected.size} Client{bulkSelected.size!==1?"s":""}?</div>
+            <div style={{fontSize:13,color:"rgba(240,242,250,0.45)",textAlign:"center",lineHeight:1.7,marginBottom:28}}>They will be hidden from the active list. All data is preserved and can be restored from the Archived filter.</div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-              <button onClick={()=>setBulkArchiveConfirm(false)} style={{padding:"10px 28px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600,fontSize:14}}>Cancel</button>
+              <button onClick={()=>setBulkArchiveConfirm(false)} style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.45)",fontWeight:600,fontSize:14}}>Cancel</button>
               <button onClick={bulkArchive} style={{padding:"10px 28px",borderRadius:9,border:"none",background:"#f59e0b",color:"#fff",fontWeight:700,fontSize:14}}>📦 Archive All</button>
             </div>
           </div>
@@ -6784,24 +6901,24 @@ export default function App(){
         const urgColor={high:"#ef4444",medium:"#f59e0b",low:"#6366f1"};
         const EPREF_LABELS=[["doc_expiry","Document expiry alerts"],["fall_risk","High fall risk alerts"],["incidents","New incident reports"],["appointments","Appointment reminders"]];
         return(
-          <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:360,height:"100vh",background:"#1c1f2e",borderLeft:"1px solid #334155",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
-            <div style={{padding:"18px 20px",borderBottom:"1px solid #334155",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:360,height:"100vh",background:"#111427",borderLeft:"1px solid rgba(255,255,255,0.1)",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
+            <div style={{padding:"18px 20px",borderBottom:"1px solid rgba(255,255,255,0.07)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
-                <div style={{fontFamily:"Playfair Display,serif",fontSize:17,fontWeight:700,color:"#f1f5f9"}}>🔔 Notifications</div>
-                <div style={{fontSize:11,color:"#475569",marginTop:2}}>{notifs.filter(n=>!readNotifIds.has(n.id)).length} unread · {notifs.length} total</div>
+                <div style={{fontSize:15,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.2px"}}>🔔 Notifications</div>
+                <div style={{fontSize:11,color:"rgba(240,242,250,0.25)",marginTop:2}}>{notifs.filter(n=>!readNotifIds.has(n.id)).length} unread · {notifs.length} total</div>
               </div>
               <div style={{display:"flex",gap:8}}>
                 {notifs.some(n=>!readNotifIds.has(n.id))&&(
-                  <button onClick={markAllRead} style={{padding:"5px 10px",borderRadius:7,border:"1px solid #334155",background:"transparent",color:"#64748b",fontSize:11,fontWeight:600}}>Mark all read</button>
+                  <button onClick={markAllRead} style={{padding:"5px 10px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.35)",fontSize:11,fontWeight:600}}>Mark all read</button>
                 )}
-                <button onClick={()=>setNotifOpen(false)} style={{padding:"5px 10px",borderRadius:7,border:"none",background:"#0f172a",color:"#64748b",fontSize:16,fontWeight:700}}>×</button>
+                <button onClick={()=>setNotifOpen(false)} style={{padding:"5px 10px",borderRadius:7,border:"none",background:"rgba(255,255,255,0.03)",color:"rgba(240,242,250,0.35)",fontSize:16,fontWeight:700}}>×</button>
               </div>
             </div>
             <div style={{flex:1,overflowY:"auto"}}>
               {notifs.length===0?(
-                <div style={{padding:40,textAlign:"center",color:"#475569"}}>
+                <div style={{padding:40,textAlign:"center",color:"rgba(240,242,250,0.25)"}}>
                   <div style={{fontSize:32,marginBottom:8}}>✅</div>
-                  <div style={{fontSize:14,fontWeight:600,color:"#64748b"}}>All clear!</div>
+                  <div style={{fontSize:14,fontWeight:600,color:"rgba(240,242,250,0.35)"}}>All clear!</div>
                   <div style={{fontSize:12,marginTop:4}}>No expiring documents, upcoming appointments, or incidents in the last 7 days.</div>
                 </div>
               ):notifs.map(n=>{
@@ -6809,14 +6926,14 @@ export default function App(){
                 const markRead=()=>{const s=new Set([...readNotifIds,n.id]);setReadNotifIds(s);localStorage.setItem("cm-read-notifs",JSON.stringify([...s]));};
                 return(
                   <div key={n.id} onClick={()=>{markRead();if(n.clientId){const c=clients.find(x=>x.id===n.clientId);if(c){setSelected(c);setView("detail");trackRecent(c);setNotifOpen(false);}}}}
-                    style={{padding:"14px 20px",borderBottom:"1px solid #1a2540",cursor:n.clientId?"pointer":"default",background:isRead?"transparent":"rgba(99,102,241,0.04)",display:"flex",gap:12,alignItems:"flex-start"}}>
+                    style={{padding:"14px 20px",borderBottom:"1px solid rgba(255,255,255,0.05)",cursor:n.clientId?"pointer":"default",background:isRead?"transparent":"rgba(99,102,241,0.04)",display:"flex",gap:12,alignItems:"flex-start"}}>
                     <div style={{fontSize:20,flexShrink:0,marginTop:1}}>{n.icon}</div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                         <span style={{width:6,height:6,borderRadius:"50%",background:isRead?"transparent":urgColor[n.urgency],flexShrink:0,display:"block"}}/>
-                        <span style={{fontSize:12,fontWeight:700,color:isRead?"#475569":"#e2e8f0"}}>{n.title}</span>
+                        <span style={{fontSize:12,fontWeight:700,color:isRead?"rgba(240,242,250,0.3)":"#f0f2fa"}}>{n.title}</span>
                       </div>
-                      <div style={{fontSize:12,color:"#64748b",lineHeight:1.5}}>{n.body}</div>
+                      <div style={{fontSize:12,color:"rgba(240,242,250,0.35)",lineHeight:1.5}}>{n.body}</div>
                       {n.clientName&&<div style={{fontSize:10,color:"#6366f1",fontWeight:600,marginTop:4}}>→ {n.clientName}</div>}
                     </div>
                   </div>
@@ -6824,15 +6941,15 @@ export default function App(){
               })}
             </div>
             {/* Email alert preferences */}
-            <div style={{borderTop:"1px solid #334155",padding:"14px 20px"}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#475569",letterSpacing:0.5,marginBottom:10}}>📧 EMAIL ALERT PREFERENCES</div>
+            <div style={{borderTop:"1px solid rgba(255,255,255,0.07)",padding:"14px 20px"}}>
+              <div style={{fontSize:11,fontWeight:700,color:"rgba(240,242,250,0.25)",letterSpacing:0.5,marginBottom:10}}>📧 EMAIL ALERT PREFERENCES</div>
               {EPREF_LABELS.map(([key,label])=>(
                 <label key={key} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7,cursor:"pointer"}}>
                   <input type="checkbox" checked={!!emailPrefs[key]} onChange={e=>{const p={...emailPrefs,[key]:e.target.checked};setEmailPrefs(p);localStorage.setItem("cm-email-prefs",JSON.stringify(p));}} style={{accentColor:"#6366f1",width:14,height:14}}/>
-                  <span style={{fontSize:12,color:"#94a3b8"}}>{label}</span>
+                  <span style={{fontSize:12,color:"rgba(240,242,250,0.45)"}}>{label}</span>
                 </label>
               ))}
-              <div style={{fontSize:10,color:"#334155",marginTop:6}}>Email delivery requires server configuration</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.1)",marginTop:6}}>Email delivery requires server configuration</div>
             </div>
           </div>
         );
@@ -6842,19 +6959,19 @@ export default function App(){
       {/* ═══ KEYBOARD SHORTCUTS MODAL ═══ */}
       {showShortcuts&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#1c1f2e",border:"1px solid #334155",borderRadius:16,padding:32,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
-            <div style={{fontFamily:"Playfair Display,serif",fontSize:20,fontWeight:700,color:"#f1f5f9",marginBottom:4}}>⌨️ Keyboard Shortcuts</div>
-            <div style={{fontSize:12,color:"#475569",marginBottom:20}}>Works when no input is focused</div>
+          <div style={{background:"#111427",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:32,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
+            <div style={{fontSize:16,fontWeight:700,color:"#f0f2fa",marginBottom:4,letterSpacing:"-0.2px"}}>⌨️ Keyboard Shortcuts</div>
+            <div style={{fontSize:12,color:"rgba(240,242,250,0.25)",marginBottom:20}}>Works when no input is focused</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[["d","Dashboard"],["n","New client"],["k","Focus search"],["b","Notifications"],["?","This help"],["Esc","Close panels"]].map(([key,desc])=>(
-                <div key={key} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid #1a2540"}}>
+                <div key={key} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
                   <span className="shortcut-key">{key}</span>
-                  <span style={{fontSize:13,color:"#94a3b8"}}>{desc}</span>
+                  <span style={{fontSize:13,color:"rgba(240,242,250,0.45)"}}>{desc}</span>
                 </div>
               ))}
             </div>
             <button onClick={()=>setShowShortcuts(false)}
-              style={{marginTop:20,width:"100%",padding:"10px",borderRadius:9,border:"1px solid #334155",background:"transparent",color:"#64748b",fontWeight:600,fontSize:14}}>
+              style={{marginTop:20,width:"100%",padding:"10px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.35)",fontWeight:600,fontSize:14}}>
               Close
             </button>
           </div>
