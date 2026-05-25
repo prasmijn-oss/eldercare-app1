@@ -74,6 +74,8 @@ function buildNotifications(clients){
     const ma=getMissedAppointments(c.appointments);
     if(ma.pattern)notifs.push({id:`ma-${c.id}`,type:"missed_appt",urgency:"high",icon:"📅",title:"Repeated missed appointments",body:`${c.name} — ${ma.recentMissed.length} missed/overdue in the last 30 days`,clientId:c.id,clientName:c.name});
     else if(ma.overdue.length>0)notifs.push({id:`ma-${c.id}`,type:"missed_appt",urgency:"medium",icon:"📅",title:"Overdue appointment",body:`${c.name} — ${ma.overdue.length} scheduled appointment${ma.overdue.length!==1?"s":""} past due`,clientId:c.id,clientName:c.name});
+    const adl=calcAdlSummary(c.adl_logs);
+    if(adl&&adl.dep.label==="High")notifs.push({id:`adl-${c.id}`,type:"adl",urgency:"medium",icon:"🧍",title:"High ADL dependency",body:`${c.name} — score ${adl.score}/18 (${adl.dep.label})${adl.trend&&adl.trend==="declining"?" · declining":""}`,clientId:c.id,clientName:c.name});
     (c.incidents||[]).forEach(inc=>{
       if(!inc.date)return;
       const days=Math.ceil((now-new Date(inc.date))/86400000);
@@ -470,6 +472,33 @@ function getMissedAppointments(appointments){
   return{noShows,overdue,recentMissed,pattern};
 }
 
+// ─── ADL Tracking helper ──────────────────────────────────────────────────────
+// ADL items scored: Independent=0, Supervised=1, Assisted=2, Dependent=3
+// Max score = 6 items × 3 = 18
+// Dependency level: 0-6 Low · 7-12 Moderate · 13-18 High
+const ADL_ITEMS=["bathing","dressing","toileting","eating","mobility","grooming"];
+const ADL_LEVELS=["Independent","Supervised","Assisted","Dependent"];
+const ADL_LEVEL_SCORE={Independent:0,Supervised:1,Assisted:2,Dependent:3};
+const ADL_LEVEL_COLOR={Independent:"#10b981",Supervised:"#06b6d4",Assisted:"#f59e0b",Dependent:"#ef4444"};
+function adlScore(items){return ADL_ITEMS.reduce((s,k)=>s+(ADL_LEVEL_SCORE[items?.[k]]??0),0);}
+function adlDepLevel(score){if(score<=6)return{label:"Low",color:"#10b981"};if(score<=12)return{label:"Moderate",color:"#f59e0b"};return{label:"High",color:"#ef4444"};}
+function calcAdlSummary(adlLogs){
+  if(!adlLogs||adlLogs.length===0)return null;
+  const sorted=[...adlLogs].sort((a,b)=>b.date.localeCompare(a.date));
+  const latest=sorted[0];
+  const score=adlScore(latest.items);
+  const dep=adlDepLevel(score);
+  // Trend: compare score of latest vs previous assessment
+  let trend=null;
+  if(sorted.length>=2){
+    const prev=adlScore(sorted[1].items);
+    if(score<prev)trend="improving";
+    else if(score>prev)trend="declining";
+    else trend="stable";
+  }
+  return{latest,score,dep,trend,count:sorted.length};
+}
+
 function expiryBadge(d){
   if(d===null)return null;
   if(d<0)return{label:"EXPIRED",color:"#ef4444",bg:"rgba(239,68,68,0.1)"};
@@ -567,6 +596,7 @@ function toDb(d){return{
   appointments:JSON.stringify(d.appointments||[]),
   incidents:JSON.stringify(d.incidents||[]),
   intake_checklist:JSON.stringify(d.intake_checklist||[]),
+  adl_logs:JSON.stringify(d.adl_logs||[]),
 };}
 
 function fromDb(row){
@@ -583,6 +613,7 @@ function fromDb(row){
     appointments:p(row.appointments,[]),
     incidents:p(row.incidents,[]),
     intake_checklist:p(row.intake_checklist,[]),
+    adl_logs:p(row.adl_logs,[]),
   };
 }
 
@@ -1286,6 +1317,104 @@ function AppointmentLog({items,onChange}){
   );
 }
 
+// ─── ADL Tracker ─────────────────────────────────────────────────────────────
+const ADL_LABELS={bathing:"🛁 Bathing",dressing:"👕 Dressing",toileting:"🚽 Toileting",eating:"🍽️ Eating",mobility:"🚶 Mobility",grooming:"✂️ Grooming"};
+function ADLTracker({items,onChange}){
+  const [showForm,setShowForm]=useState(false);
+  const [entry,setEntry]=useState(null);
+  const blankEntry=()=>({id:uid(),date:tod(),recorded_by:"",items:{bathing:"Independent",dressing:"Independent",toileting:"Independent",eating:"Independent",mobility:"Independent",grooming:"Independent"},notes:""});
+  const openNew=()=>{setEntry(blankEntry());setShowForm(true);};
+  const openEdit=row=>{setEntry({...row,items:{...row.items}});setShowForm(true);};
+  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
+  const rm=id=>onChange(items.filter(i=>i.id!==id));
+  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
+  const summary=calcAdlSummary(items);
+
+  return(
+    <div>
+      {/* Summary bar */}
+      {summary&&(
+        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <span style={{fontWeight:700,fontSize:13,color:summary.dep.color}}>{summary.dep.label} dependency</span>
+          <span style={{fontSize:12,color:"#64748b"}}>Score: {summary.score}/18</span>
+          {summary.trend&&(
+            <span style={{fontSize:12,fontWeight:600,color:summary.trend==="declining"?"#f87171":summary.trend==="improving"?"#10b981":"#64748b"}}>
+              {summary.trend==="declining"?"↓ Declining":summary.trend==="improving"?"↑ Improving":"→ Stable"}
+            </span>
+          )}
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginLeft:"auto"}}>
+            {ADL_ITEMS.map(k=>{
+              const lvl=summary.latest.items?.[k]||"Independent";
+              return<span key={k} style={{fontSize:11,fontWeight:700,padding:"1px 7px",borderRadius:12,background:ADL_LEVEL_COLOR[lvl]+"20",color:ADL_LEVEL_COLOR[lvl],border:"1px solid "+ADL_LEVEL_COLOR[lvl]+"40"}}>{ADL_LABELS[k].split(" ")[0]} {lvl}</span>;
+            })}
+          </div>
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <span style={{fontSize:13,color:"#64748b"}}>{items.length} assessment{items.length!==1?"s":""}</span>
+        <button style={{...ABTN,borderStyle:"solid",borderColor:"#10b981",color:"#10b981"}} onClick={openNew}>+ Log Assessment</button>
+      </div>
+      {showForm&&entry&&(
+        <div style={{background:"#0f172a",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
+            <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            {ADL_ITEMS.map(k=>(
+              <div key={k}>
+                <label style={LBL}>{ADL_LABELS[k]}</label>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                  {ADL_LEVELS.map(lvl=>(
+                    <button key={lvl} onClick={()=>setEntry(v=>({...v,items:{...v.items,[k]:lvl}}))}
+                      style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"#334155"),background:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]+"25":"transparent",color:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"#64748b",fontSize:11,fontWeight:600,cursor:"pointer"}}>
+                      {lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...INP,height:52,resize:"vertical"}} value={entry.notes} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Observations..."/></div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
+            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#10b981",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
+          </div>
+        </div>
+      )}
+      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No ADL assessments logged yet</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {sorted.map(row=>{
+          const sc=adlScore(row.items);
+          const dep=adlDepLevel(sc);
+          return(
+            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+dep.color}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
+                  <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:dep.color+"20",color:dep.color}}>{dep.label} ({sc}/18)</span>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#10b981",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {ADL_ITEMS.map(k=>{
+                  const lvl=row.items?.[k]||"Independent";
+                  return<span key={k} style={{fontSize:11,padding:"1px 7px",borderRadius:12,background:ADL_LEVEL_COLOR[lvl]+"18",color:ADL_LEVEL_COLOR[lvl],border:"1px solid "+ADL_LEVEL_COLOR[lvl]+"35"}}>{ADL_LABELS[k].split(" ")[0]} <strong>{lvl}</strong></span>;
+                })}
+              </div>
+              {row.recorded_by&&<div style={{fontSize:11,color:"#475569",marginTop:4}}>Recorded by: {row.recorded_by}</div>}
+              {row.notes&&<div style={{fontSize:12,color:"#475569",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Incident Reports ─────────────────────────────────────────────────────────
 const INCIDENT_TYPES=["Fall","Near Fall","Behavioral Event","Medical Emergency","Medication Error","Skin / Wound","Property Damage","Other"];
 const INCIDENT_SEV_COLORS={Minor:"#f59e0b",Moderate:"#ef4444",Severe:"#dc2626"};
@@ -1444,6 +1573,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
       <Sec icon="📅" title="Appointments & Transport" accent="#06b6d4" defaultOpen={false}><AppointmentLog items={d.appointments||[]} onChange={v=>s("appointments",v)}/></Sec>
       <Sec icon="⚠️" title="Incident Reports" accent="#ef4444" defaultOpen={false}><IncidentReports items={d.incidents||[]} onChange={v=>s("incidents",v)} currentUser={currentUser}/></Sec>
       <Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
+      <Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
         <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
         <button onClick={()=>valid&&!saving&&onSave(d)} disabled={!valid||saving}
@@ -1817,6 +1947,11 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
             <IntakeChecklist items={ic} onChange={onInlineUpdate?v=>onInlineUpdate("intake_checklist",v):()=>{}} currentUser={currentUser}/>
           </div>
         );})()}
+        {/* ADL Tracking */}
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🧍 ADL TRACKING</div>
+          <ADLTracker items={client.adl_logs||[]} onChange={onInlineUpdate?v=>onInlineUpdate("adl_logs",v):()=>{}}/>
+        </div>
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
     </div>
   );
@@ -2074,6 +2209,33 @@ function Dashboard({clients,onSelect,t,currentUser}){
                     {ma.overdue.length>0&&<span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:"rgba(245,158,11,0.12)",color:"#fbbf24",border:"1px solid rgba(245,158,11,0.25)"}}>Overdue: {ma.overdue.length}</span>}
                     {ma.pattern&&<span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:"rgba(239,68,68,0.18)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.4)"}}>⚠ Pattern</span>}
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ── ADL Dependency ── */}
+      {(()=>{
+        const adlClients=clients.filter(c=>!c.archived).map(c=>({...c,adlSum:calcAdlSummary(c.adl_logs)})).filter(({adlSum})=>adlSum&&adlSum.dep.label!=="Low").sort((a,b)=>(b.adlSum.score-a.adlSum.score));
+        if(adlClients.length===0)return null;
+        return(
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:4}}>🧍 ADL DEPENDENCY</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with Moderate or High ADL dependency based on latest assessment.</div>
+            {adlClients.map(({adlSum,...c})=>(
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+adlSum.dep.color}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {ADL_ITEMS.map(k=>{const lvl=adlSum.latest.items?.[k]||"Independent";return lvl!=="Independent"?<span key={k} style={{fontSize:11,padding:"1px 7px",borderRadius:12,background:ADL_LEVEL_COLOR[lvl]+"18",color:ADL_LEVEL_COLOR[lvl],border:"1px solid "+ADL_LEVEL_COLOR[lvl]+"35"}}>{ADL_LABELS[k].split(" ")[0]} {lvl}</span>:null;})}
+                  </div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontWeight:700,fontSize:13,color:adlSum.dep.color}}>{adlSum.dep.label}</div>
+                  <div style={{fontSize:11,color:"#64748b"}}>{adlSum.score}/18{adlSum.trend&&adlSum.trend!=="stable"?<span style={{color:adlSum.trend==="declining"?"#f87171":"#10b981"}}> {adlSum.trend==="declining"?"↓":"↑"}</span>:""}</div>
                 </div>
               </div>
             ))}
