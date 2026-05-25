@@ -81,6 +81,12 @@ function buildNotifications(clients){
       if(pain.latestScore>=7)notifs.push({id:`pain-${c.id}`,type:"pain",urgency:"high",icon:"🩹",title:"Severe pain reported",body:`${c.name} — score ${pain.latestScore}/10 (${pain.latest.location||"unspecified location"})`,clientId:c.id,clientName:c.name});
       else if(pain.persistent)notifs.push({id:`pain-${c.id}`,type:"pain",urgency:"medium",icon:"🩹",title:"Persistent moderate pain",body:`${c.name} — ${pain.recentModerateCount} assessments ≥4/10 in last 7 days`,clientId:c.id,clientName:c.name});
     }
+    const ws=calcWoundSummary(c.wound_assessments);
+    if(ws){
+      if(ws.deteriorating.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"high",icon:"🩺",title:"Deteriorating wound",body:`${c.name} — ${ws.deteriorating.map(w=>w.site).join(", ")}`,clientId:c.id,clientName:c.name});
+      else if(ws.highStage.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"high",icon:"🩺",title:"Stage III/IV pressure ulcer",body:`${c.name} — ${ws.highStage.map(w=>w.site+(w.stage?" ("+w.stage+")":"")).join(", ")}`,clientId:c.id,clientName:c.name});
+      else if(ws.activeSites.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"low",icon:"🩺",title:`Active wound${ws.activeSites.length!==1?"s":""}`,body:`${c.name} — ${ws.activeSites.length} active site${ws.activeSites.length!==1?"s":""}`,clientId:c.id,clientName:c.name});
+    }
     (c.incidents||[]).forEach(inc=>{
       if(!inc.date)return;
       const days=Math.ceil((now-new Date(inc.date))/86400000);
@@ -526,6 +532,25 @@ function calcPainSummary(assessments){
   return{latest,latestScore,level,persistent,recentModerateCount:recentModerate.length,count:sorted.length};
 }
 
+// ─── Wound & Skin Assessment helper ──────────────────────────────────────────
+// Groups entries by site, finds the latest per site, flags deteriorating /
+// high-stage wounds
+const WOUND_HEALING_COLOR={Improving:"#10b981",Stable:"#06b6d4",Deteriorating:"#ef4444",Healed:"#8b5cf6"};
+function calcWoundSummary(assessments){
+  if(!assessments||assessments.length===0)return null;
+  // Group by site name, get latest per site
+  const bySite={};
+  assessments.forEach(a=>{
+    const site=a.site||"Unknown";
+    if(!bySite[site]||a.date>bySite[site].date)bySite[site]=a;
+  });
+  const activeSites=Object.values(bySite).filter(a=>a.healing_status!=="Healed");
+  const healedCount=Object.values(bySite).length-activeSites.length;
+  const deteriorating=activeSites.filter(a=>a.healing_status==="Deteriorating");
+  const highStage=activeSites.filter(a=>/Stage\s*(III|IV|3|4)/i.test(a.stage||""));
+  return{activeSites,healedCount,deteriorating,highStage,totalSites:Object.keys(bySite).length};
+}
+
 function expiryBadge(d){
   if(d===null)return null;
   if(d<0)return{label:"EXPIRED",color:"#ef4444",bg:"rgba(239,68,68,0.1)"};
@@ -625,6 +650,7 @@ function toDb(d){return{
   intake_checklist:JSON.stringify(d.intake_checklist||[]),
   adl_logs:JSON.stringify(d.adl_logs||[]),
   pain_assessments:JSON.stringify(d.pain_assessments||[]),
+  wound_assessments:JSON.stringify(d.wound_assessments||[]),
 };}
 
 function fromDb(row){
@@ -643,6 +669,7 @@ function fromDb(row){
     intake_checklist:p(row.intake_checklist,[]),
     adl_logs:p(row.adl_logs,[]),
     pain_assessments:p(row.pain_assessments,[]),
+    wound_assessments:p(row.wound_assessments,[]),
   };
 }
 
@@ -1490,6 +1517,187 @@ function PainAssessment({items,onChange}){
   );
 }
 
+// ─── Wound & Skin Assessment ─────────────────────────────────────────────────
+const WOUND_TYPES=["Pressure Ulcer","Skin Tear","Surgical","Laceration","Abrasion","Diabetic Ulcer","Venous Ulcer","Arterial Ulcer","Other"];
+const WOUND_STAGES=["Stage I","Stage II","Stage III","Stage IV","Unstageable","Deep Tissue","N/A"];
+const WOUND_EXUDATE_AMT=["None","Minimal","Moderate","Heavy"];
+const WOUND_EXUDATE_TYPE=["Serous","Serosanguineous","Sanguineous","Purulent"];
+const WOUND_BED=["Granulating","Epithelializing","Slough","Necrotic","Mixed"];
+const WOUND_PERIWOUND=["Intact","Erythema","Macerated","Indurated","Oedematous"];
+const WOUND_HEALING=["Improving","Stable","Deteriorating","Healed"];
+const WOUND_PAIN=["None","Mild","Moderate","Severe"];
+
+function WoundAssessment({items,onChange}){
+  const [showForm,setShowForm]=useState(false);
+  const [entry,setEntry]=useState(null);
+  const [filterSite,setFilterSite]=useState("All");
+  const blank=()=>({id:uid(),date:tod(),recorded_by:"",site:"",type:"Pressure Ulcer",stage:"N/A",length_cm:"",width_cm:"",depth_cm:"",exudate:"None",exudate_type:"",wound_bed:"Granulating",periwound:"Intact",odour:false,pain_at_site:"None",dressing_used:"",dressing_frequency:"",healing_status:"Stable",notes:""});
+  const openNew=()=>{setEntry(blank());setShowForm(true);};
+  const openEdit=row=>{setEntry({...row});setShowForm(true);};
+  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
+  const rm=id=>onChange(items.filter(i=>i.id!==id));
+  const summary=calcWoundSummary(items);
+  // Collect unique sites for filter tab
+  const allSites=["All",...new Set(items.map(i=>i.site||"Unknown").filter(Boolean))];
+  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
+  const filtered=filterSite==="All"?sorted:sorted.filter(i=>(i.site||"Unknown")===filterSite);
+
+  return(
+    <div>
+      {/* Active-wound summary chips */}
+      {summary&&summary.activeSites.length>0&&(
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+          {summary.activeSites.map(w=>{
+            const hc=WOUND_HEALING_COLOR[w.healing_status]||"#64748b";
+            return(
+              <div key={w.site} style={{padding:"6px 12px",borderRadius:10,background:hc+"15",border:"1px solid "+hc+"40",display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontWeight:700,fontSize:12,color:hc}}>🩹 {w.site}</span>
+                {w.stage&&w.stage!=="N/A"&&<span style={{fontSize:11,color:"#94a3b8"}}>{w.stage}</span>}
+                <span style={{fontSize:11,fontWeight:600,color:hc}}>{w.healing_status}</span>
+              </div>
+            );
+          })}
+          {summary.healedCount>0&&<div style={{padding:"6px 12px",borderRadius:10,background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.3)",fontSize:12,fontWeight:600,color:"#a78bfa"}}>✓ {summary.healedCount} healed</div>}
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <span style={{fontSize:13,color:"#64748b"}}>{items.length} record{items.length!==1?"s":""}</span>
+        <button style={{...ABTN,borderStyle:"solid",borderColor:"#06b6d4",color:"#06b6d4"}} onClick={openNew}>+ Log Assessment</button>
+      </div>
+      {/* Site filter tabs */}
+      {allSites.length>2&&(
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+          {allSites.map(s=>(
+            <button key={s} onClick={()=>setFilterSite(s)} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+(filterSite===s?"#06b6d4":"#334155"),background:filterSite===s?"rgba(6,182,212,0.15)":"transparent",color:filterSite===s?"#06b6d4":"#64748b",fontSize:11,fontWeight:600,cursor:"pointer"}}>{s}</button>
+          ))}
+        </div>
+      )}
+      {showForm&&entry&&(
+        <div style={{background:"#0f172a",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
+            <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
+            <div><label style={LBL}>Healing Status</label>
+              <select style={{...INP,cursor:"pointer",color:WOUND_HEALING_COLOR[entry.healing_status]||"#e2e8f0",borderColor:WOUND_HEALING_COLOR[entry.healing_status]||"#334155"}} value={entry.healing_status} onChange={e=>setEntry(v=>({...v,healing_status:e.target.value}))}>
+                {WOUND_HEALING.map(h=><option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Wound Site / Location</label><input style={INP} value={entry.site} onChange={e=>setEntry(v=>({...v,site:e.target.value}))} placeholder="e.g. Sacrum, Left heel..."/></div>
+            <div><label style={LBL}>Type</label>
+              <select style={{...INP,cursor:"pointer"}} value={entry.type} onChange={e=>setEntry(v=>({...v,type:e.target.value}))}>
+                {WOUND_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div><label style={LBL}>Stage</label>
+              <select style={{...INP,cursor:"pointer"}} value={entry.stage} onChange={e=>setEntry(v=>({...v,stage:e.target.value}))}>
+                {WOUND_STAGES.map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+          {/* Measurements */}
+          <div style={{marginBottom:10}}>
+            <label style={LBL}>Measurements (cm)</label>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.length_cm} onChange={e=>setEntry(v=>({...v,length_cm:e.target.value}))} placeholder="Length"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"#475569"}}>L</span></div>
+              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.width_cm} onChange={e=>setEntry(v=>({...v,width_cm:e.target.value}))} placeholder="Width"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"#475569"}}>W</span></div>
+              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.depth_cm} onChange={e=>setEntry(v=>({...v,depth_cm:e.target.value}))} placeholder="Depth"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"#475569"}}>D</span></div>
+            </div>
+          </div>
+          {/* Wound characteristics */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div>
+              <label style={LBL}>Wound Bed</label>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                {WOUND_BED.map(b=><button key={b} onClick={()=>setEntry(v=>({...v,wound_bed:b}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.wound_bed===b?"#06b6d4":"#334155"),background:entry.wound_bed===b?"rgba(6,182,212,0.15)":"transparent",color:entry.wound_bed===b?"#06b6d4":"#64748b",fontSize:11,cursor:"pointer"}}>{b}</button>)}
+              </div>
+            </div>
+            <div>
+              <label style={LBL}>Periwound Skin</label>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                {WOUND_PERIWOUND.map(p=><button key={p} onClick={()=>setEntry(v=>({...v,periwound:p}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.periwound===p?"#06b6d4":"#334155"),background:entry.periwound===p?"rgba(6,182,212,0.15)":"transparent",color:entry.periwound===p?"#06b6d4":"#64748b",fontSize:11,cursor:"pointer"}}>{p}</button>)}
+              </div>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Exudate Amount</label>
+              <select style={{...INP,cursor:"pointer"}} value={entry.exudate} onChange={e=>setEntry(v=>({...v,exudate:e.target.value}))}>
+                {WOUND_EXUDATE_AMT.map(x=><option key={x} value={x}>{x}</option>)}
+              </select>
+            </div>
+            <div><label style={LBL}>Exudate Type</label>
+              <select style={{...INP,cursor:"pointer"}} value={entry.exudate_type} onChange={e=>setEntry(v=>({...v,exudate_type:e.target.value}))}>
+                <option value="">—</option>
+                {WOUND_EXUDATE_TYPE.map(x=><option key={x} value={x}>{x}</option>)}
+              </select>
+            </div>
+            <div><label style={LBL}>Pain at Site</label>
+              <select style={{...INP,cursor:"pointer"}} value={entry.pain_at_site} onChange={e=>setEntry(v=>({...v,pain_at_site:e.target.value}))}>
+                {WOUND_PAIN.map(p=><option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+              <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#e2e8f0",fontWeight:600,cursor:"pointer",paddingBottom:8}}>
+                <input type="checkbox" checked={!!entry.odour} onChange={e=>setEntry(v=>({...v,odour:e.target.checked}))} style={{accentColor:"#ef4444",width:14,height:14}}/>
+                Odour present
+              </label>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Dressing Used</label><input style={INP} value={entry.dressing_used} onChange={e=>setEntry(v=>({...v,dressing_used:e.target.value}))} placeholder="e.g. Foam dressing, alginate..."/></div>
+            <div><label style={LBL}>Change Frequency</label><input style={INP} value={entry.dressing_frequency} onChange={e=>setEntry(v=>({...v,dressing_frequency:e.target.value}))} placeholder="e.g. Daily, 3x/week..."/></div>
+          </div>
+          <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...INP,height:52,resize:"vertical"}} value={entry.notes} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Observations, wound appearance changes..."/></div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
+            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#06b6d4",color:"#000",fontWeight:600}} onClick={save}>Save</button>
+          </div>
+        </div>
+      )}
+      {filtered.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No wound assessments logged yet</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {filtered.map(row=>{
+          const hc=WOUND_HEALING_COLOR[row.healing_status]||"#64748b";
+          const area=(row.length_cm&&row.width_cm)?Math.round(parseFloat(row.length_cm)*parseFloat(row.width_cm)*10)/10:null;
+          return(
+            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+hc}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</span>
+                  {row.site&&<span style={{fontSize:12,fontWeight:700,color:"#94a3b8"}}>📍 {row.site}</span>}
+                  <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:hc+"20",color:hc}}>{row.healing_status}</span>
+                  {row.stage&&row.stage!=="N/A"&&<span style={{fontSize:11,fontWeight:600,padding:"1px 7px",borderRadius:20,background:"rgba(100,116,139,0.15)",color:"#94a3b8"}}>{row.stage}</span>}
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid #334155",borderRadius:5,padding:"2px 8px",color:"#06b6d4",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"#475569",fontSize:12}}>x</button>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:area||row.wound_bed||row.exudate?4:0}}>
+                <span style={{fontSize:12,color:"#64748b"}}>📋 {row.type}</span>
+                {area&&<span style={{fontSize:12,color:"#94a3b8"}}>📐 {row.length_cm}×{row.width_cm}{row.depth_cm?" (d:"+row.depth_cm+")":""} cm → {area} cm²</span>}
+              </div>
+              {(row.wound_bed||row.periwound||row.exudate)&&(
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:4}}>
+                  {row.wound_bed&&<span style={{fontSize:11,color:"#64748b"}}>Bed: <strong style={{color:"#94a3b8"}}>{row.wound_bed}</strong></span>}
+                  {row.periwound&&<span style={{fontSize:11,color:"#64748b"}}>Periwound: <strong style={{color:"#94a3b8"}}>{row.periwound}</strong></span>}
+                  {row.exudate&&row.exudate!=="None"&&<span style={{fontSize:11,color:"#64748b"}}>Exudate: <strong style={{color:"#94a3b8"}}>{row.exudate}{row.exudate_type?" "+row.exudate_type:""}</strong></span>}
+                  {row.odour&&<span style={{fontSize:11,fontWeight:700,color:"#f87171"}}>⚠ Odour</span>}
+                  {row.pain_at_site&&row.pain_at_site!=="None"&&<span style={{fontSize:11,color:"#f59e0b"}}>Pain: {row.pain_at_site}</span>}
+                </div>
+              )}
+              {row.dressing_used&&<div style={{fontSize:12,color:"#475569",marginTop:2}}>Dressing: {row.dressing_used}{row.dressing_frequency?" · "+row.dressing_frequency:""}</div>}
+              {row.recorded_by&&<div style={{fontSize:11,color:"#475569",marginTop:2}}>By: {row.recorded_by}</div>}
+              {row.notes&&<div style={{fontSize:12,color:"#475569",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── ADL Tracker ─────────────────────────────────────────────────────────────
 const ADL_LABELS={bathing:"🛁 Bathing",dressing:"👕 Dressing",toileting:"🚽 Toileting",eating:"🍽️ Eating",mobility:"🚶 Mobility",grooming:"✂️ Grooming"};
 function ADLTracker({items,onChange}){
@@ -1748,6 +1956,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
       <Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
       <Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
       <Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
+      <Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
         <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
         <button onClick={()=>valid&&!saving&&onSave(d)} disabled={!valid||saving}
@@ -2131,6 +2340,11 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:12}}>🩹 PAIN ASSESSMENT</div>
           <PainAssessment items={client.pain_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("pain_assessments",v):()=>{}}/>
         </div>
+        {/* Wound & Skin Assessment */}
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🩺 WOUND & SKIN ASSESSMENT</div>
+          <WoundAssessment items={client.wound_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("wound_assessments",v):()=>{}}/>
+        </div>
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
     </div>
   );
@@ -2444,6 +2658,33 @@ function Dashboard({clients,onSelect,t,currentUser}){
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{fontWeight:800,fontSize:18,color:painSum.level.color}}>{painSum.latestScore}/10</div>
                   <div style={{fontSize:11,color:painSum.level.color}}>{painSum.level.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ── Wound Alerts ── */}
+      {(()=>{
+        const woundClients=clients.filter(c=>!c.archived).map(c=>({...c,ws:calcWoundSummary(c.wound_assessments)})).filter(({ws})=>ws&&ws.activeSites.length>0).sort((a,b)=>b.ws.deteriorating.length-a.ws.deteriorating.length||b.ws.highStage.length-a.ws.highStage.length||b.ws.activeSites.length-a.ws.activeSites.length);
+        if(woundClients.length===0)return null;
+        return(
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:4}}>🩺 WOUND & SKIN ALERTS</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with active wounds. Deteriorating or high-stage cases shown first.</div>
+            {woundClients.map(({ws,...c})=>(
+              <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+(ws.deteriorating.length>0?"#ef4444":ws.highStage.length>0?"#f59e0b":"#06b6d4")}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:4}}>{c.name}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {ws.activeSites.map(w=>{
+                      const hc=WOUND_HEALING_COLOR[w.healing_status]||"#64748b";
+                      return<span key={w.site} style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:hc+"18",color:hc,border:"1px solid "+hc+"35"}}>{w.site}{w.stage&&w.stage!=="N/A"?" "+w.stage:""} · {w.healing_status}</span>;
+                    })}
+                    {ws.healedCount>0&&<span style={{fontSize:11,color:"#8b5cf6"}}>+{ws.healedCount} healed</span>}
+                  </div>
                 </div>
               </div>
             ))}
