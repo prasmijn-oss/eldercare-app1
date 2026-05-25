@@ -31,6 +31,12 @@ const GCSS = [
   "  .g2 { grid-template-columns: 1fr !important; }",
   "  .fg { grid-template-columns: 1fr !important; }",
   "  .mob-hdr { display: flex !important; }",
+  "  .main-topbar { display: none !important; }",
+  "  .inv-grid { grid-template-columns: 1fr 1fr !important; }",
+  "  .notes-filter { grid-template-columns: 1fr 1fr !important; }",
+  "  .notif-panel { width: 100vw !important; }",
+  "  .three-col { grid-template-columns: 1fr !important; }",
+  "  .four-col { grid-template-columns: 1fr 1fr !important; }",
   "}",
   "@media (min-width: 769px) {",
   "  .sidebar { transform: none !important; position: relative !important; }",
@@ -833,10 +839,10 @@ function fromDb(row){
   };
 }
 
-const INP={width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.03)",color:"#f0f2fa",fontSize:14};
+const INP={width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.03)",color:"#f0f2fa",fontSize:16};
 const LBL={display:"block",fontSize:11,fontWeight:700,color:"rgba(240,242,250,0.35)",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"};
-const ABTN={background:"none",border:"1.5px dashed rgba(99,102,241,0.4)",borderRadius:8,padding:"7px 14px",color:"#6366f1",fontSize:13,fontWeight:600};
-const IBTN={background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(240,242,250,0.35)",fontSize:12,flexShrink:0};
+const ABTN={background:"none",border:"1.5px dashed rgba(99,102,241,0.4)",borderRadius:8,padding:"10px 14px",color:"#6366f1",fontSize:13,fontWeight:600};
+const IBTN={background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(240,242,250,0.35)",fontSize:12,flexShrink:0};
 
 // ─── Password Strength ───────────────────────────────────────────────────────
 const PW_LEVELS=[
@@ -1082,7 +1088,7 @@ function NotesList({items,onChange,t}){
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       {/* Filter Bar */}
       <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:12}}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
+        <div className="notes-filter" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
           <div>
             <label style={LBL}>{t.date}</label>
             <input type="date" style={INP} value={fDate} onChange={e=>setFDate(e.target.value)}/>
@@ -1348,7 +1354,7 @@ function DocTracker({items,onChange,t}){
         const badge=expiryBadge(days);
         return(
           <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:12,display:"flex",gap:10,alignItems:"center",borderLeft:badge?"3px solid "+badge.color:"3px solid rgba(255,255,255,0.1)"}}>
-            <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,flex:1}}>
+            <div className="fg three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,flex:1}}>
               <div><label style={LBL}>{t.docName}</label><input style={INP} placeholder="e.g. AZV Card..." value={item.name} onChange={e=>upd(item.id,"name",e.target.value)}/></div>
               <div><label style={LBL}>{t.expiry}</label><input type="date" style={INP} value={item.expiry||""} onChange={e=>upd(item.id,"expiry",e.target.value)}/></div>
               <div><label style={LBL}>{t.docNotes}</label><input style={INP} placeholder="..." value={item.notes||""} onChange={e=>upd(item.id,"notes",e.target.value)}/></div>
@@ -1428,7 +1434,7 @@ function Inventory({items,onChange,t}){
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#6366f1"}} onClick={add}>{t.addItem}</button>
       </div>
       {items.length===0&&<div style={{color:"rgba(240,242,250,0.25)",fontSize:13,textAlign:"center",padding:"24px 0"}}>{t.noItems}</div>}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+      <div className="inv-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
         {items.map(item=><InvItem key={item.id} item={item} onUpd={(f,v)=>upd(item.id,f,v)} onDel={()=>rm(item.id)} t={t}/>)}
       </div>
     </div>
@@ -1625,7 +1631,7 @@ function PainAssessment({items,onChange}){
       {showForm&&entry&&(
         <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #f59e0b",borderRadius:10,padding:14,marginBottom:12}}>
           {/* Date / time / recorded by */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
+          <div className="three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
             <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
@@ -2348,7 +2354,7 @@ function WoundAssessment({items,onChange}){
       )}
       {showForm&&entry&&(
         <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+          <div className="three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
             <div><label style={LBL}>Healing Status</label>
@@ -2373,7 +2379,7 @@ function WoundAssessment({items,onChange}){
           {/* Measurements */}
           <div style={{marginBottom:10}}>
             <label style={LBL}>Measurements (cm)</label>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+            <div className="three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
               <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.length_cm} onChange={e=>setEntry(v=>({...v,length_cm:e.target.value}))} placeholder="Length"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"rgba(240,242,250,0.25)"}}>L</span></div>
               <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.width_cm} onChange={e=>setEntry(v=>({...v,width_cm:e.target.value}))} placeholder="Width"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"rgba(240,242,250,0.25)"}}>W</span></div>
               <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.depth_cm} onChange={e=>setEntry(v=>({...v,depth_cm:e.target.value}))} placeholder="Depth"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"rgba(240,242,250,0.25)"}}>D</span></div>
@@ -2394,7 +2400,7 @@ function WoundAssessment({items,onChange}){
               </div>
             </div>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:10}}>
+          <div className="four-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Exudate Amount</label>
               <select style={{...INP,cursor:"pointer"}} value={entry.exudate} onChange={e=>setEntry(v=>({...v,exudate:e.target.value}))}>
                 {WOUND_EXUDATE_AMT.map(x=><option key={x} value={x}>{x}</option>)}
@@ -2992,7 +2998,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
               <div style={{fontWeight:700,color:"#10b981",fontSize:13}}>INVENTORY</div>
               <div style={{fontSize:12,color:"rgba(240,242,250,0.35)"}}>{(client.inventory||[]).length} items{(client.inventory||[]).reduce((s,i)=>s+(parseFloat(i.value)||0),0)>0&&" - AWG "+(client.inventory||[]).reduce((s,i)=>s+(parseFloat(i.value)||0),0).toFixed(2)}</div>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+            <div className="inv-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
               {(client.inventory||[]).map(item=>{
                 const cc={Excellent:"#10b981",Good:"#06b6d4",Fair:"#f59e0b",Poor:"#ef4444"};
                 const c=cc[item.condition]||"rgba(240,242,250,0.3)";
@@ -3700,7 +3706,7 @@ function AuditTrail({t,companyId,currentUser}){
       </div>
 
       {/* Filters — row 1: staff / action / section / company */}
-      <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12,marginBottom:10}}>
+      <div className="fg four-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12,marginBottom:10}}>
         <div><label style={LBL}>{t.filterStaff}</label>
           <select style={{...INP,cursor:"pointer"}} value={fS} onChange={e=>setFS(e.target.value)}>
             <option value="">{t.allStaff}</option>
@@ -6561,7 +6567,7 @@ export default function App(){
                 </button>
               ))}
             </div>
-            <input id="cm-search" aria-label="Search clients" style={{width:"100%",height:32,padding:"0 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.07)",background:"rgba(255,255,255,0.04)",color:"rgba(240,242,250,0.6)",fontSize:12,fontFamily:"'DM Sans',sans-serif"}} placeholder={searchMode==="notes"?t.searchNotes:t.search} value={search} onChange={e=>setSearch(e.target.value)}/>
+            <input id="cm-search" aria-label="Search clients" style={{width:"100%",height:44,padding:"0 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.07)",background:"rgba(255,255,255,0.04)",color:"rgba(240,242,250,0.6)",fontSize:16,fontFamily:"'DM Sans',sans-serif"}} placeholder={searchMode==="notes"?t.searchNotes:t.search} value={search} onChange={e=>setSearch(e.target.value)}/>
             {currentUser?.role==="superadmin"&&(
               <button onClick={()=>{setSearchAllCompanies(s=>!s);setSearch("");}}
                 style={{width:"100%",marginTop:5,padding:"4px",borderRadius:7,border:"1px solid "+(searchAllCompanies?"rgba(99,102,241,0.4)":"rgba(255,255,255,0.07)"),background:searchAllCompanies?"rgba(99,102,241,0.12)":"transparent",color:searchAllCompanies?"#a5b4fc":"rgba(240,242,250,0.3)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
@@ -6729,7 +6735,7 @@ export default function App(){
             const activeCount=clients.filter(c=>!c.archived&&(c.status||"Active")==="Active").length;
             const dateStr=new Date().toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}).toUpperCase();
             return(
-              <div style={{background:"#0c0f1f",borderBottom:"1px solid rgba(255,255,255,0.07)",padding:"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,position:"sticky",top:0,zIndex:50}}>
+              <div className="main-topbar" style={{background:"#0c0f1f",borderBottom:"1px solid rgba(255,255,255,0.07)",padding:"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,position:"sticky",top:0,zIndex:50}}>
                 <div>
                   <div style={{fontSize:17,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px"}}>{greeting}, {firstName}.</div>
                   <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)",marginTop:3}}>{dateStr} · {activeCount} ACTIVE CLIENTS{company?.name?" · "+company.name.toUpperCase():""}</div>
@@ -6906,7 +6912,7 @@ export default function App(){
         const urgColor={high:"#ef4444",medium:"#f59e0b",low:"#6366f1"};
         const EPREF_LABELS=[["doc_expiry","Document expiry alerts"],["fall_risk","High fall risk alerts"],["incidents","New incident reports"],["appointments","Appointment reminders"]];
         return(
-          <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:360,height:"100vh",background:"#111427",borderLeft:"1px solid rgba(255,255,255,0.1)",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
+          <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:"min(360px,100vw)",height:"100vh",background:"#111427",borderLeft:"1px solid rgba(255,255,255,0.1)",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
             <div style={{padding:"18px 20px",borderBottom:"1px solid rgba(255,255,255,0.07)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{fontSize:15,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.2px"}}>🔔 Notifications</div>
