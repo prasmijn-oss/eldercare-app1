@@ -92,6 +92,12 @@ function buildNotifications(clients){
       else if(ws.highStage.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"high",icon:"🩺",title:"Stage III/IV pressure ulcer",body:`${c.name} — ${ws.highStage.map(w=>w.site+(w.stage?" ("+w.stage+")":"")).join(", ")}`,clientId:c.id,clientName:c.name});
       else if(ws.activeSites.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"low",icon:"🩺",title:`Active wound${ws.activeSites.length!==1?"s":""}`,body:`${c.name} — ${ws.activeSites.length} active site${ws.activeSites.length!==1?"s":""}`,clientId:c.id,clientName:c.name});
     }
+    const cog=calcCognitiveSummary(c.cognitive_assessments);
+    if(cog){
+      if(cog.level.label==="Severe Impairment")notifs.push({id:`cog-${c.id}`,type:"cognitive",urgency:"high",icon:"🧠",title:"Severe cognitive impairment",body:`${c.name} — ${cog.latest.test_type||"MMSE"} score ${cog.score}/30${cog.trend==="declining"?" · declining":""}`,clientId:c.id,clientName:c.name});
+      else if(cog.level.label==="Moderate Impairment"||cog.trend==="declining")notifs.push({id:`cog-${c.id}`,type:"cognitive",urgency:"medium",icon:"🧠",title:`${cog.level.label==="Moderate Impairment"?"Moderate cognitive impairment":"Declining cognitive score"}`,body:`${c.name} — ${cog.latest.test_type||"MMSE"} score ${cog.score}/30`,clientId:c.id,clientName:c.name});
+      if(cog.dueReassess)notifs.push({id:`cog-due-${c.id}`,type:"cognitive_due",urgency:"low",icon:"🧠",title:"Cognitive reassessment overdue",body:`${c.name} — last screened ${cog.daysSince} days ago`,clientId:c.id,clientName:c.name});
+    }
     (c.incidents||[]).forEach(inc=>{
       if(!inc.date)return;
       const days=Math.ceil((now-new Date(inc.date))/86400000);
@@ -596,6 +602,46 @@ function calcBradenSummary(assessments){
   return{latest,score,risk,trend,count:sorted.length};
 }
 
+// ─── Cognitive Screening ─────────────────────────────────────────────────────
+const MMSE_DOMAINS=[
+  {key:"orientation",  label:"Orientation",             max:10},
+  {key:"registration", label:"Registration",             max:3},
+  {key:"attention",    label:"Attention & Calculation",  max:5},
+  {key:"recall",       label:"Recall",                   max:3},
+  {key:"language",     label:"Language & Visuospatial",  max:9},
+];
+function cognitiveLevel(testType,score){
+  const n=Number(score);
+  if(testType==="MoCA"){
+    if(n>=26)return{label:"Normal",            color:"#10b981"};
+    if(n>=18)return{label:"Mild Impairment",   color:"#f59e0b"};
+    if(n>=10)return{label:"Moderate Impairment",color:"#ef4444"};
+    return         {label:"Severe Impairment",  color:"#dc2626"};
+  }
+  // MMSE (default)
+  if(n>=25)return{label:"Normal / Borderline",  color:"#10b981"};
+  if(n>=20)return{label:"Mild Impairment",       color:"#f59e0b"};
+  if(n>=10)return{label:"Moderate Impairment",   color:"#ef4444"};
+  return         {label:"Severe Impairment",     color:"#dc2626"};
+}
+function calcCognitiveSummary(assessments){
+  if(!assessments||assessments.length===0)return null;
+  const sorted=[...assessments].sort((a,b)=>b.date.localeCompare(a.date));
+  const latest=sorted[0];
+  const score=Number(latest.score??0);
+  const level=cognitiveLevel(latest.test_type||"MMSE",score);
+  let trend=null;
+  if(sorted.length>=2){
+    const prev=Number(sorted[1].score??0);
+    if(score>prev)trend="improving";
+    else if(score<prev)trend="declining";
+    else trend="stable";
+  }
+  const daysSince=Math.floor((new Date()-new Date(latest.date+"T00:00:00"))/86400000);
+  const dueReassess=daysSince>=180;
+  return{latest,score,level,trend,count:sorted.length,daysSince,dueReassess};
+}
+
 function expiryBadge(d){
   if(d===null)return null;
   if(d<0)return{label:"EXPIRED",color:"#ef4444",bg:"rgba(239,68,68,0.1)"};
@@ -697,6 +743,7 @@ function toDb(d){return{
   pain_assessments:JSON.stringify(d.pain_assessments||[]),
   wound_assessments:JSON.stringify(d.wound_assessments||[]),
   braden_assessments:JSON.stringify(d.braden_assessments||[]),
+  cognitive_assessments:JSON.stringify(d.cognitive_assessments||[]),
 };}
 
 function fromDb(row){
@@ -717,6 +764,7 @@ function fromDb(row){
     pain_assessments:p(row.pain_assessments,[]),
     wound_assessments:p(row.wound_assessments,[]),
     braden_assessments:p(row.braden_assessments,[]),
+    cognitive_assessments:p(row.cognitive_assessments,[]),
   };
 }
 
@@ -1709,6 +1757,154 @@ function BradenScale({items,onChange}){
   );
 }
 
+// ─── Cognitive Screening (MMSE / MoCA) ───────────────────────────────────────
+function CognitiveScreening({items,onChange}){
+  const [showForm,setShowForm]=useState(false);
+  const [entry,setEntry]=useState(null);
+  const [showDomains,setShowDomains]=useState(false);
+  const blank=()=>({id:uid(),date:tod(),test_type:"MMSE",score:30,administered_by:"",notes:"",next_due:"",domains:{}});
+  const openNew=()=>{setEntry(blank());setShowForm(true);};
+  const openEdit=row=>{setEntry({...row,domains:row.domains||{}});setShowForm(true);};
+  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
+  const rm=id=>onChange(items.filter(i=>i.id!==id));
+  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
+  const summary=calcCognitiveSummary(items);
+  const liveLevel=entry?cognitiveLevel(entry.test_type||"MMSE",entry.score??30):null;
+
+  return(
+    <div>
+      {/* Summary card */}
+      {summary&&(
+        <div style={{background:"#0f172a",border:"1px solid #334155",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
+            <span style={{fontWeight:800,fontSize:22,color:summary.level.color}}>{summary.score}</span>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:summary.level.color}}>{summary.level.label}</div>
+              <div style={{fontSize:11,color:"#64748b"}}>{summary.latest.test_type||"MMSE"} · Score {summary.score}/30 · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+            </div>
+            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"#64748b"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
+          </div>
+          <div style={{height:6,background:"#1e293b",borderRadius:3,overflow:"hidden",marginBottom:6}}>
+            <div style={{height:"100%",width:Math.round((summary.score/30)*100)+"%",background:summary.level.color,borderRadius:3,transition:"width 0.3s"}}/>
+          </div>
+          {summary.dueReassess&&<div style={{fontSize:11,background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:6,padding:"4px 10px",color:"#f59e0b",marginTop:6}}>⚠️ Reassessment overdue — last screening was {summary.daysSince} days ago</div>}
+          {summary.latest.next_due&&<div style={{fontSize:11,color:"#475569",marginTop:4}}>📅 Next due: {new Date(summary.latest.next_due+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <span style={{fontSize:13,color:"#64748b"}}>{items.length} screening{items.length!==1?"s":""}</span>
+        <button style={{...ABTN,borderStyle:"solid",borderColor:"#a78bfa",color:"#a78bfa"}} onClick={openNew}>+ Log Screening</button>
+      </div>
+      {showForm&&entry&&(
+        <div style={{background:"#0f172a",border:"1px solid #a78bfa",borderRadius:10,padding:14,marginBottom:12}}>
+          {/* Live score header */}
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"#161929",borderRadius:8}}>
+            <span style={{fontWeight:800,fontSize:26,color:liveLevel.color}}>{entry.score??30}</span>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:liveLevel.color}}>{liveLevel.label}</div>
+              <div style={{fontSize:11,color:"#64748b"}}>{entry.test_type||"MMSE"} · out of 30</div>
+            </div>
+            <div style={{flex:1,height:6,background:"#1e293b",borderRadius:3,overflow:"hidden"}}>
+              <div style={{height:"100%",width:Math.round((Number(entry.score??30)/30)*100)+"%",background:liveLevel.color,borderRadius:3,transition:"width 0.2s"}}/>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Test Type</label>
+              <select style={INP} value={entry.test_type||"MMSE"} onChange={e=>setEntry(v=>({...v,test_type:e.target.value}))}>
+                <option>MMSE</option><option>MoCA</option><option>Other</option>
+              </select>
+            </div>
+            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
+          </div>
+          {/* Score slider + number */}
+          <div style={{marginBottom:10}}>
+            <label style={LBL}>Total Score (0–30)</label>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <input type="range" min={0} max={30} value={entry.score??30} onChange={e=>setEntry(v=>({...v,score:Number(e.target.value)}))} style={{flex:1,accentColor:liveLevel.color}}/>
+              <input type="number" min={0} max={30} value={entry.score??30} onChange={e=>setEntry(v=>({...v,score:Math.min(30,Math.max(0,Number(e.target.value)))}))} style={{...INP,width:64,textAlign:"center"}}/>
+            </div>
+            {/* Cutoff guide */}
+            <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
+              {(entry.test_type==="MoCA"
+                ?[{s:26,l:"Normal",c:"#10b981"},{s:18,l:"Mild",c:"#f59e0b"},{s:10,l:"Moderate",c:"#ef4444"},{s:0,l:"Severe",c:"#dc2626"}]
+                :[{s:25,l:"Normal",c:"#10b981"},{s:20,l:"Mild",c:"#f59e0b"},{s:10,l:"Moderate",c:"#ef4444"},{s:0,l:"Severe",c:"#dc2626"}]
+              ).map(tier=>(
+                <span key={tier.s} style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:tier.c+"15",color:tier.c,border:"1px solid "+tier.c+"30"}}>≥{tier.s} {tier.l}</span>
+              ))}
+            </div>
+          </div>
+          {/* MMSE domain breakdown (optional) */}
+          {entry.test_type==="MMSE"&&(
+            <div style={{marginBottom:10}}>
+              <button type="button" onClick={()=>setShowDomains(v=>!v)} style={{background:"none",border:"none",color:"#94a3b8",fontSize:12,cursor:"pointer",padding:0}}>
+                {showDomains?"▾":"▸"} Domain breakdown (optional)
+              </button>
+              {showDomains&&(
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:8}}>
+                  {MMSE_DOMAINS.map(dom=>(
+                    <div key={dom.key}>
+                      <label style={LBL}>{dom.label} (0–{dom.max})</label>
+                      <input type="number" min={0} max={dom.max} value={entry.domains?.[dom.key]??""} onChange={e=>setEntry(v=>({...v,domains:{...v.domains,[dom.key]:Math.min(dom.max,Math.max(0,Number(e.target.value)))}}))} style={INP} placeholder="–"/>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={LBL}>Administered By</label><input style={INP} value={entry.administered_by||""} onChange={e=>setEntry(v=>({...v,administered_by:e.target.value}))} placeholder="Staff name..."/></div>
+            <div><label style={LBL}>Next Reassessment Due</label><input type="date" style={INP} value={entry.next_due||""} onChange={e=>setEntry(v=>({...v,next_due:e.target.value}))}/></div>
+          </div>
+          <div style={{marginBottom:10}}>
+            <label style={LBL}>Notes / Observations</label>
+            <textarea style={{...INP,height:60,resize:"vertical"}} value={entry.notes||""} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Behaviour during screening, context, follow-up recommendations..."/>
+          </div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
+            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#8b5cf6",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
+          </div>
+        </div>
+      )}
+      {sorted.length===0&&!showForm&&<div style={{color:"#475569",fontSize:13,textAlign:"center",padding:"20px 0"}}>No cognitive screenings logged yet</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {sorted.map(row=>{
+          const lv=cognitiveLevel(row.test_type||"MMSE",row.score);
+          return(
+            <div key={row.id} style={{background:"#0f172a",border:"1px solid #334155",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#f1f5f9"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
+                  <span style={{fontSize:11,padding:"1px 8px",borderRadius:10,background:lv.color+"18",color:lv.color,fontWeight:700}}>{row.test_type||"MMSE"}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontWeight:800,fontSize:17,color:lv.color}}>{row.score}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}>/30</span></span>
+                  <span style={{fontSize:11,color:lv.color,fontWeight:600}}>{lv.label}</span>
+                  <button onClick={()=>openEdit(row)} style={{...IBTN}}>✏️</button>
+                  <button onClick={()=>rm(row.id)} style={{...IBTN}}>🗑</button>
+                </div>
+              </div>
+              {row.administered_by&&<div style={{fontSize:11,color:"#475569"}}>By: {row.administered_by}</div>}
+              {row.notes&&<div style={{fontSize:12,color:"#64748b",marginTop:3,fontStyle:"italic"}}>{row.notes}</div>}
+              {row.next_due&&<div style={{fontSize:11,color:"#475569",marginTop:2}}>📅 Next due: {new Date(row.next_due+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
+              {/* MMSE domain mini-badges */}
+              {row.test_type==="MMSE"&&row.domains&&Object.keys(row.domains).length>0&&(
+                <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:6}}>
+                  {MMSE_DOMAINS.filter(d=>row.domains[d.key]!==undefined).map(d=>{
+                    const v=Number(row.domains[d.key]);
+                    const pct=v/d.max;
+                    const col=pct<0.5?"#ef4444":pct<0.75?"#f59e0b":"#10b981";
+                    return<span key={d.key} style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:col+"18",color:col,border:"1px solid "+col+"35"}}>{d.label.split(" ")[0]} {v}/{d.max}</span>;
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Wound & Skin Assessment ─────────────────────────────────────────────────
 const WOUND_TYPES=["Pressure Ulcer","Skin Tear","Surgical","Laceration","Abrasion","Diabetic Ulcer","Venous Ulcer","Arterial Ulcer","Other"];
 const WOUND_STAGES=["Stage I","Stage II","Stage III","Stage IV","Unstageable","Deep Tissue","N/A"];
@@ -2150,6 +2346,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
       <Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
       <Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>
       <Sec icon="🛏" title="Braden Scale (Pressure Ulcer Risk)" accent="#8b5cf6" defaultOpen={false}><BradenScale items={d.braden_assessments||[]} onChange={v=>s("braden_assessments",v)}/></Sec>
+      <Sec icon="🧠" title="Cognitive Screening (MMSE / MoCA)" accent="#a78bfa" defaultOpen={false}><CognitiveScreening items={d.cognitive_assessments||[]} onChange={v=>s("cognitive_assessments",v)}/></Sec>
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
         <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontWeight:600}}>{t.cancel}</button>
         <button onClick={()=>valid&&!saving&&onSave(d)} disabled={!valid||saving}
@@ -2543,6 +2740,11 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>🛏 BRADEN SCALE — PRESSURE ULCER RISK</div>
           <BradenScale items={client.braden_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("braden_assessments",v):()=>{}}/>
         </div>
+        {/* Cognitive Screening */}
+        <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:"16px 18px",marginBottom:14}}>
+          <div style={{fontWeight:700,color:"#a78bfa",fontSize:13,marginBottom:12}}>🧠 COGNITIVE SCREENING — MMSE / MoCA</div>
+          <CognitiveScreening items={client.cognitive_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("cognitive_assessments",v):()=>{}}/>
+        </div>
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
     </div>
   );
@@ -2909,6 +3111,32 @@ function Dashboard({clients,onSelect,t,currentUser}){
                   <div style={{fontWeight:800,fontSize:18,color:bs.risk.color}}>{bs.score}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}>/{BRADEN_MAX}</span></div>
                   <div style={{fontSize:11,color:bs.risk.color,fontWeight:600}}>{bs.risk.label}</div>
                   {bs.trend&&<div style={{fontSize:10,color:bs.trend==="improving"?"#10b981":bs.trend==="declining"?"#ef4444":"#64748b"}}>{bs.trend==="improving"?"↑":bs.trend==="declining"?"↓":"→"} {bs.trend}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ── Cognitive Screening ── */}
+      {(()=>{
+        const cogClients=clients.filter(c=>!c.archived).map(c=>({...c,cog:calcCognitiveSummary(c.cognitive_assessments)})).filter(({cog})=>cog&&(cog.level.label==="Moderate Impairment"||cog.level.label==="Severe Impairment"||cog.trend==="declining")).sort((a,b)=>a.cog.score-b.cog.score);
+        if(cogClients.length===0)return null;
+        return(
+          <div style={{background:"#1c1f2e",boxShadow:"6px 6px 14px rgba(0,0,0,0.5), -3px -3px 8px rgba(255,255,255,0.04)",borderRadius:16,padding:20,marginBottom:16}}>
+            <div style={{fontWeight:700,color:"#a78bfa",fontSize:13,marginBottom:4}}>🧠 COGNITIVE SCREENING</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:12}}>Clients with Moderate/Severe impairment or declining trend. Lowest score first.</div>
+            {cogClients.map(({cog,...c})=>(
+              <div key={c.id} onClick={()=>onSelect(c)} className="dash-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#161929",boxShadow:"inset 3px 3px 7px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.03)",borderRadius:10,cursor:"pointer",marginBottom:8,borderLeft:"3px solid "+cog.level.color}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name)}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#f1f5f9",marginBottom:3}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"#475569"}}>{cog.latest.test_type||"MMSE"} · {cog.daysSince}d ago{cog.dueReassess?" · ⚠️ Reassessment overdue":""}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontWeight:800,fontSize:18,color:cog.level.color}}>{cog.score}<span style={{fontSize:11,fontWeight:400,color:"#475569"}}>/30</span></div>
+                  <div style={{fontSize:11,color:cog.level.color,fontWeight:600}}>{cog.level.label}</div>
+                  {cog.trend&&<div style={{fontSize:10,color:cog.trend==="improving"?"#10b981":cog.trend==="declining"?"#ef4444":"#64748b"}}>{cog.trend==="improving"?"↑":cog.trend==="declining"?"↓":"→"} {cog.trend}</div>}
                 </div>
               </div>
             ))}
