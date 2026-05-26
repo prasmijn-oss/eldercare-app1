@@ -3234,7 +3234,7 @@ function Dashboard({clients,onSelect,t,currentUser}){
   const totalAllergies=clients.reduce((s,c)=>s+(c.allergies||[]).filter(a=>a.value&&a.value.trim()).length,0);
   const totalDiag=clients.reduce((s,c)=>s+(c.diagnoses||[]).filter(d=>d.value&&d.value.trim()).length,0);
   const allergyClients=clients.filter(c=>(c.allergies||[]).some(a=>a.value&&a.value.trim()));
-  const flagged=clients.filter(c=>{const f=getMedFlags(c);return f.polypharmacy||f.highRisk.length>0;});
+  const flagged=useMemo(()=>clients.reduce((acc,c)=>{const f=getMedFlags(c);if(f.polypharmacy||f.highRisk.length>0)acc.push({...c,_flags:f});return acc;},[]),[clients]);
   // Doc expiry — expanded to 90 days
   const expiring=clients.flatMap(c=>(c.documents||[]).filter(d=>d.expiry&&daysUntil(d.expiry)!==null&&daysUntil(d.expiry)<=90).map(d=>({...d,clientName:c.name,days:daysUntil(d.expiry),client:c}))).sort((a,b)=>a.days-b.days);
   // Birthdays in next 30 days
@@ -3330,7 +3330,7 @@ function Dashboard({clients,onSelect,t,currentUser}){
       {flagged.length>0&&(
         <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:16,marginBottom:12}}>
           <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:14}}>MEDICATION FLAGS</div>
-          {flagged.map(c=>{const {highRisk,polypharmacy,medCount}=getMedFlags(c);return(
+          {flagged.map(c=>{const {highRisk,polypharmacy,medCount}=c._flags;return(
             <div key={c.id} onClick={()=>onSelect(c)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,cursor:"pointer",marginBottom:8}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{initials(c.name)}</div>
               <div style={{flex:1}}>
@@ -3659,10 +3659,14 @@ function Dashboard({clients,onSelect,t,currentUser}){
   );
 }
 
+const AUDIT_PAGE=100;
 function AuditTrail({t,companyId,currentUser}){
   const [logs,setLogs]=useState([]);
   const [companies,setCompanies]=useState([]);
   const [loading,setLoading]=useState(true);
+  const [loadingMore,setLoadingMore]=useState(false);
+  const [hasMore,setHasMore]=useState(false);
+  const [page,setPage]=useState(0);
   const [fS,setFS]=useState("");
   const [fA,setFA]=useState("");
   const [fCo,setFCo]=useState("");
@@ -3671,33 +3675,41 @@ function AuditTrail({t,companyId,currentUser}){
   const [fTo,setFTo]=useState("");
   const [expandedRow,setExpandedRow]=useState(null);
 
-  useEffect(()=>{
-    setLoading(true);
+  const fetchLogs=useCallback(async(pageNum,append=false)=>{
+    if(pageNum===0)setLoading(true);else setLoadingMore(true);
     const isSA=currentUser?.role==="superadmin";
-    const q=supabase.from("audit_log").select("*").order("performed_at",{ascending:false}).limit(1000);
-    ((!isSA)&&companyId?q.eq("company_id",companyId):q).then(({data})=>{
-      setLogs(data||[]);setLoading(false);
-    });
+    let q=supabase.from("audit_log").select("*").order("performed_at",{ascending:false})
+      .range(pageNum*AUDIT_PAGE,(pageNum+1)*AUDIT_PAGE-1);
+    if(!isSA&&companyId)q=q.eq("company_id",companyId);
+    if(fS)q=q.eq("performed_by",fS);
+    if(fA)q=q.eq("action",fA);
+    if(fCo)q=q.eq("company_id",fCo);
+    if(fSec)q=q.eq("section",fSec);
+    if(fFrom)q=q.gte("performed_at",fFrom+"T00:00:00");
+    if(fTo)q=q.lte("performed_at",fTo+"T23:59:59");
+    const {data}=await q;
+    const rows=data||[];
+    setLogs(prev=>append?[...prev,...rows]:rows);
+    setHasMore(rows.length===AUDIT_PAGE);
+    if(pageNum===0)setLoading(false);else setLoadingMore(false);
+  },[companyId,currentUser,fS,fA,fCo,fSec,fFrom,fTo]);
+
+  useEffect(()=>{
+    setPage(0);
+    fetchLogs(0,false);
     supabase.from("companies").select("id,name").order("name").then(({data})=>setCompanies(data||[]));
-  },[companyId,currentUser]);
+  },[fetchLogs]);
+
+  const loadMore=()=>{const next=page+1;setPage(next);fetchLogs(next,true);};
 
   const coName=id=>companies.find(c=>c.id===id)?.name||"—";
+  // Derive filter options from loaded rows (server already applied server-side filters)
   const sl=[...new Set(logs.map(l=>l.performed_by))].filter(Boolean).sort();
   const al=[...new Set(logs.map(l=>l.action))].filter(Boolean).sort();
   const secList=[...new Set(logs.map(l=>l.section))].filter(Boolean).sort();
   const coIds=[...new Set(logs.map(l=>l.company_id))].filter(Boolean);
   const filterCos=companies.filter(c=>coIds.includes(c.id));
-
-  const filtered=logs.filter(l=>{
-    if(fS&&l.performed_by!==fS)return false;
-    if(fA&&l.action!==fA)return false;
-    if(fCo&&l.company_id!==fCo)return false;
-    if(fSec&&l.section!==fSec)return false;
-    const d=l.performed_at?l.performed_at.slice(0,10):"";
-    if(fFrom&&d<fFrom)return false;
-    if(fTo&&d>fTo)return false;
-    return true;
-  });
+  const filtered=logs; // filtering now done server-side
 
   const hasFilter=fS||fA||fCo||fSec||fFrom||fTo;
   const clearFilters=()=>{setFS("");setFA("");setFCo("");setFSec("");setFFrom("");setFTo("");};
@@ -3836,6 +3848,11 @@ function AuditTrail({t,companyId,currentUser}){
                   })}
                 </tbody>
               </table>
+              {hasMore&&<div style={{textAlign:"center",padding:"16px"}}>
+                <button onClick={loadMore} disabled={loadingMore} style={{padding:"8px 24px",borderRadius:8,border:"1px solid rgba(99,102,241,0.3)",background:"rgba(99,102,241,0.08)",color:"#a5b4fc",fontWeight:600,fontSize:13,cursor:"pointer"}}>
+                  {loadingMore?"Loading…":"Load more"}
+                </button>
+              </div>}
             </div>}
       </div>
     </div>
@@ -4184,7 +4201,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
 
   const loadActivity=async(from,to)=>{
     setActivityLoading(true);
-    let q=supabase.from("audit_log").select("performed_by,action,client_name,performed_at").order("performed_at",{ascending:false}).limit(3000);
+    let q=supabase.from("audit_log").select("performed_by,action,client_name,performed_at").order("performed_at",{ascending:false}).limit(500);
     if(activeCompanyId)q=q.eq("company_id",activeCompanyId);
     if(from)q=q.gte("performed_at",from+"T00:00:00");
     if(to)q=q.lte("performed_at",to+"T23:59:59");
@@ -4493,15 +4510,17 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const companyName=id=>companies.find(c=>c.id===id)?.name||"—";
 
 
-  const seenUserIds=new Set();
-  const filteredUsers=users.filter(u=>{
-    const matchTab=userTab==="all"||(userTab==="active"&&u.role!=="inactive")||(userTab==="inactive"&&u.role==="inactive");
-    const matchSearch=!search||u.name?.toLowerCase().includes(search.toLowerCase())||u.email?.toLowerCase().includes(search.toLowerCase());
-    if(!matchTab||!matchSearch)return false;
-    if(seenUserIds.has(u.user_id))return false;
-    seenUserIds.add(u.user_id);
-    return true;
-  });
+  const filteredUsers=useMemo(()=>{
+    const seen=new Set();
+    return users.filter(u=>{
+      const matchTab=userTab==="all"||(userTab==="active"&&u.role!=="inactive")||(userTab==="inactive"&&u.role==="inactive");
+      const matchSearch=!search||u.name?.toLowerCase().includes(search.toLowerCase())||u.email?.toLowerCase().includes(search.toLowerCase());
+      if(!matchTab||!matchSearch)return false;
+      if(seen.has(u.user_id))return false;
+      seen.add(u.user_id);
+      return true;
+    });
+  },[users,userTab,search]);
 
   const INP2={...INP,marginBottom:0};
 
@@ -6278,7 +6297,9 @@ export default function App(){
     setLoading(true);
     const cid=selectedCompany||currentUser?.company_id;
     const isSuperAdmin=currentUser?.role==="superadmin";
-    const q=supabase.from("clients").select("*").order("name");
+    // Omit heavy clinical JSONB fields from the list load — they are lazy-fetched in detail view
+    const LIST_COLS="id,name,date_of_birth,status,photo_url,company_id,archived,room_number,diagnoses,medications,allergies,documents,appointments,incidents,intake_checklist,vitals,care_plan,inventory,family_contacts";
+    const q=supabase.from("clients").select(LIST_COLS).order("name");
     const {data,error:err}=(isSuperAdmin&&searchAllCompanies)?await q:(cid?await q.eq("company_id",cid):await q);
     if(err)setError(err.message);else setClients((data||[]).map(fromDb));
     // Build company name map for cross-company display
@@ -6290,6 +6311,15 @@ export default function App(){
     setLoading(false);
   },[currentUser,selectedCompany,searchAllCompanies]);
 
+  // Lazy-fetch full clinical detail for a single client (session_notes + clinical assessments)
+  const loadClientDetail=useCallback(async(clientId)=>{
+    const {data,error}=await supabase.from("clients").select("*").eq("id",clientId).single();
+    if(error||!data)return;
+    const full={...fromDb(data),_detailLoaded:true};
+    setClients(prev=>prev.map(c=>c.id===clientId?full:c));
+    setSelected(prev=>prev?.id===clientId?full:prev);
+  },[]);
+
   const loadCompany=useCallback(async()=>{
     if(!currentUser)return;
     const cid=selectedCompany||currentUser.company_id;
@@ -6299,6 +6329,12 @@ export default function App(){
   },[currentUser,selectedCompany]);
 
   useEffect(()=>{if(currentUser){loadClients();loadCompany();loadPermissions(activeCompanyId);}},[currentUser,selectedCompany,searchAllCompanies,loadClients,loadCompany]);
+  // Lazy-load full clinical detail when opening a client detail view
+  useEffect(()=>{
+    if(view==="detail"&&selected?.id&&!selected._detailLoaded){
+      loadClientDetail(selected.id);
+    }
+  },[view,selected?.id,selected?._detailLoaded,loadClientDetail]);
 
   const activeCompanyId=selectedCompany||currentUser?.company_id;
 
@@ -6477,6 +6513,16 @@ export default function App(){
     :[]
   ,[clients,search,searchMode]);
 
+  // ── Sidebar badge counts — memoized so they don't recompute on every keystroke ──
+  const activeClientCount=useMemo(()=>clients.filter(c=>!c.archived).length,[clients]);
+  const recentIncidentCount=useMemo(()=>{
+    const ago=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
+    return clients.reduce((s,c)=>s+(c.incidents||[]).filter(i=>i.date&&i.date>=ago).length,0);
+  },[clients]);
+  const medFlagCount=useMemo(()=>clients.filter(c=>{
+    const f=getMedFlags(c);return f.polypharmacy||f.highRisk.length>0;
+  }).length,[clients]);
+
   if(!authChecked)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--color-bg-card)",color:"#6366f1",fontSize:18,fontFamily:"serif"}}>Loading...</div>;
   if(!currentUser)return lang?<Login onLogin={setCurrentUser} t={t}/>:<LangPicker onSelect={selectLang}/>;
   if(!lang)return <LangPicker onSelect={selectLang}/>;
@@ -6568,7 +6614,6 @@ export default function App(){
               };
               const dashBtn=navBtn("dashboard","Dashboard",'<rect x="1" y="1" width="5" height="5" rx="1.5"/><rect x="9" y="1" width="5" height="5" rx="1.5"/><rect x="1" y="9" width="5" height="5" rx="1.5"/><rect x="9" y="9" width="5" height="5" rx="1.5"/>');
               const clientsActive=view==="clients"||view==="detail"||view==="edit";
-              const activeClientCount=clients.filter(c=>!c.archived).length;
               const clientsBtn=(
                 <button onClick={()=>{setView("clients");setSelected(null);setSidebarOpen(false);}}
                   className="nav-item"
@@ -6580,8 +6625,6 @@ export default function App(){
                 </button>
               );
               // Incidents nav
-              const totalIncidents=clients.reduce((s,c)=>s+(c.incidents||[]).length,0);
-              const recentIncidentCount=(()=>{const ago=new Date(Date.now()-7*864e5).toISOString().slice(0,10);return clients.reduce((s,c)=>s+(c.incidents||[]).filter(i=>i.date&&i.date>=ago).length,0);})();
               const incActive=view==="incidents";
               const incBtn=(
                 <button onClick={()=>{setView("incidents");setSelected(null);setSidebarOpen(false);}}
@@ -6594,8 +6637,6 @@ export default function App(){
                 </button>
               );
               // Medications nav
-              const totalMedCount=clients.reduce((s,c)=>s+(c.medications||[]).filter(m=>m.name&&m.name.trim()).length,0);
-              const medFlagCount=clients.filter(c=>{const f=getMedFlags(c);return f.polypharmacy||f.highRisk.length>0;}).length;
               const medActive=view==="medications";
               const medBtn=(
                 <button onClick={()=>{setView("medications");setSelected(null);setSidebarOpen(false);}}
@@ -6902,11 +6943,9 @@ export default function App(){
             );
           })()}
           {!loading&&view==="medications"&&(()=>{
-            const allMeds=clients.filter(c=>!c.archived).flatMap(c=>{
-              const flags=getMedFlags(c);
-              return(c.medications||[]).filter(m=>m.name&&m.name.trim()).map(m=>({...m,clientName:c.name,client:c,isHighRisk:flags.highRisk.some(h=>h.name===m.name),polypharmacy:flags.polypharmacy,medCount:flags.medCount}));
-            });
-            const flaggedClients=clients.filter(c=>!c.archived&&(()=>{const f=getMedFlags(c);return f.polypharmacy||f.highRisk.length>0;})());
+            const activeWithFlags=clients.filter(c=>!c.archived).map(c=>({c,flags:getMedFlags(c)}));
+            const allMeds=activeWithFlags.flatMap(({c,flags})=>(c.medications||[]).filter(m=>m.name&&m.name.trim()).map(m=>({...m,clientName:c.name,client:c,isHighRisk:flags.highRisk.some(h=>h.name===m.name),polypharmacy:flags.polypharmacy,medCount:flags.medCount})));
+            const flaggedClients=activeWithFlags.filter(({flags})=>flags.polypharmacy||flags.highRisk.length>0).map(({c,flags})=>({...c,_flags:flags}));
             const totalMeds=allMeds.length;
             const highRiskCount=allMeds.filter(m=>m.isHighRisk).length;
             return(
@@ -6923,7 +6962,7 @@ export default function App(){
                     <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"0.9px",color:"var(--color-text-muted)",marginBottom:10}}>⚠ Flagged Clients</div>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:10}}>
                       {flaggedClients.map(c=>{
-                        const {highRisk,polypharmacy,medCount}=getMedFlags(c);
+                        const {highRisk,polypharmacy,medCount}=c._flags;
                         return(
                           <div key={c.id} onClick={()=>{setSelected(c);setView("detail");trackRecent(c);}}
                             style={{padding:"12px 14px",background:"var(--color-bg-card)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:12,cursor:"pointer"}}>
