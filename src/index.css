@@ -29,6 +29,7 @@
   --color-border-accent:rgba(99,102,241,0.3);
   --color-text-primary: #f0f2fa;
   --color-text-secondary:rgba(240,242,250,0.5);
+  --color-text-dim:     rgba(240,242,250,0.35);
   --color-text-muted:   rgba(240,242,250,0.25);
   --color-accent:       var(--primitive-indigo-500);
   --color-accent-light: var(--primitive-indigo-300);
@@ -61,6 +62,7 @@
 
 /* === SEMANTIC TOKENS — light mode override === */
 html.cm-light {
+  filter: none !important;
   --color-bg-base:       #f4f5f7;
   --color-bg-surface:    #ffffff;
   --color-bg-card:       #ffffff;
@@ -71,9 +73,10 @@ html.cm-light {
   --color-border-accent: rgba(99,102,241,0.3);
   --color-text-primary:  #0f1117;
   --color-text-secondary:rgba(15,17,23,0.55);
+  --color-text-dim:      rgba(15,17,23,0.45);
   --color-text-muted:    rgba(15,17,23,0.35);
 }
-html.cm-light img, html.cm-light video { filter: invert(1) hue-rotate(180deg); }
+html.cm-light img, html.cm-light video { filter: none !important; }
 
 /* === GLOBAL RESET === */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
