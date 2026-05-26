@@ -3891,11 +3891,13 @@ function Login({onLogin,t}){
           <div style={{fontSize:13,color:"rgba(240,242,250,0.35)"}}>{t.signIn}</div>
         </div>
         {error&&<div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:16,color:"#ef4444",fontSize:13}}>{error}</div>}
-        <div style={{marginBottom:14}}><label style={LBL}>Email or Username</label><input type="text" style={INP} placeholder="your@email.com or username" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()}/></div>
-        <div style={{marginBottom:24}}><label style={LBL}>{t.password}</label><input type="password" style={INP} placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()}/></div>
-        <button onClick={handle} disabled={loading} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:loading?"rgba(255,255,255,0.08)":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:loading?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:15,boxShadow:loading?"none":"0 4px 14px rgba(99,102,241,0.35)"}}>
-          {loading?t.signingIn:t.signIn}
-        </button>
+        <form onSubmit={e=>{e.preventDefault();handle();}} style={{margin:0}}>
+          <div style={{marginBottom:14}}><label style={LBL}>Email or Username</label><input type="text" style={INP} placeholder="your@email.com or username" value={email} onChange={e=>setEmail(e.target.value)} autoCapitalize="none" autoCorrect="off" autoComplete="username email" spellCheck="false"/></div>
+          <div style={{marginBottom:24}}><label style={LBL}>{t.password}</label><input type="password" style={INP} placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password"/></div>
+          <button type="submit" disabled={loading} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:loading?"rgba(255,255,255,0.08)":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:loading?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:15,boxShadow:loading?"none":"0 4px 14px rgba(99,102,241,0.35)"}}>
+            {loading?t.signingIn:t.signIn}
+          </button>
+        </form>
       </div>
     </div>
   );
