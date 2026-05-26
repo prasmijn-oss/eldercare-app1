@@ -6349,6 +6349,18 @@ export default function App(){
   },[currentUser,selectedCompany]);
 
   useEffect(()=>{if(currentUser){loadClients();loadCompany();loadPermissions(activeCompanyId);}},[currentUser,selectedCompany,searchAllCompanies,loadClients,loadCompany]);
+
+  // ── Supabase Realtime — auto-refresh clients when DB changes ──────────────
+  useEffect(()=>{
+    if(!currentUser)return;
+    const channel=supabase.channel("realtime-clients")
+      .on("postgres_changes",{event:"*",schema:"public",table:"clients"},()=>{
+        loadClients();
+      })
+      .subscribe();
+    return()=>{supabase.removeChannel(channel);};
+  },[currentUser,loadClients]);
+
   // Lazy-load full clinical detail when opening a client detail view
   useEffect(()=>{
     if(view==="detail"&&selected?.id&&!selected._detailLoaded){
