@@ -12,6 +12,7 @@ const GCSS = [
   "* { box-sizing: border-box; margin: 0; padding: 0; }",
   "body { font-family: 'DM Sans', system-ui, sans-serif; background: #07091c; color: #f0f2fa; -webkit-font-smoothing: antialiased; }",
   "input, textarea, select { font-family: 'DM Sans', system-ui, sans-serif; }",
+  "select option { background: #111427; color: #f0f2fa; }",
   "input:focus, textarea:focus, select:focus { outline: none !important; border-color: rgba(99,102,241,0.5) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important; }",
   "button { font-family: 'DM Sans', system-ui, sans-serif; cursor: pointer; }",
   "button:hover { opacity: 0.88; }",
