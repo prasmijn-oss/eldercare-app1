@@ -961,25 +961,41 @@ function Sec({icon,title,accent,children,defaultOpen=true}){
   );
 }
 
+// Resolves a client-photos value (storage path OR legacy public URL) to a displayable src.
+// New uploads store only the path (e.g. "uuid.jpg"); old rows store the full https:// URL.
+function ClientPhoto({path,style,alt="",fallback=null}){
+  const [src,setSrc]=useState(()=>path?.startsWith("http")?path:null);
+  useEffect(()=>{
+    if(!path){setSrc(null);return;}
+    if(path.startsWith("http")){setSrc(path);return;} // legacy public URL — use as-is
+    let cancelled=false;
+    supabase.storage.from("client-photos").createSignedUrl(path,3600)
+      .then(({data})=>{if(!cancelled)setSrc(data?.signedUrl||null);});
+    return()=>{cancelled=true;};
+  },[path]);
+  if(!src)return fallback;
+  return <img src={src} alt={alt} style={style}/>;
+}
+
 function PhotoUp({value,onChange,clientId,t}){
   const [loading,setLoading]=useState(false);
   const ref=useRef(null);
   const handle=async e=>{
     const file=e.target.files[0];if(!file)return;
     setLoading(true);
-    const ext=file.name.split(".").pop();
+    const ext=file.name.split(".").pop().toLowerCase();
     const path=clientId+"."+ext;
-    const {error}=await supabase.storage.from("client-photos").upload(path,file,{upsert:true});
+    const {error}=await supabase.storage.from("client-photos").upload(path,file,{upsert:true,contentType:file.type});
     if(error){alert("Upload failed: "+error.message);setLoading(false);return;}
-    const {data}=supabase.storage.from("client-photos").getPublicUrl(path);
-    onChange(data.publicUrl+"?t="+Date.now());
+    // Store only the storage path — display via signed URL (private bucket)
+    onChange(path);
     setLoading(false);
   };
   return(
     <div style={{display:"flex",alignItems:"center",gap:20,padding:"16px 18px",borderBottom:"1px solid var(--color-border)"}}>
       <div onClick={()=>ref.current&&ref.current.click()}
         style={{width:80,height:80,borderRadius:"50%",background:value?"transparent":"rgba(255,255,255,0.04)",border:"2px dashed rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",flexShrink:0}}>
-        {value?<img src={value} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:28}}>+</span>}
+        <ClientPhoto path={value} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} fallback={<span style={{fontSize:28}}>+</span>}/>
       </div>
       <input ref={ref} type="file" accept="image/*" style={{display:"none"}} onChange={handle}/>
       <div>
@@ -2927,7 +2943,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
         <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,marginBottom:16}}>
           <div style={{display:"flex",alignItems:"center",gap:18,padding:20}}>
             <div style={{width:72,height:72,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,fontWeight:800,color:"#fff",flexShrink:0,overflow:"hidden"}}>
-              {client.photo_url?<img src={client.photo_url} alt={client.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(client.name)}
+              <ClientPhoto path={client.photo_url} alt={client.name} style={{width:"100%",height:"100%",objectFit:"cover"}} fallback={initials(client.name)}/>
             </div>
             <div style={{flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:4}}>
@@ -5687,6 +5703,9 @@ function ReportsView({clients,company,currentUser,logAudit}){
   // ── Census Report ────────────────────────────────────────────────────────────
   const genCensus=()=>{
     setGenerating(true);
+    // Defer heavy computation so the "Generating PDF…" button state renders before the
+    // main thread is blocked by iterating all clients and building the HTML string.
+    setTimeout(()=>{
     const all=clients.filter(c=>!c.archived);
     const byStatus={Active:0,Inactive:0,Discharged:0};
     all.forEach(c=>{const s=c.status||"Active";byStatus[s]=(byStatus[s]||0)+1;});
@@ -5761,6 +5780,7 @@ function ReportsView({clients,company,currentUser,logAudit}){
     openPrint(h);
     logAudit?.("Generated Census PDF","",{section:"Reports",details:`Census report — ${monthName} ${year} — ${all.length} clients`});
     setGenerating(false);
+    },0); // end setTimeout — allows "Generating PDF…" state to paint before CPU work begins
   };
 
   const REPORTS=[
@@ -6834,7 +6854,7 @@ export default function App(){
                         <button key={rc.id} onClick={()=>{if(!full)return;setSelected(full);setView("detail");trackRecent(full);}}
                           className="client-row" style={{display:"flex",alignItems:"center",gap:8,background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:10,padding:"7px 12px",cursor:full?"pointer":"not-allowed",maxWidth:180,opacity:full?1:0.5}}>
                           <div style={{width:28,height:28,borderRadius:"50%",background:avatarColor(rc.name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,overflow:"hidden"}}>
-                            {rc.photo_url?<img src={rc.photo_url} alt={rc.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(rc.name)}
+                            <ClientPhoto path={rc.photo_url} alt={rc.name} style={{width:"100%",height:"100%",objectFit:"cover"}} fallback={initials(rc.name)}/>
                           </div>
                           <span style={{fontSize:12,fontWeight:600,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rc.name}</span>
                         </button>
@@ -6863,7 +6883,7 @@ export default function App(){
                       <button key={rc.id} onClick={()=>{if(!full)return;setSelected(full);setView("detail");trackRecent(full);}}
                         className="client-row" style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 9px",borderRadius:9,border:"none",background:"transparent",cursor:full?"pointer":"not-allowed",marginBottom:3,textAlign:"left",opacity:full?1:0.5}}>
                         <div style={{width:36,height:36,borderRadius:10,background:rc.photo_url?"transparent":avc[hi],display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:avtc[hi],flexShrink:0,overflow:"hidden"}}>
-                          {rc.photo_url?<img src={rc.photo_url} alt={rc.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>:initials(rc.name)}
+                          <ClientPhoto path={rc.photo_url} alt={rc.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}} fallback={initials(rc.name)}/>
                         </div>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:13,fontWeight:600,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rc.name}</div>
@@ -7145,7 +7165,7 @@ export default function App(){
                           {/* Header: avatar + name + age + room */}
                           <div style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:12}}>
                             <div style={{width:44,height:44,borderRadius:12,background:c.photo_url?"transparent":avatarBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:avatarTextColors[hi],flexShrink:0,overflow:"hidden",opacity:c.archived?0.5:1}}>
-                              {c.photo_url?<img src={c.photo_url} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:12}}/>:initials(c.name)}
+                              <ClientPhoto path={c.photo_url} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:12}} fallback={initials(c.name)}/>
                             </div>
                             <div style={{flex:1,minWidth:0}}>
                               <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
