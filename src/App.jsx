@@ -38,13 +38,15 @@ const GCSS = [
   "  .notif-panel { width: 100vw !important; }",
   "  .three-col { grid-template-columns: 1fr !important; }",
   "  .four-col { grid-template-columns: 1fr 1fr !important; }",
+  "  .nav-item { min-height: 44px !important; }",
+  "  .sidebar-footer { padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important; }",
   "}",
   "@media (min-width: 769px) {",
   "  .sidebar { transform: none !important; position: relative !important; }",
   "  .overlay { display: none !important; }",
   "  .mob-hdr { display: none !important; }",
   "}",
-  ".mob-hdr { display: none; align-items: center; justify-content: space-between; padding: 12px 20px; background: #0c0f1f; border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 100; }",
+  ".mob-hdr { display: none; align-items: center; justify-content: space-between; padding: 12px 20px; padding-top: calc(12px + env(safe-area-inset-top)); background: #0c0f1f; border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 100; }",
   ".overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 199; }",
   ".overlay.show { display: block; }",
   "@media print {",
@@ -435,6 +437,7 @@ function allergyMedConflicts(c){
     return allergies.some(a=>mn.includes(a)||a.includes(mn));
   });
 }
+const prefersReducedMotion=typeof window!=="undefined"&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const FALL_RISK_DIAG={"Falls Risk":3,"Parkinson's Disease":2,"Dementia":2,"Alzheimer's Disease":2,"Stroke (CVA)":2,"TIA":1,"Vascular Dementia":2,"Epilepsy":2,"Osteoporosis":1,"Peripheral Neuropathy":1,"Arthritis (Osteoarthritis)":1,"Arthritis (Rheumatoid)":1,"Incontinence":1};
 const FALL_RISK_MEDS={"Zolpidem":2,"Morphine":2,"Tramadol":2,"Furosemide":1,"Insulin Basal":1,"Insulin Rapid":1,"Levodopa":1,"Donepezil":1,"Memantine":1};
 function calcFallRisk(client){
@@ -845,8 +848,8 @@ function fromDb(row){
 
 const INP={width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.03)",color:"var(--color-text-primary)",fontSize:16};
 const LBL={display:"block",fontSize:11,fontWeight:700,color:"var(--color-text-dim)",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"};
-const ABTN={background:"none",border:"1.5px dashed rgba(99,102,241,0.4)",borderRadius:8,padding:"10px 14px",color:"#6366f1",fontSize:13,fontWeight:600};
-const IBTN={background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--color-text-dim)",fontSize:12,flexShrink:0};
+const ABTN={background:"none",border:"1.5px dashed rgba(99,102,241,0.4)",borderRadius:8,padding:"10px 14px",color:"#6366f1",fontSize:13,fontWeight:600,touchAction:"manipulation",cursor:"pointer"};
+const IBTN={background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--color-text-dim)",fontSize:12,flexShrink:0,touchAction:"manipulation",cursor:"pointer"};
 
 // ─── Password Strength ───────────────────────────────────────────────────────
 const PW_LEVELS=[
@@ -910,7 +913,8 @@ function SearchDrop({value,onChange,options,placeholder}){
   useEffect(()=>{
     const fn=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
     document.addEventListener("mousedown",fn);
-    return()=>document.removeEventListener("mousedown",fn);
+    document.addEventListener("touchstart",fn,{passive:true});
+    return()=>{document.removeEventListener("mousedown",fn);document.removeEventListener("touchstart",fn);};
   },[]);
   const pick=opt=>{onChange(opt);setQ(opt);setOpen(false);};
   return(
@@ -3162,20 +3166,38 @@ function TiltCard({icon,label,value,color,glowColor}){
   const ref=useRef(null);
   useEffect(()=>{
     const el=ref.current;if(!el)return;
+    if(prefersReducedMotion)return;
+    const applyTilt=(x,y,deg)=>{
+      el.style.transform=`rotateX(${-y*deg}deg) rotateY(${x*deg}deg) translateY(-3px)`;
+      el.style.boxShadow="0 20px 40px rgba(0,0,0,0.5)";
+    };
+    const reset=()=>{el.style.transform="";el.style.boxShadow="0 1px 3px rgba(0,0,0,0.3)";};
     const onMove=e=>{
       const r=el.getBoundingClientRect();
       const x=(e.clientX-r.left)/r.width-0.5;
       const y=(e.clientY-r.top)/r.height-0.5;
-      el.style.transform=`rotateX(${-y*10}deg) rotateY(${x*10}deg) translateY(-3px)`;
-      el.style.boxShadow="0 20px 40px rgba(0,0,0,0.5)";
+      applyTilt(x,y,10);
     };
-    const onLeave=()=>{el.style.transform="";el.style.boxShadow="0 1px 3px rgba(0,0,0,0.3)";};
+    const onTouch=e=>{
+      const t=e.touches[0];
+      const r=el.getBoundingClientRect();
+      const x=(t.clientX-r.left)/r.width-0.5;
+      const y=(t.clientY-r.top)/r.height-0.5;
+      applyTilt(x,y,8);
+    };
     el.addEventListener("mousemove",onMove);
-    el.addEventListener("mouseleave",onLeave);
-    return()=>{el.removeEventListener("mousemove",onMove);el.removeEventListener("mouseleave",onLeave);};
+    el.addEventListener("mouseleave",reset);
+    el.addEventListener("touchmove",onTouch,{passive:true});
+    el.addEventListener("touchend",reset,{passive:true});
+    return()=>{
+      el.removeEventListener("mousemove",onMove);
+      el.removeEventListener("mouseleave",reset);
+      el.removeEventListener("touchmove",onTouch);
+      el.removeEventListener("touchend",reset);
+    };
   },[]);
   return(
-    <div ref={ref} style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:"14px 16px",cursor:"pointer",position:"relative",overflow:"hidden",transition:"transform 180ms ease, box-shadow 180ms ease"}}>
+    <div ref={ref} style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,padding:"14px 16px",cursor:"pointer",position:"relative",overflow:"hidden",transition:prefersReducedMotion?"none":"transform 180ms ease, box-shadow 180ms ease"}}>
       {/* Ambient glow */}
       <div style={{position:"absolute",width:80,height:80,borderRadius:"50%",top:-20,right:-20,pointerEvents:"none",opacity:0.2,background:`radial-gradient(circle, ${glowColor||color} 0%, transparent 70%)`}}/>
       <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"0.7px",color:"var(--color-text-muted)",marginBottom:8}}>{label}</div>
@@ -3187,8 +3209,8 @@ function TiltCard({icon,label,value,color,glowColor}){
 function FlipCard({frontIcon,frontLabel,backValue,backSub,backGradient}){
   const [flipped,setFlipped]=useState(false);
   return(
-    <div style={{height:116,perspective:"600px"}} onMouseEnter={()=>setFlipped(true)} onMouseLeave={()=>setFlipped(false)}>
-      <div style={{position:"relative",width:"100%",height:"100%",transformStyle:"preserve-3d",transition:"transform 0.35s cubic-bezier(0.4,0,0.2,1)",transform:flipped?"rotateY(180deg)":"rotateY(0deg)"}}>
+    <div style={{height:116,perspective:"600px"}} onMouseEnter={()=>!prefersReducedMotion&&setFlipped(true)} onMouseLeave={()=>setFlipped(false)} onClick={()=>setFlipped(f=>!f)}>
+      <div style={{position:"relative",width:"100%",height:"100%",transformStyle:"preserve-3d",transition:prefersReducedMotion?"none":"transform 0.35s cubic-bezier(0.4,0,0.2,1)",transform:flipped?"rotateY(180deg)":"rotateY(0deg)"}}>
         <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",background:"var(--color-bg-card)",border:"1px solid var(--color-border)",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,overflow:"hidden"}}>
           <div style={{fontSize:26}}>{frontIcon}</div>
           <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",letterSpacing:"0.9px",textTransform:"uppercase"}}>{frontLabel}</div>
@@ -6607,7 +6629,7 @@ export default function App(){
 
 
           {/* ── Footer: user + icon buttons ── */}
-          <div style={{borderTop:"1px solid var(--color-border)",padding:"10px 12px",display:"flex",alignItems:"center",gap:8}}>
+          <div className="sidebar-footer" style={{borderTop:"1px solid var(--color-border)",padding:"10px 12px",display:"flex",alignItems:"center",gap:8}}>
             <div onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}}
               style={{width:30,height:30,borderRadius:8,background:currentUser.avatar_url?"transparent":"linear-gradient(135deg,#6366f1,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,cursor:"pointer",overflow:"hidden"}}>
               {currentUser.avatar_url?<img src={currentUser.avatar_url} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(currentUser.displayName||"?")}
@@ -7045,8 +7067,10 @@ export default function App(){
                           className="client-card" style={{background:"var(--color-bg-card)",border:"1px solid "+(isChecked?"rgba(99,102,241,0.45)":"var(--color-border)"),borderRadius:14,padding:18,cursor:"pointer",position:"relative",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",outline:isChecked?"2px solid rgba(99,102,241,0.3)":"none"}}>
                           {/* Bulk checkbox */}
                           {bulkMode&&(
-                            <div style={{position:"absolute",top:12,right:12,width:20,height:20,borderRadius:5,border:"2px solid "+(isChecked?"#6366f1":"rgba(255,255,255,0.2)"),background:isChecked?"#6366f1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700}}>
-                              {isChecked&&"✓"}
+                            <div role="checkbox" aria-checked={isChecked} aria-label={"Select "+c.name} style={{position:"absolute",top:4,right:4,width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              <div style={{width:24,height:24,borderRadius:6,border:"2px solid "+(isChecked?"#6366f1":"rgba(255,255,255,0.2)"),background:isChecked?"#6366f1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#fff",fontWeight:700}}>
+                                {isChecked&&"✓"}
+                              </div>
                             </div>
                           )}
                           {/* Header: avatar + name + age + room */}
@@ -7094,7 +7118,7 @@ export default function App(){
                 )}
                 {/* ── Bulk action bar (fixed bottom) ── */}
                 {bulkMode&&bulkSelected.size>0&&(
-                  <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"#1a1d36",border:"1px solid rgba(99,102,241,0.35)",borderRadius:14,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,zIndex:300,boxShadow:"0 8px 32px rgba(0,0,0,0.6)"}}>
+                  <div style={{position:"fixed",bottom:"max(24px, env(safe-area-inset-bottom))",left:"50%",transform:"translateX(-50%)",background:"#1a1d36",border:"1px solid rgba(99,102,241,0.35)",borderRadius:14,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,zIndex:300,boxShadow:"0 8px 32px rgba(0,0,0,0.6)"}}>
                     <span style={{fontSize:13,fontWeight:700,color:"#a5b4fc",fontFamily:"'DM Mono',monospace"}}>{bulkSelected.size} selected</span>
                     <button onClick={bulkExportCSV} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(99,102,241,0.3)",background:"rgba(99,102,241,0.12)",color:"#a5b4fc",fontSize:12,fontWeight:700,cursor:"pointer"}}>Export CSV</button>
                     {can(currentUser.role,"delete")&&clientFilter!=="archived"&&(
