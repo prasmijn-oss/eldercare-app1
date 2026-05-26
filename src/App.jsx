@@ -6725,7 +6725,7 @@ export default function App(){
               <Dashboard clients={clients} onSelect={c=>{setSelected(c);setView("detail");trackRecent(c);}} t={t} currentUser={currentUser}/>
             </>
           )}
-          {!loading&&view==="clients"&&(()=>{
+          {view==="clients"&&(()=>{
             // ── filtered list for clients page ──────────────────────────────────
             const avatarColors=["rgba(99,102,241,0.25)","rgba(14,165,233,0.25)","rgba(34,197,94,0.25)","rgba(245,158,11,0.25)"];
             const avatarTextColors=["#a5b4fc","#7dd3fc","#6ee7b7","#fbbf24"];
