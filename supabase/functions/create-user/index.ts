@@ -41,10 +41,10 @@ serve(async (req) => {
       });
     }
 
-    // Check caller has admin or superadmin role
+    // Check caller has admin or superadmin role (fetch role + company_id for scope check)
     const { data: callerRoles } = await adminClient
       .from("user_roles")
-      .select("role")
+      .select("role, company_id")
       .eq("user_id", caller.id);
 
     const topRole = (callerRoles || [])
@@ -58,6 +58,30 @@ serve(async (req) => {
 
     // Parse body
     const { email, password, name, role, username, company_ids } = await req.json();
+
+    // Role ceiling: caller cannot assign a role more privileged than their own
+    if ((ROLE_PRIORITY[role] ?? 9) < (ROLE_PRIORITY[topRole] ?? 9)) {
+      return new Response(JSON.stringify({ error: "Forbidden — cannot assign a role higher than your own" }), {
+        status: 403, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+
+    // Company scope: admin may only create users in companies they belong to.
+    // Superadmin is unrestricted.
+    if (topRole !== "superadmin") {
+      const authorizedCompanyIds = new Set(
+        (callerRoles || [])
+          .filter(r => ["admin", "superadmin"].includes(r.role))
+          .map(r => r.company_id)
+      );
+      for (const cid of (company_ids || [])) {
+        if (!authorizedCompanyIds.has(cid)) {
+          return new Response(JSON.stringify({ error: `Forbidden — not authorized for company ${cid}` }), {
+            status: 403, headers: { ...CORS, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
 
     if (!email || !password || !name || !role || !company_ids?.length) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
