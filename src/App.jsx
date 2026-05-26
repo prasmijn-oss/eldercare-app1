@@ -3875,7 +3875,7 @@ function Login({onLogin,t}){
       details:`Signed in from ${navigator.userAgent.includes("Mobile")?"mobile":"desktop"}`,
       device:navigator.userAgent.slice(0,220),
     }).then(()=>{});
-    onLogin({...data.user,role:rd?.role||"staff",displayName:rd?.name||loginEmail.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
+    onLogin({...data.user,role:rd?.role||"user",displayName:rd?.name||loginEmail.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
     setLoading(false);
   };
   return(
@@ -6211,7 +6211,7 @@ export default function App(){
       if(session){
         const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",session.user.id);
         const rd=pickTopRole(roles);
-        setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null,force_password_change:session.user.user_metadata?.force_password_change===true});
+        setCurrentUser({...session.user,role:rd?.role||"user",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null,force_password_change:session.user.user_metadata?.force_password_change===true});
       }
       setAuthChecked(true);
     });
@@ -6224,7 +6224,7 @@ export default function App(){
     if(session){
       const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",session.user.id);
       const rd=pickTopRole(roles);
-      setCurrentUser({...session.user,role:rd?.role||"staff",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null,force_password_change:session.user.user_metadata?.force_password_change===true});
+      setCurrentUser({...session.user,role:rd?.role||"user",displayName:rd?.name||session.user.email.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null,force_password_change:session.user.user_metadata?.force_password_change===true});
     }
   },[]);
 
