@@ -8,6 +8,10 @@ const supabase = createClient(SUPABASE_URL, ANON_KEY);
 // User creation and auth management are handled by the create-user and manage-user Edge Functions,
 // which hold the service key as a Supabase-managed secret.
 const supabaseAdmin = supabase;
+
+// HTML-escape helper — used in all report/PDF generators to prevent stored XSS
+const he=v=>String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+
 const GCSS = [
   "* { box-sizing: border-box; margin: 0; padding: 0; }",
   "body { font-family: 'DM Sans', system-ui, sans-serif; background: #07091c; color: #f0f2fa; -webkit-font-smoothing: antialiased; }",
@@ -5470,7 +5474,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
 
 
 // ─── Reports & Exports ────────────────────────────────────────────────────────
-function ReportsView({clients,company,currentUser}){
+function ReportsView({clients,company,currentUser,logAudit}){
   const now=new Date();
   const [report,setReport]=useState(null);
   const [clientId,setClientId]=useState("");
@@ -5519,16 +5523,16 @@ function ReportsView({clients,company,currentUser}){
     const nutr=calcNutritionSummary(client.nutrition_assessments);
     const fmtSlot=t=>{const s=[];if(t?.morning)s.push("AM");if(t?.afternoon)s.push("PM");if(t?.evening)s.push("Eve");if(t?.night)s.push("Ngt");return s.length?s.join(" · "):"—";};
 
-    let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Monthly Summary — ${client.name}</title><style>${BASE_CSS}</style></head><body><div class="page">`;
+    let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Monthly Summary — ${he(client.name)}</title><style>${BASE_CSS}</style></head><body><div class="page">`;
 
     // Header
-    h+=`<div class="header-bar"><div><div class="header-title">Monthly Client Summary</div><div class="header-meta">${monthName} ${year} &nbsp;·&nbsp; ${companyName}<br>Generated: ${generatedOn} &nbsp;·&nbsp; By: ${currentUser.displayName||currentUser.email}</div></div><div style="text-align:right"><div class="header-title" style="font-size:15px">${client.name}</div><div class="header-meta">${client.status||"Active"} &nbsp;·&nbsp; ${age?"Age "+age:"DOB not set"}</div></div></div>`;
+    h+=`<div class="header-bar"><div><div class="header-title">Monthly Client Summary</div><div class="header-meta">${he(monthName)} ${he(year)} &nbsp;·&nbsp; ${he(companyName)}<br>Generated: ${he(generatedOn)} &nbsp;·&nbsp; By: ${he(currentUser.displayName||currentUser.email)}</div></div><div style="text-align:right"><div class="header-title" style="font-size:15px">${he(client.name)}</div><div class="header-meta">${he(client.status||"Active")} &nbsp;·&nbsp; ${age?"Age "+he(age):"DOB not set"}</div></div></div>`;
 
     // Identity block
-    h+=`<div class="client-block"><div class="info-grid"><div class="info-row"><span class="info-label">DOB</span>${client.date_of_birth?fmtDate(client.date_of_birth):"—"}</div><div class="info-row"><span class="info-label">AZV #</span>${client.azv_number||"—"}</div><div class="info-row"><span class="info-label">Room</span>${client.room_or_address||"—"}</div><div class="info-row"><span class="info-label">Phone</span>${client.phone||"—"}</div><div class="info-row"><span class="info-label">GP</span>${client.dr_di_cas||"—"}</div><div class="info-row"><span class="info-label">Specialist</span>${client.dr_specialista||"—"}</div><div class="info-row"><span class="info-label">Emergency</span>${client.emergency_contact||"—"} ${client.emergency_phone||""}</div><div class="info-row"><span class="info-label">Status</span>${client.status||"Active"}</div></div></div>`;
+    h+=`<div class="client-block"><div class="info-grid"><div class="info-row"><span class="info-label">DOB</span>${client.date_of_birth?fmtDate(client.date_of_birth):"—"}</div><div class="info-row"><span class="info-label">AZV #</span>${he(client.azv_number||"—")}</div><div class="info-row"><span class="info-label">Room</span>${he(client.room_or_address||"—")}</div><div class="info-row"><span class="info-label">Phone</span>${he(client.phone||"—")}</div><div class="info-row"><span class="info-label">GP</span>${he(client.dr_di_cas||"—")}</div><div class="info-row"><span class="info-label">Specialist</span>${he(client.dr_specialista||"—")}</div><div class="info-row"><span class="info-label">Emergency</span>${he(client.emergency_contact||"—")} ${he(client.emergency_phone||"")}</div><div class="info-row"><span class="info-label">Status</span>${he(client.status||"Active")}</div></div></div>`;
 
     // Allergy alert
-    if(allergies.length>0)h+=`<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-weight:700;color:#dc2626;font-size:11px">⚠ ALLERGIES: ${allergies.map(a=>a.value).join(" · ")}</div>`;
+    if(allergies.length>0)h+=`<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-weight:700;color:#dc2626;font-size:11px">⚠ ALLERGIES: ${allergies.map(a=>he(a.value)).join(" · ")}</div>`;
 
     // Clinical snapshot
     const badges=[];
@@ -5543,19 +5547,19 @@ function ReportsView({clients,company,currentUser}){
     h+=`<h2>Clinical Snapshot</h2><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">${badges.join("")}</div>`;
 
     // Diagnoses
-    if(diagnoses.length>0)h+=`<h2>Diagnoses</h2><div style="display:flex;flex-wrap:wrap;gap:4px">${diagnoses.map(d=>`<span class="badge bb">${d.value}</span>`).join("")}</div>`;
+    if(diagnoses.length>0)h+=`<h2>Diagnoses</h2><div style="display:flex;flex-wrap:wrap;gap:4px">${diagnoses.map(d=>`<span class="badge bb">${he(d.value)}</span>`).join("")}</div>`;
 
     // Medications
     if(meds.length>0){
       h+=`<h2>Current Medications</h2><table><thead><tr><th>Medication</th><th>Dosage</th><th>Frequency</th><th>Timing</th><th>High Risk</th></tr></thead><tbody>`;
-      meds.forEach(m=>{const isHR=highRisk.some(x=>x.id===m.id);h+=`<tr${isHR?" style='background:#fef2f2'":" "}><td><strong>${m.name}</strong></td><td>${m.dosage||"—"}</td><td>${m.frequency||"—"}</td><td>${fmtSlot(m.timing)}</td><td>${isHR?"<strong style='color:#dc2626'>⚠ Yes</strong>":"—"}</td></tr>`;});
+      meds.forEach(m=>{const isHR=highRisk.some(x=>x.id===m.id);h+=`<tr${isHR?" style='background:#fef2f2'":" "}><td><strong>${he(m.name)}</strong></td><td>${he(m.dosage||"—")}</td><td>${he(m.frequency||"—")}</td><td>${he(fmtSlot(m.timing))}</td><td>${isHR?"<strong style='color:#dc2626'>⚠ Yes</strong>":"—"}</td></tr>`;});
       h+=`</tbody></table>`;
     }
 
     // Session notes
-    h+=`<h2>Session Notes — ${monthName} ${year} (${notes.length})</h2>`;
+    h+=`<h2>Session Notes — ${he(monthName)} ${he(year)} (${notes.length})</h2>`;
     if(notes.length===0){h+=`<div class="no-data">No session notes recorded this month.</div>`;}
-    else{notes.forEach(n=>{h+=`<div class="note-block"><div class="note-meta">${fmtDate(n.date)}${n.role?" &nbsp;·&nbsp; "+n.role:""}${n.staff_name?" &nbsp;·&nbsp; "+n.staff_name:""}</div><div class="note-text">${(n.text||"").replace(/</g,"&lt;")}</div></div>`;});}
+    else{notes.forEach(n=>{h+=`<div class="note-block"><div class="note-meta">${fmtDate(n.date)}${n.role?" &nbsp;·&nbsp; "+he(n.role):""}${n.staff_name?" &nbsp;·&nbsp; "+he(n.staff_name):""}</div><div class="note-text">${he(n.text||"")}</div></div>`;});}
 
     // Vitals
     h+=`<h2>Vitals — ${monthName} ${year} (${vitals.length})</h2>`;
@@ -5564,9 +5568,9 @@ function ReportsView({clients,company,currentUser}){
       h+=`<table><thead><tr><th>Date</th><th>BP (mmHg)</th><th>HR</th><th>Weight (kg)</th><th>Temp (°C)</th><th>O₂ (%)</th><th>Glucose</th><th>Notes</th></tr></thead><tbody>`;
       vitals.forEach(v=>{
         const flags=checkAbnormalVitals(v);
-        const bp=v.bp_systolic?`${v.bp_systolic}/${v.bp_diastolic||"?"}`:"-";
-        const flagHtml=flags.length?` <span class="vital-flag">⚠ ${flags.map(f=>f.label).join(", ")}</span>`:"";
-        h+=`<tr><td>${fmtDate(v.date)}</td><td>${bp}${flagHtml}</td><td>${v.heart_rate||"—"}</td><td>${v.weight||"—"}</td><td>${v.temperature||"—"}</td><td>${v.oxygen_sat||"—"}</td><td>${v.blood_sugar||"—"}</td><td style="font-size:10px;color:#64748b">${(v.notes||"").replace(/</g,"&lt;")}</td></tr>`;
+        const bp=v.bp_systolic?`${he(v.bp_systolic)}/${he(v.bp_diastolic||"?")}`:"-";
+        const flagHtml=flags.length?` <span class="vital-flag">⚠ ${flags.map(f=>he(f.label)).join(", ")}</span>`:"";
+        h+=`<tr><td>${fmtDate(v.date)}</td><td>${bp}${flagHtml}</td><td>${he(v.heart_rate||"—")}</td><td>${he(v.weight||"—")}</td><td>${he(v.temperature||"—")}</td><td>${he(v.oxygen_sat||"—")}</td><td>${he(v.blood_sugar||"—")}</td><td style="font-size:10px;color:#64748b">${he(v.notes||"")}</td></tr>`;
       });
       h+=`</tbody></table>`;
     }
@@ -5576,7 +5580,7 @@ function ReportsView({clients,company,currentUser}){
     if(appts.length===0){h+=`<div class="no-data">No appointments recorded this month.</div>`;}
     else{
       h+=`<table><thead><tr><th>Date</th><th>Type</th><th>Status</th><th>Transport</th><th>Notes</th></tr></thead><tbody>`;
-      appts.forEach(a=>{const sc=a.status==="No-Show"?"color:#dc2626;font-weight:700":a.status==="Completed"?"color:#16a34a":"";h+=`<tr><td>${fmtDate(a.date)}</td><td>${a.type||"—"}</td><td style="${sc}">${a.status||"—"}</td><td>${a.transport?"Yes":"—"}</td><td style="font-size:10px">${(a.notes||"").replace(/</g,"&lt;")}</td></tr>`;});
+      appts.forEach(a=>{const sc=a.status==="No-Show"?"color:#dc2626;font-weight:700":a.status==="Completed"?"color:#16a34a":"";h+=`<tr><td>${fmtDate(a.date)}</td><td>${he(a.type||"—")}</td><td style="${sc}">${he(a.status||"—")}</td><td>${a.transport?"Yes":"—"}</td><td style="font-size:10px">${he(a.notes||"")}</td></tr>`;});
       h+=`</tbody></table>`;
     }
 
@@ -5584,7 +5588,7 @@ function ReportsView({clients,company,currentUser}){
     if(incidents.length>0){
       h+=`<h2 style="color:#dc2626;border-color:#dc2626">⚠ Incidents — ${monthName} ${year} (${incidents.length})</h2>`;
       h+=`<table><thead><tr><th>Date</th><th>Type</th><th>Severity</th><th>Description</th><th>Action Taken</th></tr></thead><tbody>`;
-      incidents.forEach(i=>{const sc=i.severity==="Severe"?"color:#dc2626;font-weight:700":i.severity==="Moderate"?"color:#ca8a04;font-weight:700":"";h+=`<tr><td>${fmtDate(i.date)}</td><td>${i.type||"—"}</td><td style="${sc}">${i.severity||"—"}</td><td>${(i.description||"—").replace(/</g,"&lt;")}</td><td style="font-size:10px">${(i.action||i.action_taken||"—").replace(/</g,"&lt;")}</td></tr>`;});
+      incidents.forEach(i=>{const sc=i.severity==="Severe"?"color:#dc2626;font-weight:700":i.severity==="Moderate"?"color:#ca8a04;font-weight:700":"";h+=`<tr><td>${fmtDate(i.date)}</td><td>${he(i.type||"—")}</td><td style="${sc}">${he(i.severity||"—")}</td><td>${he(i.description||"—")}</td><td style="font-size:10px">${he(i.action||i.action_taken||"—")}</td></tr>`;});
       h+=`</tbody></table>`;
     }
 
@@ -5592,12 +5596,13 @@ function ReportsView({clients,company,currentUser}){
     const goals=(client.care_plan||[]).filter(g=>g.goal||g.plan);
     if(goals.length>0){
       h+=`<h2>Care Plan</h2><table><thead><tr><th>Goal</th><th>Plan</th><th>Status</th><th>Last Reviewed</th></tr></thead><tbody>`;
-      goals.forEach(g=>{const sb=g.status==="Achieved"?`<span class="badge bg">Achieved</span>`:g.status==="On Hold"?`<span class="badge by">On Hold</span>`:g.status==="Discontinued"?`<span class="badge br">Discontinued</span>`:`<span class="badge bb">In Progress</span>`;h+=`<tr><td>${g.goal||"—"}</td><td style="font-size:10px">${g.plan||"—"}</td><td>${sb}</td><td style="font-size:10px">${g.reviewed?fmtDate(g.reviewed):"—"}</td></tr>`;});
+      goals.forEach(g=>{const sb=g.status==="Achieved"?`<span class="badge bg">Achieved</span>`:g.status==="On Hold"?`<span class="badge by">On Hold</span>`:g.status==="Discontinued"?`<span class="badge br">Discontinued</span>`:`<span class="badge bb">In Progress</span>`;h+=`<tr><td>${he(g.goal||"—")}</td><td style="font-size:10px">${he(g.plan||"—")}</td><td>${sb}</td><td style="font-size:10px">${g.reviewed?fmtDate(g.reviewed):"—"}</td></tr>`;});
       h+=`</tbody></table>`;
     }
 
-    h+=`<div class="footer">CONFIDENTIAL — CareManager &nbsp;·&nbsp; ${companyName} &nbsp;·&nbsp; ${client.name} — Monthly Summary ${monthName} ${year} &nbsp;·&nbsp; Generated ${generatedOn}</div></div></body></html>`;
+    h+=`<div class="footer">CONFIDENTIAL — CareManager &nbsp;·&nbsp; ${he(companyName)} &nbsp;·&nbsp; ${he(client.name)} — Monthly Summary ${he(monthName)} ${he(year)} &nbsp;·&nbsp; Generated ${he(generatedOn)}</div></div></body></html>`;
     openPrint(h);
+    logAudit?.("Generated Monthly Summary PDF",client.name,{section:"Reports",details:`Monthly summary for ${client.name} — ${monthName} ${year}`});
     setGenerating(false);
   };
 
@@ -5613,8 +5618,8 @@ function ReportsView({clients,company,currentUser}){
 
     let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>MAR — ${client.name} — ${monthName} ${year}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:9px;color:#000;padding:10px}@page{size:A4 landscape;margin:.8cm}.ph{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e293b;padding-bottom:8px;margin-bottom:6px}.pt{font-size:15px;font-weight:700;font-family:Georgia,serif}.ci{font-size:9px;line-height:1.6;margin-top:2px}.ab{background:#fef2f2;border:2px solid #fca5a5;padding:3px 10px;font-weight:700;color:#dc2626;font-size:9px;margin-bottom:6px;border-radius:4px}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #94a3b8;padding:1px;text-align:center;font-size:8px;vertical-align:middle}.mth{text-align:left;padding:3px 5px;width:130px;font-size:9px;background:#1e293b;color:white}.sth{background:#1e293b;color:white;font-size:8px;font-weight:700;width:16px}.dth{background:#f1f5f9;font-size:7px;font-weight:700;width:18px}.mn{font-weight:700;font-size:9px}.md{font-size:7px;color:#64748b}.sc{font-size:8px;font-weight:700;color:#475569}.ac{background:#fff;height:13px}.lg{font-size:7.5px;color:#475569;margin-top:6px}.ft{text-align:center;font-size:8px;color:#94a3b8;border-top:1px solid #e2e8f0;margin-top:8px;padding-top:5px}</style></head><body>`;
 
-    h+=`<div class="ph"><div><div class="pt">Medication Administration Record (MAR)</div><div class="ci"><strong>Client:</strong> ${client.name} &nbsp;·&nbsp; <strong>DOB:</strong> ${client.date_of_birth||"—"} &nbsp;·&nbsp; <strong>Room:</strong> ${client.room_or_address||"—"} &nbsp;·&nbsp; <strong>AZV #:</strong> ${client.azv_number||"—"}</div><div class="ci"><strong>Period:</strong> ${monthName} ${year} (${daysInMonth} days) &nbsp;·&nbsp; <strong>Facility:</strong> ${companyName}</div></div><div style="text-align:right;font-size:8px;color:#475569"><div>Generated: ${generatedOn}</div><div>By: ${currentUser.displayName||currentUser.email}</div></div></div>`;
-    if(allergies.length>0)h+=`<div class="ab">⚠ ALLERGIES: ${allergies.map(a=>a.value).join(" · ")}</div>`;
+    h+=`<div class="ph"><div><div class="pt">Medication Administration Record (MAR)</div><div class="ci"><strong>Client:</strong> ${he(client.name)} &nbsp;·&nbsp; <strong>DOB:</strong> ${he(client.date_of_birth||"—")} &nbsp;·&nbsp; <strong>Room:</strong> ${he(client.room_or_address||"—")} &nbsp;·&nbsp; <strong>AZV #:</strong> ${he(client.azv_number||"—")}</div><div class="ci"><strong>Period:</strong> ${he(monthName)} ${he(year)} (${daysInMonth} days) &nbsp;·&nbsp; <strong>Facility:</strong> ${he(companyName)}</div></div><div style="text-align:right;font-size:8px;color:#475569"><div>Generated: ${he(generatedOn)}</div><div>By: ${he(currentUser.displayName||currentUser.email)}</div></div></div>`;
+    if(allergies.length>0)h+=`<div class="ab">⚠ ALLERGIES: ${allergies.map(a=>he(a.value)).join(" · ")}</div>`;
 
     if(meds.length===0){h+=`<p style="color:#94a3b8;text-align:center;padding:20px;font-style:italic">No medications on record.</p>`;}
     else{
@@ -5626,12 +5631,12 @@ function ReportsView({clients,company,currentUser}){
         const rows=active.length||1;
         const bg=mi%2===0?"#fff":"#f8fafc";
         if(active.length===0){
-          h+=`<tr style="background:${bg}"><td class="sc" rowspan="1" style="text-align:left;padding:3px 5px;background:${bg}"><div class="mn">${m.name}</div><div class="md">${m.dosage||""} ${m.frequency||""}</div></td><td class="sc">PRN</td>`;
+          h+=`<tr style="background:${bg}"><td class="sc" rowspan="1" style="text-align:left;padding:3px 5px;background:${bg}"><div class="mn">${he(m.name)}</div><div class="md">${he(m.dosage||"")} ${he(m.frequency||"")}</div></td><td class="sc">PRN</td>`;
           days.forEach(()=>{h+=`<td class="ac"></td>`;});h+=`</tr>`;
         } else {
           active.forEach((slot,si)=>{
             h+=`<tr style="background:${bg}">`;
-            if(si===0)h+=`<td class="sc" rowspan="${rows}" style="text-align:left;padding:3px 5px;background:${bg};vertical-align:middle"><div class="mn">${m.name}</div><div class="md">${m.dosage||""} ${m.frequency||""}</div></td>`;
+            if(si===0)h+=`<td class="sc" rowspan="${rows}" style="text-align:left;padding:3px 5px;background:${bg};vertical-align:middle"><div class="mn">${he(m.name)}</div><div class="md">${he(m.dosage||"")} ${he(m.frequency||"")}</div></td>`;
             h+=`<td class="sc">${slot.label}</td>`;
             days.forEach(()=>{h+=`<td class="ac"></td>`;});
             h+=`</tr>`;
@@ -5643,8 +5648,9 @@ function ReportsView({clients,company,currentUser}){
       h+=`</tbody></table>`;
     }
     h+=`<div class="lg">Legend: AM = Morning · PM = Afternoon · Eve = Evening · Ngt = Night · PRN = As Needed &nbsp;|&nbsp; Initial each cell after administration. Circle if withheld — document reason separately.</div>`;
-    h+=`<div class="ft">CONFIDENTIAL — ${companyName} &nbsp;·&nbsp; ${client.name} — MAR ${monthName} ${year}</div></body></html>`;
+    h+=`<div class="ft">CONFIDENTIAL — ${he(companyName)} &nbsp;·&nbsp; ${he(client.name)} — MAR ${he(monthName)} ${he(year)}</div></body></html>`;
     openPrint(h);
+    logAudit?.("Generated MAR PDF",client.name,{section:"Reports",details:`MAR for ${client.name} — ${monthName} ${year}`});
     setGenerating(false);
   };
 
@@ -5686,7 +5692,7 @@ function ReportsView({clients,company,currentUser}){
     const CSS2=BASE_CSS+`.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.stat-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center}.stat-num{font-size:32px;font-weight:800;font-family:Georgia,serif}.stat-lbl{font-size:11px;color:#64748b;margin-top:2px}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}.sb{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:12px}.sl{font-size:10px;font-weight:800;text-transform:uppercase;color:#6366f1;letter-spacing:.5px;margin-bottom:8px}.fr{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #f0f0f0;font-size:11px}.fn{font-weight:800;font-size:13px}.cf{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center}.cfc{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px 6px}`;
 
     let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Census Report — ${monthName} ${year}</title><style>${CSS2}</style></head><body><div class="page">`;
-    h+=`<div class="header-bar"><div><div class="header-title">Census Report</div><div class="header-meta">${companyName} &nbsp;·&nbsp; ${monthName} ${year}<br>Generated: ${generatedOn} &nbsp;·&nbsp; By: ${currentUser.displayName||currentUser.email}</div></div><div style="text-align:right"><div style="font-size:32px;font-weight:800;color:white">${all.length}</div><div class="header-meta">clients on file</div></div></div>`;
+    h+=`<div class="header-bar"><div><div class="header-title">Census Report</div><div class="header-meta">${he(companyName)} &nbsp;·&nbsp; ${he(monthName)} ${he(year)}<br>Generated: ${he(generatedOn)} &nbsp;·&nbsp; By: ${he(currentUser.displayName||currentUser.email)}</div></div><div style="text-align:right"><div style="font-size:32px;font-weight:800;color:white">${all.length}</div><div class="header-meta">clients on file</div></div></div>`;
 
     // Status strip
     h+=`<div class="stat-grid"><div class="stat-card"><div class="stat-num" style="color:#16a34a">${byStatus.Active||0}</div><div class="stat-lbl">Active</div></div><div class="stat-card"><div class="stat-num" style="color:#ca8a04">${byStatus.Inactive||0}</div><div class="stat-lbl">Inactive</div></div><div class="stat-card"><div class="stat-num" style="color:#7c3aed">${byStatus.Discharged||0}</div><div class="stat-lbl">Discharged</div></div></div>`;
@@ -5721,8 +5727,9 @@ function ReportsView({clients,company,currentUser}){
     if(topStaff.length>0){h+=`<div style="margin-top:6px;font-size:9px;color:#64748b;font-weight:700">Top staff:</div>`;topStaff.forEach(([st,n])=>{h+=`<div class="fr"><span>${st}</span><span style="font-size:11px;font-weight:700">${n}</span></div>`;});}
     h+=`</div></div>`;
 
-    h+=`<div class="footer">CONFIDENTIAL — CareManager &nbsp;·&nbsp; ${companyName} &nbsp;·&nbsp; Census Report ${monthName} ${year} &nbsp;·&nbsp; Generated ${generatedOn}</div></div></body></html>`;
+    h+=`<div class="footer">CONFIDENTIAL — CareManager &nbsp;·&nbsp; ${he(companyName)} &nbsp;·&nbsp; Census Report ${he(monthName)} ${he(year)} &nbsp;·&nbsp; Generated ${he(generatedOn)}</div></div></body></html>`;
     openPrint(h);
+    logAudit?.("Generated Census PDF","",{section:"Reports",details:`Census report — ${monthName} ${year} — ${all.length} clients`});
     setGenerating(false);
   };
 
@@ -6288,7 +6295,10 @@ export default function App(){
     const payload={
       action,
       client_name:clientName||"",
+      // performed_by stores display name for human-readable audit views;
+      // performed_by_id stores the immutable auth user ID for integrity.
       performed_by:currentUser.displayName||currentUser.email,
+      performed_by_id:currentUser.id||null,
       performed_role:currentUser.role||"",
       company_id:activeCompanyId||null,
       details:details||"",
@@ -6357,6 +6367,7 @@ export default function App(){
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");a.href=url;a.download="clients-selected.csv";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    logAudit("Exported client CSV (bulk)","",{section:"Clients",details:`Bulk CSV export — ${sel.length} client${sel.length!==1?"s":""} selected`});
   };
 
   const hardDeleteClient=async()=>{
@@ -6389,20 +6400,21 @@ export default function App(){
     a.href=url;a.download=`clients-${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(a);a.click();
     document.body.removeChild(a);URL.revokeObjectURL(url);
+    logAudit("Exported client CSV","",{section:"Clients",details:`CSV export — ${filtered.length} client${filtered.length!==1?"s":""} (filter: ${statusFilter})`});
   };
 
   const exportPDF=()=>{
-    const companyLabel=searchAllCompanies?"All Companies":(company?.name||"CareManager");
+    const companyLabel=searchAllCompanies?"All Companies":he(company?.name||"CareManager");
     const rowsHtml=filtered.map(c=>`
       <tr>
-        <td>${c.name}</td>
-        <td>${c.status||"Active"}</td>
-        <td>${c.date_of_birth||"—"}</td>
-        <td>${calcAge(c.date_of_birth)??("—")}</td>
-        <td>${c.room_or_address||"—"}</td>
-        <td>${(c.diagnoses||[]).filter(d=>d.value).map(d=>d.value).join(", ")||"—"}</td>
+        <td>${he(c.name)}</td>
+        <td>${he(c.status||"Active")}</td>
+        <td>${he(c.date_of_birth||"—")}</td>
+        <td>${he(calcAge(c.date_of_birth)??("—"))}</td>
+        <td>${he(c.room_or_address||"—")}</td>
+        <td>${(c.diagnoses||[]).filter(d=>d.value).map(d=>he(d.value)).join(", ")||"—"}</td>
         <td>${(c.medications||[]).filter(m=>m.name).length}</td>
-        ${searchAllCompanies?`<td>${companiesMap[c.company_id]||"—"}</td>`:""}
+        ${searchAllCompanies?`<td>${he(companiesMap[c.company_id]||"—")}</td>`:""}
       </tr>`).join("");
     const win=window.open("","_blank");
     if(!win)return;
@@ -6420,7 +6432,7 @@ export default function App(){
       </style>
     </head><body>
       <h1>Client List — ${companyLabel}</h1>
-      <div class="meta">Exported ${new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})} &bull; ${filtered.length} clients &bull; Filter: ${statusFilter}</div>
+      <div class="meta">Exported ${new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})} &bull; ${filtered.length} clients &bull; Filter: ${he(statusFilter)}</div>
       <table><thead><tr>
         <th>Name</th><th>Status</th><th>DOB</th><th>Age</th><th>Room/Address</th><th>Diagnoses</th><th>Meds</th>
         ${searchAllCompanies?"<th>Company</th>":""}
@@ -6428,9 +6440,15 @@ export default function App(){
     </body></html>`);
     win.document.close();
     setTimeout(()=>win.print(),400);
+    logAudit("Exported client PDF","",{section:"Clients",details:`PDF export — ${filtered.length} client${filtered.length!==1?"s":""} (filter: ${statusFilter})`});
   };
 
-  const handleLogout=async()=>{await supabase.auth.signOut();setCurrentUser(null);};
+  const handleLogout=async()=>{
+    await supabase.auth.signOut();
+    // Clear all PHI and session data from localStorage on every logout
+    ["cm-recent","cm-read-notifs","cm-dash-note","cm-email-prefs"].forEach(k=>localStorage.removeItem(k));
+    setCurrentUser(null);
+  };
 
   const notifications=useMemo(()=>buildNotifications(clients),[clients]);
 
@@ -6703,7 +6721,7 @@ export default function App(){
           </div>}
           {loading&&view==="dashboard"&&<div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"60px 0",fontFamily:"'DM Mono',monospace",fontSize:13}}>Loading...</div>}
           {!loading&&view==="audit"&&can(currentUser.role,"audit")&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
-          {!loading&&view==="reports"&&<ReportsView clients={clients} company={company} currentUser={currentUser} t={t}/>}
+          {!loading&&view==="reports"&&<ReportsView clients={clients} company={company} currentUser={currentUser} t={t} logAudit={logAudit}/>}
           {!loading&&view==="company"&&can(currentUser.role,"company")&&(
             <CompanyView company={company} onUpdate={updated=>{setCompany(updated);}} currentUser={currentUser} t={t}/>
           )}
