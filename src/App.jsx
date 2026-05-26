@@ -6851,8 +6851,9 @@ export default function App(){
                       const checklist=c.intake_checklist||[];
                       const doneItems=checklist.filter(i=>i.done).length;
                       const pct=checklist.length?Math.round(doneItems/checklist.length*100):null;
-                      const diagTags=(c.diagnoses||[]).slice(0,3);
-                      const diagMore=(c.diagnoses||[]).length-3;
+                      const allDiags=(c.diagnoses||[]).filter(d=>d.value&&d.value.trim());
+                      const diagTags=allDiags.slice(0,3);
+                      const diagMore=allDiags.length-3;
                       const frColors={"High":"#ef4444","Moderate":"#f59e0b","Low":"#34d399"};
                       return(
                         <div key={c.id} onClick={()=>{
@@ -6889,7 +6890,7 @@ export default function App(){
                           {diagTags.length>0&&(
                             <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
                               {diagTags.map((d,i)=>(
-                                <span key={i} style={{fontSize:10,padding:"2px 7px",borderRadius:5,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.15)",color:"rgba(240,242,250,0.5)",maxWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d}</span>
+                                <span key={i} style={{fontSize:10,padding:"2px 7px",borderRadius:5,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.15)",color:"rgba(240,242,250,0.5)",maxWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.value}</span>
                               ))}
                               {diagMore>0&&<span style={{fontSize:10,padding:"2px 6px",borderRadius:5,background:"rgba(255,255,255,0.05)",color:"rgba(240,242,250,0.3)"}}>+{diagMore}</span>}
                             </div>
