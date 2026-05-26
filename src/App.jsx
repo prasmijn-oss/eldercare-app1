@@ -6298,7 +6298,7 @@ export default function App(){
     const cid=selectedCompany||currentUser?.company_id;
     const isSuperAdmin=currentUser?.role==="superadmin";
     // Omit heavy clinical JSONB fields from the list load — they are lazy-fetched in detail view
-    const LIST_COLS="id,name,date_of_birth,status,photo_url,company_id,archived,room_number,diagnoses,medications,allergies,documents,appointments,incidents,intake_checklist,vitals,care_plan,inventory,family_contacts";
+    const LIST_COLS="id,name,date_of_birth,status,photo_url,company_id,archived,diagnoses,medications,allergies,documents,appointments,incidents,intake_checklist,vitals,care_plan,inventory,family_contacts";
     const q=supabase.from("clients").select(LIST_COLS).order("name");
     const {data,error:err}=(isSuperAdmin&&searchAllCompanies)?await q:(cid?await q.eq("company_id",cid):await q);
     if(err)setError(err.message);else setClients((data||[]).map(fromDb));
