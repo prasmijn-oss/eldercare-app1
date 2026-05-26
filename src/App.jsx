@@ -61,6 +61,10 @@ const GCSS = [
   "@keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }",
   ".shortcut-key { display:inline-block; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); border-radius:5px; padding:1px 7px; font-family:'DM Mono',monospace; font-size:12px; color:#a5b4fc; }",
   ".nav-item { position: relative; }",
+  "@keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }",
+  ".skeleton { background: linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%); background-size: 800px 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }",
+  ".client-card { transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }",
+  ".client-card:hover { transform: translateY(-2px) !important; border-color: rgba(255,255,255,0.12) !important; box-shadow: 0 12px 32px rgba(0,0,0,0.4) !important; }",
   ".tab-btn { transition: color 120ms ease, border-color 120ms ease; border: none; background: none; cursor: pointer; }",
 ].join("\n");
 
@@ -6127,6 +6131,7 @@ export default function App(){
   const [companiesMap,setCompaniesMap]=useState({});
   const [bulkMode,setBulkMode]=useState(false);
   const [bulkSelected,setBulkSelected]=useState(new Set());
+  const [clientFilter,setClientFilter]=useState("all"); // all|hfr|mfr|lfr|archived
   const [darkMode,setDarkMode]=useState(()=>localStorage.getItem("cm-dark")!=="false");
   const [notifOpen,setNotifOpen]=useState(false);
   const [readNotifIds,setReadNotifIds]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem("cm-read-notifs")||"[]"));}catch{return new Set();}});
@@ -6165,7 +6170,7 @@ export default function App(){
       else if(e.key==="Escape"){setShowShortcuts(false);setNotifOpen(false);setSidebarOpen(false);}
       else if(e.key==="d"&&!e.ctrlKey&&!e.metaKey&&!e.altKey){setView("dashboard");setSelected(null);}
       else if(e.key==="n"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&can(currentUser.role,"add")){setSelected(null);setView("add");}
-      else if(e.key==="k"&&!e.ctrlKey&&!e.metaKey){e.preventDefault();document.getElementById("cm-search")?.focus();}
+      else if(e.key==="k"&&!e.ctrlKey&&!e.metaKey){e.preventDefault();if(view!=="clients"){setView("clients");setSelected(null);setTimeout(()=>document.getElementById("cm-search")?.focus(),80);}else{document.getElementById("cm-search")?.focus();}}
       else if(e.key==="b"&&!e.ctrlKey&&!e.metaKey){setNotifOpen(s=>!s);}
     };
     window.addEventListener("keydown",handler);
@@ -6290,7 +6295,7 @@ export default function App(){
     if(err){setError(err.message);return;}
     await logAudit("Archived client",selected.name,{clientId:selected.id,section:"Client Profile",details:"Client moved to archived state"});
     await loadClients();
-    setSelected(null);setView("dashboard");setDeleteConfirm(false);
+    setSelected(null);setView("clients");setDeleteConfirm(false);
   };
 
   const restoreClient=async(client)=>{
@@ -6298,7 +6303,7 @@ export default function App(){
     if(err){setError(err.message);return;}
     await logAudit("Restored client",client.name,{clientId:client.id,section:"Client Profile",details:"Client restored from archived state"});
     await loadClients();
-    setSelected(null);setView("dashboard");
+    setSelected(null);setView("clients");
   };
 
   const inlineUpdate=async(field,value)=>{
@@ -6510,7 +6515,20 @@ export default function App(){
                   </button>
                 );
               };
-              return navBtn("dashboard","Dashboard",'<rect x="1" y="1" width="5" height="5" rx="1.5"/><rect x="9" y="1" width="5" height="5" rx="1.5"/><rect x="1" y="9" width="5" height="5" rx="1.5"/><rect x="9" y="9" width="5" height="5" rx="1.5"/>');
+              const dashBtn=navBtn("dashboard","Dashboard",'<rect x="1" y="1" width="5" height="5" rx="1.5"/><rect x="9" y="1" width="5" height="5" rx="1.5"/><rect x="1" y="9" width="5" height="5" rx="1.5"/><rect x="9" y="9" width="5" height="5" rx="1.5"/>');
+              const clientsActive=view==="clients"||view==="detail"||view==="edit";
+              const activeClientCount=clients.filter(c=>!c.archived).length;
+              const clientsBtn=(
+                <button onClick={()=>{setView("clients");setSelected(null);setSidebarOpen(false);}}
+                  className="nav-item"
+                  style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:clientsActive?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:clientsActive?"rgba(99,102,241,0.12)":"transparent",color:clientsActive?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
+                  {clientsActive&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><circle cx="5" cy="5" r="3"/><path d="M1 13c0-2.8 2-5 4-5h2c2 0 4 2.2 4 5"/><circle cx="11.5" cy="5" r="2"/><path d="M13.5 13c0-2.2-1.3-4-3-4.5"/></svg>
+                  <span style={{flex:1}}>Clients</span>
+                  <span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"rgba(99,102,241,0.18)",color:"#a5b4fc",borderRadius:5,padding:"1px 6px",fontWeight:700}}>{activeClientCount}</span>
+                </button>
+              );
+              return <>{dashBtn}{clientsBtn}</>;
             })()}
             {/* MANAGEMENT group */}
             <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Management</div>
@@ -6560,129 +6578,6 @@ export default function App(){
             )}
           </div>
 
-          {/* ── Search + filters ── */}
-          <div style={{padding:"8px 8px 4px",borderTop:"1px solid rgba(255,255,255,0.07)"}}>
-            <div style={{display:"flex",gap:3,marginBottom:6}}>
-              {[["clients","Clients"],["notes","Notes"]].map(([mode,label])=>(
-                <button key={mode} onClick={()=>{setSearchMode(mode);setSearch("");}}
-                  style={{flex:1,padding:"5px",borderRadius:7,border:"none",background:searchMode===mode?"rgba(99,102,241,0.15)":"rgba(255,255,255,0.03)",color:searchMode===mode?"#a5b4fc":"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            <input id="cm-search" aria-label="Search clients" style={{width:"100%",height:44,padding:"0 10px",borderRadius:8,border:"1px solid rgba(255,255,255,0.07)",background:"rgba(255,255,255,0.04)",color:"rgba(240,242,250,0.6)",fontSize:16,fontFamily:"'DM Sans',sans-serif"}} placeholder={searchMode==="notes"?t.searchNotes:t.search} value={search} onChange={e=>setSearch(e.target.value)}/>
-            {currentUser?.role==="superadmin"&&(
-              <button onClick={()=>{setSearchAllCompanies(s=>!s);setSearch("");}}
-                style={{width:"100%",marginTop:5,padding:"4px",borderRadius:7,border:"1px solid "+(searchAllCompanies?"rgba(99,102,241,0.4)":"rgba(255,255,255,0.07)"),background:searchAllCompanies?"rgba(99,102,241,0.12)":"transparent",color:searchAllCompanies?"#a5b4fc":"rgba(240,242,250,0.3)",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>
-                {searchAllCompanies?"ALL COMPANIES (ON)":"SEARCH ALL COMPANIES"}
-              </button>
-            )}
-          </div>
-
-          {/* ── Status filter ── */}
-          <div style={{padding:"0 8px 4px",display:"flex",gap:3,flexWrap:"wrap"}}>
-            {["Active","Inactive","Discharged","All","Archived"].map(s=>{
-              const cols={Active:"#34d399",Inactive:"#fbbf24",Discharged:"#818cf8",All:"#6366f1",Archived:"#f87171"};
-              const act=statusFilter===s;
-              return(
-                <button key={s} onClick={()=>setStatusFilter(s)}
-                  style={{flex:1,padding:"4px 2px",borderRadius:6,border:act?"1px solid "+cols[s]+"40":"1px solid transparent",background:act?cols[s]+"18":"transparent",color:act?cols[s]:"rgba(240,242,250,0.3)",fontSize:10,fontWeight:700,minWidth:0,cursor:"pointer"}}>
-                  {s==="Active"?"Act":s==="Inactive"?"Inac":s==="Discharged"?"Disc":s==="Archived"?"Arc":"All"}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* ── Client count + bulk toggle ── */}
-          <div style={{padding:"2px 10px 4px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <span style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.25)",fontWeight:500}}>{filtered.length} clients</span>
-            <button onClick={()=>{setBulkMode(b=>!b);setBulkSelected(new Set());}}
-              style={{background:bulkMode?"rgba(99,102,241,0.15)":"transparent",border:"1px solid "+(bulkMode?"rgba(99,102,241,0.3)":"rgba(255,255,255,0.07)"),borderRadius:6,padding:"2px 8px",color:bulkMode?"#a5b4fc":"rgba(240,242,250,0.3)",fontSize:10,fontWeight:600,cursor:"pointer"}}>
-              {bulkMode?"✕ Cancel":"Select"}
-            </button>
-          </div>
-
-          {/* ── Client list ── */}
-          <div style={{flex:1,overflowY:"auto",padding:"0 6px"}}>
-            {filtered.length===0&&<div style={{color:"rgba(240,242,250,0.22)",fontSize:12,textAlign:"center",padding:"20px 8px"}}>{clients.length===0?t.noClients:t.noResults}</div>}
-            {filtered.map(c=>{
-              const isActive=selected?.id===c.id&&view!=="add";
-              const avatarColors=["rgba(99,102,241,0.25)","rgba(14,165,233,0.25)","rgba(34,197,94,0.25)","rgba(245,158,11,0.25)"];
-              let hi=0;for(const ch of(c.name||""))hi=(hi*31+ch.charCodeAt(0))%avatarColors.length;
-              const avatarBg=avatarColors[hi];
-              const avatarTextColors=["#a5b4fc","#7dd3fc","#6ee7b7","#fbbf24"];
-              const age=calcAge(c.date_of_birth);
-              const scols={Active:"#34d399",Inactive:"#fbbf24",Discharged:"#818cf8"};
-              const isChecked=bulkSelected.has(c.id);
-              const fr=calcFallRisk(c);
-              return(
-                <button key={c.id} onClick={()=>{
-                  if(bulkMode){
-                    setBulkSelected(prev=>{const n=new Set(prev);if(n.has(c.id))n.delete(c.id);else n.add(c.id);return n;});
-                  } else {
-                    setSelected(c);setView("detail");setDeleteConfirm(false);setSidebarOpen(false);trackRecent(c);
-                  }
-                }}
-                  className="client-row" style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 8px",borderRadius:9,border:"none",background:isChecked?"rgba(99,102,241,0.12)":isActive?"rgba(99,102,241,0.1)":c.archived?"rgba(239,68,68,0.03)":"transparent",cursor:"pointer",marginBottom:1,textAlign:"left",borderLeft:isActive?"3px solid #6366f1":"3px solid transparent"}}>
-                  {bulkMode&&(
-                    <div style={{width:16,height:16,borderRadius:4,border:"1.5px solid "+(isChecked?"#6366f1":"rgba(255,255,255,0.2)"),background:isChecked?"#6366f1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:9,color:"#fff",fontWeight:700}}>{isChecked?"✓":""}</div>
-                  )}
-                  <div style={{width:32,height:32,borderRadius:9,background:c.photo_url?"transparent":avatarBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:avatarTextColors[hi],flexShrink:0,overflow:"hidden",opacity:c.archived?0.5:1}}>
-                    {c.photo_url?<img src={c.photo_url} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:9}}/>:initials(c.name)}
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:3}}>
-                      <span style={{color:c.archived?"rgba(240,242,250,0.3)":"#f0f2fa",fontWeight:600,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
-                      {c.archived&&<span style={{fontSize:9,fontWeight:700,padding:"1px 4px",borderRadius:4,background:"rgba(239,68,68,0.15)",color:"#f87171",flexShrink:0}}>Arc</span>}
-                      {!c.archived&&(c.status||"Active")!=="Active"&&<span style={{fontSize:9,fontWeight:700,padding:"1px 4px",borderRadius:4,background:(scols[c.status]||"rgba(240,242,250,0.3)")+"18",color:scols[c.status]||"rgba(240,242,250,0.3)",flexShrink:0}}>{(c.status||"Active").slice(0,4)}</span>}
-                      {fr.level!=="Low"&&<span style={{fontSize:9,fontWeight:800,padding:"1px 4px",borderRadius:4,background:fr.color+"18",color:fr.color,flexShrink:0}}>{fr.level[0]}FR</span>}
-                    </div>
-                    <div style={{color:"rgba(240,242,250,0.25)",fontSize:10,fontFamily:"'DM Mono',monospace",marginTop:1}}>{age!==null?""+age+"y":""}{c.room_or_address?(age!==null?" · ":"")+c.room_or_address:""}</div>
-                    {searchAllCompanies&&companiesMap[c.company_id]&&<div style={{color:"#a5b4fc",fontSize:10,fontWeight:600,fontFamily:"'DM Mono',monospace"}}>{companiesMap[c.company_id]}</div>}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* ── Bulk actions + add button ── */}
-          <div style={{padding:"8px 10px"}}>
-            {bulkMode&&bulkSelected.size>0&&(
-              <div style={{marginBottom:8,display:"flex",flexDirection:"column",gap:5}}>
-                <div style={{fontSize:11,color:"#a5b4fc",fontWeight:700,textAlign:"center",fontFamily:"'DM Mono',monospace"}}>{bulkSelected.size} selected</div>
-                <div style={{display:"flex",gap:5}}>
-                  <button onClick={bulkExportCSV}
-                    style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid rgba(99,102,241,0.3)",background:"rgba(99,102,241,0.1)",color:"#a5b4fc",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                    Export
-                  </button>
-                  {can(currentUser.role,"delete")&&statusFilter!=="Archived"&&(
-                    <button onClick={()=>setBulkArchiveConfirm(true)}
-                      style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid rgba(245,158,11,0.3)",background:"rgba(245,158,11,0.1)",color:"#fbbf24",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                      Archive
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-            {!bulkMode&&can(currentUser.role,"add")&&(
-              <button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}}
-                style={{width:"100%",padding:"9px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",boxShadow:"0 4px 14px rgba(99,102,241,0.3)"}}>
-                {t.newClient}
-              </button>
-            )}
-            {!bulkMode&&filtered.length>0&&(
-              <div style={{display:"flex",gap:5,marginTop:6}}>
-                <button onClick={exportCSV}
-                  style={{flex:1,padding:"6px",borderRadius:7,border:"1px solid rgba(255,255,255,0.07)",background:"transparent",color:"rgba(240,242,250,0.3)",fontSize:10,fontWeight:600,cursor:"pointer"}}>
-                  CSV
-                </button>
-                <button onClick={exportPDF}
-                  style={{flex:1,padding:"6px",borderRadius:7,border:"1px solid rgba(255,255,255,0.07)",background:"transparent",color:"rgba(240,242,250,0.3)",fontSize:10,fontWeight:600,cursor:"pointer"}}>
-                  PDF
-                </button>
-              </div>
-            )}
-          </div>
 
           {/* ── Footer: user + icon buttons ── */}
           <div style={{borderTop:"1px solid rgba(255,255,255,0.07)",padding:"10px 12px",display:"flex",alignItems:"center",gap:8}}>
@@ -6724,9 +6619,6 @@ export default function App(){
               ))}
             </div>
             <button onClick={()=>setShowShortcuts(true)} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" style={{background:"transparent",border:"none",borderRadius:5,padding:"3px 6px",fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:600,color:"rgba(240,242,250,0.18)",cursor:"pointer"}}>⌨</button>
-          </div>
-          <div style={{padding:"0 10px 10px",fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.15)",fontSize:10,textAlign:"center"}}>
-            {clients.length} {t.clients}
           </div>
         </div>
         <div className="main-pad" style={{flex:1,minWidth:0,overflowY:"auto",background:"#07091c",display:"flex",flexDirection:"column"}}>
@@ -6833,10 +6725,211 @@ export default function App(){
               <Dashboard clients={clients} onSelect={c=>{setSelected(c);setView("detail");trackRecent(c);}} t={t} currentUser={currentUser}/>
             </>
           )}
+          {!loading&&view==="clients"&&(()=>{
+            // ── filtered list for clients page ──────────────────────────────────
+            const avatarColors=["rgba(99,102,241,0.25)","rgba(14,165,233,0.25)","rgba(34,197,94,0.25)","rgba(245,158,11,0.25)"];
+            const avatarTextColors=["#a5b4fc","#7dd3fc","#6ee7b7","#fbbf24"];
+            const pageFiltered=clients.filter(c=>{
+              const q=search.toLowerCase();
+              const ms=c.name.toLowerCase().includes(q)||(c.room_or_address||"").toLowerCase().includes(q)||(c.azv_number||"").toLowerCase().includes(q)||(searchAllCompanies&&(companiesMap[c.company_id]||"").toLowerCase().includes(q));
+              if(clientFilter==="archived")return ms&&c.archived===true;
+              if(!ms||c.archived)return false;
+              const fr=calcFallRisk(c);
+              if(clientFilter==="hfr")return fr.level==="High";
+              if(clientFilter==="mfr")return fr.level==="Moderate";
+              if(clientFilter==="lfr")return fr.level==="Low";
+              // "all" — match status filter
+              const mst=statusFilter==="All"||(c.status||"Active")===statusFilter;
+              return mst;
+            });
+            const filterPills=[
+              {key:"all",label:"All Active",color:"#6366f1"},
+              {key:"hfr",label:"High Fall Risk",color:"#ef4444"},
+              {key:"mfr",label:"Med Fall Risk",color:"#f59e0b"},
+              {key:"lfr",label:"Low Fall Risk",color:"#34d399"},
+              {key:"archived",label:"Archived",color:"#f87171"},
+            ];
+            const now=Date.now();
+            return(
+              <div>
+                {/* ── Page header ── */}
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+                  <div style={{flex:1,minWidth:200}}>
+                    <div style={{fontSize:20,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.4px"}}>Clients</div>
+                    <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.25)",marginTop:2}}>{pageFiltered.length} {clientFilter==="archived"?"archived":statusFilter==="All"?"total":"active"}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                    {/* Search */}
+                    <input id="cm-search" aria-label="Search clients" style={{...INP,width:220,height:36,padding:"0 12px",fontSize:13}} placeholder="Search clients…" value={search} onChange={e=>setSearch(e.target.value)}/>
+                    {/* Bulk toggle */}
+                    <button onClick={()=>{setBulkMode(b=>!b);setBulkSelected(new Set());}}
+                      style={{height:36,padding:"0 14px",borderRadius:8,border:"1px solid "+(bulkMode?"rgba(99,102,241,0.4)":"rgba(255,255,255,0.1)"),background:bulkMode?"rgba(99,102,241,0.12)":"transparent",color:bulkMode?"#a5b4fc":"rgba(240,242,250,0.45)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                      {bulkMode?"✕ Cancel":"☑ Select"}
+                    </button>
+                    {/* New Client */}
+                    {can(currentUser.role,"add")&&(
+                      <button onClick={()=>{setSelected(null);setView("add");}}
+                        style={{height:36,padding:"0 16px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",boxShadow:"0 4px 14px rgba(99,102,241,0.25)"}}>
+                        + {t.newClient.replace("+ ","")}
+                      </button>
+                    )}
+                    {/* Export buttons */}
+                    <button onClick={exportCSV} style={{height:36,padding:"0 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.35)",fontSize:12,fontWeight:600,cursor:"pointer"}}>CSV</button>
+                    <button onClick={exportPDF} style={{height:36,padding:"0 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"rgba(240,242,250,0.35)",fontSize:12,fontWeight:600,cursor:"pointer"}}>PDF</button>
+                  </div>
+                </div>
+                {/* ── Filter pills ── */}
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>
+                  {filterPills.map(p=>{
+                    const act=clientFilter===p.key;
+                    return(
+                      <button key={p.key} onClick={()=>setClientFilter(p.key)}
+                        style={{padding:"5px 14px",borderRadius:20,border:act?"1px solid "+p.color+"60":"1px solid rgba(255,255,255,0.08)",background:act?p.color+"18":"rgba(255,255,255,0.03)",color:act?p.color:"rgba(240,242,250,0.4)",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all 120ms"}}>
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                  {/* Status sub-filter shown only on "all" */}
+                  {clientFilter==="all"&&(
+                    <div style={{display:"flex",gap:4,marginLeft:8}}>
+                      {["Active","Inactive","Discharged","All"].map(s=>{
+                        const cols={Active:"#34d399",Inactive:"#fbbf24",Discharged:"#818cf8",All:"#6366f1"};
+                        const act=statusFilter===s;
+                        return(
+                          <button key={s} onClick={()=>setStatusFilter(s)}
+                            style={{padding:"4px 10px",borderRadius:20,border:act?"1px solid "+cols[s]+"60":"1px solid rgba(255,255,255,0.06)",background:act?cols[s]+"15":"transparent",color:act?cols[s]:"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                {/* ── Skeleton loading ── */}
+                {loading&&(
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+                    {Array.from({length:6}).map((_,i)=>(
+                      <div key={i} style={{background:"#111427",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:18,height:156}}>
+                        <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:14}}>
+                          <div className="skeleton" style={{width:44,height:44,borderRadius:12,flexShrink:0}}/>
+                          <div style={{flex:1}}>
+                            <div className="skeleton" style={{height:12,marginBottom:7,width:"70%"}}/>
+                            <div className="skeleton" style={{height:10,width:"45%"}}/>
+                          </div>
+                        </div>
+                        <div className="skeleton" style={{height:10,marginBottom:6,width:"90%"}}/>
+                        <div className="skeleton" style={{height:10,width:"60%"}}/>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* ── Empty state ── */}
+                {!loading&&pageFiltered.length===0&&(
+                  <div style={{textAlign:"center",padding:"60px 20px",color:"rgba(240,242,250,0.3)"}}>
+                    <div style={{fontSize:40,marginBottom:12}}>🔍</div>
+                    <div style={{fontSize:16,fontWeight:600,color:"rgba(240,242,250,0.45)",marginBottom:6}}>{search?"No clients match your search":"No clients here"}</div>
+                    <div style={{fontSize:13}}>{search?"Try a different search term":"Add your first client to get started"}</div>
+                    {can(currentUser.role,"add")&&!search&&(
+                      <button onClick={()=>{setSelected(null);setView("add");}} style={{marginTop:20,padding:"10px 20px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                        + {t.newClient.replace("+ ","")}
+                      </button>
+                    )}
+                  </div>
+                )}
+                {/* ── Card grid ── */}
+                {!loading&&pageFiltered.length>0&&(
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+                    {pageFiltered.map(c=>{
+                      let hi=0;for(const ch of(c.name||""))hi=(hi*31+ch.charCodeAt(0))%avatarColors.length;
+                      const avatarBg=avatarColors[hi];
+                      const age=calcAge(c.date_of_birth);
+                      const fr=calcFallRisk(c);
+                      const isChecked=bulkSelected.has(c.id);
+                      const meds=(c.medications||[]).length;
+                      const thirtyAgo=new Date(Date.now()-30*864e5).toISOString().slice(0,10);
+                      const recentInc=(c.incidents||[]).filter(i=>i.date&&i.date>=thirtyAgo).length;
+                      const checklist=c.intake_checklist||[];
+                      const doneItems=checklist.filter(i=>i.done).length;
+                      const pct=checklist.length?Math.round(doneItems/checklist.length*100):null;
+                      const diagTags=(c.diagnoses||[]).slice(0,3);
+                      const diagMore=(c.diagnoses||[]).length-3;
+                      const frColors={"High":"#ef4444","Moderate":"#f59e0b","Low":"#34d399"};
+                      return(
+                        <div key={c.id} onClick={()=>{
+                          if(bulkMode){
+                            setBulkSelected(prev=>{const n=new Set(prev);if(n.has(c.id))n.delete(c.id);else n.add(c.id);return n;});
+                          } else {
+                            setSelected(c);setView("detail");setDeleteConfirm(false);trackRecent(c);
+                          }
+                        }}
+                          className="client-card" style={{background:"#111427",border:"1px solid "+(isChecked?"rgba(99,102,241,0.45)":"rgba(255,255,255,0.07)"),borderRadius:14,padding:18,cursor:"pointer",position:"relative",boxShadow:"0 1px 3px rgba(0,0,0,0.3)",outline:isChecked?"2px solid rgba(99,102,241,0.3)":"none"}}>
+                          {/* Bulk checkbox */}
+                          {bulkMode&&(
+                            <div style={{position:"absolute",top:12,right:12,width:20,height:20,borderRadius:5,border:"2px solid "+(isChecked?"#6366f1":"rgba(255,255,255,0.2)"),background:isChecked?"#6366f1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700}}>
+                              {isChecked&&"✓"}
+                            </div>
+                          )}
+                          {/* Header: avatar + name + age + room */}
+                          <div style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:12}}>
+                            <div style={{width:44,height:44,borderRadius:12,background:c.photo_url?"transparent":avatarBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:avatarTextColors[hi],flexShrink:0,overflow:"hidden",opacity:c.archived?0.5:1}}>
+                              {c.photo_url?<img src={c.photo_url} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:12}}/>:initials(c.name)}
+                            </div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
+                                <span style={{fontWeight:700,fontSize:14,color:c.archived?"rgba(240,242,250,0.4)":"#f0f2fa",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>{c.name}</span>
+                                {c.archived&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:4,background:"rgba(239,68,68,0.15)",color:"#f87171"}}>ARC</span>}
+                                {fr.level!=="Low"&&<span style={{fontSize:9,fontWeight:800,padding:"1px 5px",borderRadius:4,background:frColors[fr.level]+"18",color:frColors[fr.level]}}>{fr.level==="High"?"HFR":"MFR"}</span>}
+                              </div>
+                              <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.3)",marginTop:2}}>
+                                {age!==null&&age+"y"}{c.room_or_address?(age!==null?" · ":"")+c.room_or_address:""}
+                              </div>
+                            </div>
+                          </div>
+                          {/* Diagnosis tags */}
+                          {diagTags.length>0&&(
+                            <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
+                              {diagTags.map((d,i)=>(
+                                <span key={i} style={{fontSize:10,padding:"2px 7px",borderRadius:5,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.15)",color:"rgba(240,242,250,0.5)",maxWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d}</span>
+                              ))}
+                              {diagMore>0&&<span style={{fontSize:10,padding:"2px 6px",borderRadius:5,background:"rgba(255,255,255,0.05)",color:"rgba(240,242,250,0.3)"}}>+{diagMore}</span>}
+                            </div>
+                          )}
+                          {/* Stats mini-row */}
+                          <div style={{display:"flex",gap:10,alignItems:"center",fontSize:11,color:"rgba(240,242,250,0.35)",fontFamily:"'DM Mono',monospace"}}>
+                            <span title="Medications">💊 {meds}</span>
+                            <span title="Incidents last 30d">⚠️ {recentInc}</span>
+                            {pct!==null&&(
+                              <div style={{flex:1,display:"flex",alignItems:"center",gap:5}}>
+                                <div style={{flex:1,height:4,borderRadius:2,background:"rgba(255,255,255,0.06)",overflow:"hidden"}}>
+                                  <div style={{height:"100%",width:pct+"%",background:pct===100?"#34d399":"#6366f1",borderRadius:2,transition:"width 300ms"}}/>
+                                </div>
+                                <span style={{fontSize:10}}>{pct}%</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {/* ── Bulk action bar (fixed bottom) ── */}
+                {bulkMode&&bulkSelected.size>0&&(
+                  <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"#1a1d36",border:"1px solid rgba(99,102,241,0.35)",borderRadius:14,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,zIndex:300,boxShadow:"0 8px 32px rgba(0,0,0,0.6)"}}>
+                    <span style={{fontSize:13,fontWeight:700,color:"#a5b4fc",fontFamily:"'DM Mono',monospace"}}>{bulkSelected.size} selected</span>
+                    <button onClick={bulkExportCSV} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(99,102,241,0.3)",background:"rgba(99,102,241,0.12)",color:"#a5b4fc",fontSize:12,fontWeight:700,cursor:"pointer"}}>Export CSV</button>
+                    {can(currentUser.role,"delete")&&clientFilter!=="archived"&&(
+                      <button onClick={()=>setBulkArchiveConfirm(true)} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(245,158,11,0.3)",background:"rgba(245,158,11,0.1)",color:"#fbbf24",fontSize:12,fontWeight:700,cursor:"pointer"}}>Archive Selected</button>
+                    )}
+                    <button onClick={()=>{setBulkMode(false);setBulkSelected(new Set());}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"rgba(240,242,250,0.45)",fontSize:12,cursor:"pointer"}}>Cancel</button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {view==="add"&&can(currentUser.role,"add")&&(
             <div>
               <div style={{fontSize:17,fontWeight:700,color:"#f0f2fa",letterSpacing:"-0.3px",marginBottom:20}}>{t.newClient}</div>
-              <ClientForm client={emptyClient()} onSave={saveClient} onCancel={()=>setView(selected?"detail":"dashboard")} saving={saving} t={t} currentUser={currentUser}/>
+              <ClientForm client={emptyClient()} onSave={saveClient} onCancel={()=>setView(selected?"detail":"clients")} saving={saving} t={t} currentUser={currentUser}/>
             </div>
           )}
           {view==="edit"&&selected&&can(currentUser.role,"edit")&&(()=>{
