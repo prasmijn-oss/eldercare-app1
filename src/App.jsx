@@ -4203,7 +4203,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     setActivityLoading(false);
   };
 
-  useEffect(()=>{if(mainTab==="activity")loadActivity(activityDateFrom,activityDateTo);},[mainTab,activeCompanyId]);
+  useEffect(()=>{if(mainTab==="activity")loadActivity(activityDateFrom,activityDateTo);},[mainTab,activeCompanyId,activityDateFrom,activityDateTo]);
 
   const onChangeUser=e=>setUserForm(p=>({...p,[e.target.name]:e.target.value}));
   const onChangeExisting=e=>setExistingForm(p=>({...p,[e.target.name]:e.target.value}));
@@ -4456,12 +4456,23 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     // Only superadmin can delete users
     if(currentUser.role!=="superadmin"){showToast("error","Only superadmins can permanently delete users");return;}
     setSaving(true);
-    // Delete user_roles first (FK constraint; auth deletion also cascades but explicit is safer)
+    // Snapshot user_roles rows BEFORE deletion so we can roll back if auth deletion fails
+    const {data:snapshot}=await supabase.from("user_roles").select("*").eq("user_id",userId);
+    // Delete user_roles rows
     const {error}=await supabase.from("user_roles").delete().eq("user_id",userId);
     if(error){showToast("error","Failed to delete: "+error.message);setSaving(false);return;}
     // Delete the auth.users record via Edge Function
     const {ok,error:authErr}=await callManageUser("delete",userId);
-    if(!ok)console.warn("Auth user deletion failed (user_roles already removed):",authErr);
+    if(!ok){
+      // Rollback: re-insert the user_roles rows so the user isn't left in a broken state
+      if(snapshot?.length){
+        await supabase.from("user_roles").insert(snapshot);
+      }
+      showToast("error","Deletion failed — account restored. Try again or contact support.");
+      console.error("Auth user deletion failed, user_roles rolled back:",authErr);
+      setSaving(false);
+      return;
+    }
     showToast("success","User permanently deleted");
     setDeleteConfirmUser(null);
     await loadData();
@@ -5821,7 +5832,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
   const [loginHistory,setLoginHistory]=useState([]);
   const [sessions,setSessions]=useState([]);
 
-  useEffect(()=>{loadHistory();},[]);
+  useEffect(()=>{loadHistory();},[currentUser.id]);
 
   const loadHistory=async()=>{
     // Use maybeSingle + order to safely handle multi-company users (multiple rows)
@@ -6198,7 +6209,8 @@ export default function App(){
       else if(e.key==="Escape"){setShowShortcuts(false);setNotifOpen(false);setSidebarOpen(false);}
       else if(e.key==="d"&&!e.ctrlKey&&!e.metaKey&&!e.altKey){setView("dashboard");setSelected(null);}
       else if(e.key==="n"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&can(currentUser.role,"add")){setSelected(null);setView("add");}
-      else if(e.key==="k"&&!e.ctrlKey&&!e.metaKey){e.preventDefault();if(view!=="clients"){setView("clients");setSelected(null);setTimeout(()=>document.getElementById("cm-search")?.focus(),80);}else{document.getElementById("cm-search")?.focus();}}
+      // Use setView's functional form to read current view without a stale closure
+      else if(e.key==="k"&&!e.ctrlKey&&!e.metaKey){e.preventDefault();setView(v=>{if(v!=="clients"){setSelected(null);setTimeout(()=>document.getElementById("cm-search")?.focus(),80);return"clients";}document.getElementById("cm-search")?.focus();return v;});}
       else if(e.key==="b"&&!e.ctrlKey&&!e.metaKey){setNotifOpen(s=>!s);}
     };
     window.addEventListener("keydown",handler);
