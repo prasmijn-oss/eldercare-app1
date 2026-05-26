@@ -48,8 +48,9 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - **Fall risk**: `calcFallRisk(client)` — weighted score from age, diagnoses (FALL_RISK_DIAG), medications (FALL_RISK_MEDS), polypharmacy
 - **Notifications**: `buildNotifications(clients)` — client-side, scans expiring docs / upcoming appointments / high fall risk / recent incidents
 - **Recent clients**: tracked in localStorage key `cm-recent` (array of {id, name, photo_url}, max 5). **Never pass a partial localStorage object to ClientForm** — always resolve `clients.find(c=>c.id===rc.id)` first.
-- **Dark/light mode**: `html.cm-light { filter: invert(1) hue-rotate(180deg) }` in GCSS; images/video get double-invert `filter: invert(1) hue-rotate(180deg)` to restore correct colours; toggled via `darkMode` state + `useEffect` on `document.documentElement`; persisted in `cm-dark` localStorage. **Do NOT add `filter: none` to `html.cm-light` in index.css — it breaks the toggle.**
-- **GCSS**: string array of CSS rules joined with `\n`, injected via `<style dangerouslySetInnerHTML={{__html:GCSS}}/>` in the App return. Primary global CSS mechanism alongside `src/index.css`.
+- **Dark/light mode**: CSS variable token switching — `html.cm-light` in `index.css` overrides all `--color-*` semantic tokens to light values + sets `filter: none !important`. No filter-invert used. Inline styles use `var(--color-bg-card)`, `var(--color-text-primary)`, `var(--color-text-dim)`, `var(--color-text-muted)`, `var(--color-border)`, `var(--color-bg-surface)`, `var(--color-bg-base)`. Toggled via `darkMode` state + `useEffect` on `document.documentElement`; persisted in `cm-dark` localStorage. **Do NOT reintroduce hardcoded hex for the 8 replaced token colors — use CSS vars.**
+- **GCSS**: string array of CSS rules joined with `\n`, injected via `<style dangerouslySetInnerHTML={{__html:GCSS}}/>` in the App return. Primary global CSS mechanism alongside `src/index.css`. CSS vars work inside GCSS strings.
+- **CSS token colors** (always use these, never raw hex for the base palette): `var(--color-bg-base)` (#07091c dark), `var(--color-bg-surface)` (#0c0f1f), `var(--color-bg-card)` (#111427), `var(--color-text-primary)` (#f0f2fa), `var(--color-text-secondary)` (0.5 opacity), `var(--color-text-dim)` (0.35 opacity), `var(--color-text-muted)` (0.25 opacity), `var(--color-border)` (rgba(255,255,255,0.07) dark)
 - **Keyboard shortcuts**: global `keydown` listener in App; inactive when input/textarea/select is focused
 - **PWA**: `public/manifest.json` + `public/sw.js` (cache-first for static assets); registered in `index.html`
 - **React import**: only named hooks imported — `import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react"`. Never use `React.Fragment` or `React.*` — use `Fragment` or `<>` shorthand
@@ -110,6 +111,12 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - [x] Stats & age distribution chart
 - [x] Recent clients strip (last 5 visited, localStorage)
 - [x] Quick note widget (auto-saved, localStorage)
+- [x] 3fr/2fr grid — Recent Clients card (avatar, age, room, top diagnosis, fall risk pill) + Active Alerts panel (wired to buildNotifications, color-coded by type, click → client detail)
+
+### Client Navigation
+- [x] Clients dedicated page — full-page card grid replacing sidebar client list; filter pills (All Active / HFR / MFR / LFR / Archived); status sub-filter; skeleton loading; empty state; bulk action bar (fixed bottom)
+- [x] Incidents aggregate view (`view==="incidents"`) — all incidents across clients, sorted by date, severity color-coded, click → client detail
+- [x] Medications aggregate view (`view==="medications"`) — flagged clients panel (polypharmacy + high-risk) + full medication list with HIGH RISK badges
 
 ### User Management
 - [x] Assign existing user to additional companies
@@ -119,9 +126,23 @@ git checkout main && git merge staging && git push origin main && git checkout s
 ### Notifications & UX
 - [x] In-app notification center (bell icon, slide-out panel, unread badge)
 - [x] Email alert preferences UI (localStorage toggles)
-- [x] Light / dark mode toggle (☀️/🌙, persisted)
-- [x] Keyboard shortcuts (d, n, k, b, ?, Esc)
+- [x] Light / dark mode — CSS variable token switching (no filter-invert); `html.cm-light` overrides all semantic tokens; ~600 inline hex values replaced with CSS vars
+- [x] Keyboard shortcuts (d, n, k, b, ?, Esc) — `k` auto-navigates to Clients page before focusing search
 - [x] PWA — installable, service worker, manifest
+- [x] Topbar search input (160px) — auto-navigates to Clients page on focus/type
+- [x] Session timeout warning (idle detection, countdown, stay-logged-in / logout actions)
+
+### Sidebar
+- [x] Incidents nav item (Main group) — red badge showing last-7-day incident count
+- [x] Medications nav item (Main group) — amber badge showing flagged client count
+- [x] Clients nav item with active client count badge
+
+### Mobile (Tier 1 fixes)
+- [x] iOS auto-zoom prevention on inputs (fontSize 16px)
+- [x] Touch targets ≥ 44px (IBTN, ABTN, sidebar search)
+- [x] Notification panel full-width on mobile
+- [x] Responsive grids (.inv-grid, .notes-filter, .three-col, .four-col)
+- [x] Duplicate sticky bars on mobile fixed (.main-topbar hidden, mob-hdr shown)
 
 ### Admin
 - [x] Audit trail
@@ -141,7 +162,8 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - Staging Supabase has test companies ("Test Company", "Test 2") and test clients (test3–test9)
 - `p.rasmijn@gmail.com` is `superadmin` on "Test Company" in staging — logs straight to dashboard (single company)
 - Staging RLS gotcha: `get_my_role()` uses `LIMIT 1` on user_roles — if a user has multiple rows, the first one's role is used. Keep superadmin row as the only/first row for that user to avoid RLS blocking company reads.
-- Full UI redesign is on `staging` branch — **not yet merged to `main`**
+- Full UI redesign + all session features are on `staging` branch — **not yet merged to `main`**
+- `ale@ale.com` has a `user_roles` row on "Test 2" company (added via SQL INSERT) — was previously invisible in User Management
 
 ## Pending Features
 
