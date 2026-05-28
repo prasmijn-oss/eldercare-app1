@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react";
-import { supabase, supabaseAdmin } from "./lib/supabase.js";
+import { supabase, supabaseAdmin, SUPABASE_URL } from "./lib/supabase.js";
 import {
   COLORS, PLY, DIAGNOSES, MEDICATIONS, HIGH_RISK,
   FALL_RISK_DIAG, FALL_RISK_MEDS,
