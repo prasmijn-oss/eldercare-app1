@@ -3,7 +3,7 @@
 ## Project Overview
 Full-stack eldercare client management app built with React 19 + Vite.  
 Backend: Supabase (auth, Postgres, storage).  
-Entire frontend lives in **`src/App.jsx`** (single-file architecture, ~6500+ lines).
+Entire frontend lives in **`src/App.jsx`** (single-file architecture, ~7,395 lines).
 
 ## Tech Stack
 - React 19, Vite 8
@@ -144,6 +144,19 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - [x] Responsive grids (.inv-grid, .notes-filter, .three-col, .four-col)
 - [x] Duplicate sticky bars on mobile fixed (.main-topbar hidden, mob-hdr shown)
 
+### Performance
+- [x] `useMemo` for sidebar badge counts (incident, medication, active client counts)
+- [x] `useMemo` for `filteredUsers` in UserManagement (dedup + search + tab filter)
+- [x] `useMemo` for dashboard flagged medications list + aggregate medications view
+- [x] Lazy client detail loading — `loadClients` fetches reduced column set; `loadClientDetail` fetches full row on demand
+- [x] AuditTrail server-side pagination (`range()`, page size 100) + server-side filters
+- [x] Private `client-photos` Supabase bucket — signed URLs via `ClientPhoto` component (1h TTL, backward-compat with legacy public URLs)
+- [x] Non-blocking census PDF generation (`setTimeout(0)` yield before heavy computation)
+- [x] Supabase Realtime subscription — client data auto-refreshes on any DB change without manual reload
+
+### PWA
+- [x] Icon PNGs generated — `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png` (indigo rounded-rect with white "CM" bitmap text)
+
 ### Admin
 - [x] Audit trail
 - [x] Company Settings view
@@ -169,7 +182,6 @@ git checkout main && git merge staging && git push origin main && git checkout s
 
 ### Security & Auth
 - [ ] Password strength indicator on create/edit user
-- [ ] Session timeout warning
 - [ ] Force password change enforcement (currently only a UI note)
 - [ ] Two-factor authentication
 - [ ] IP-based login alerts
