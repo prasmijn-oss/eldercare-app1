@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude / tooling artifacts
+.claude/
+.vercel/
+graph.json
+graphify-out/
+src/graphify-out/
+supabase/.temp/
+
+# Stray experiment files
+console.log*
+res.send*
