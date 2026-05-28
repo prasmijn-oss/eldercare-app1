@@ -6187,6 +6187,30 @@ function SessionTimeoutModal({countdown,onStayLoggedIn,onLogoutNow}){
   );
 }
 
+// ── URL hash routing helpers ───────────────────────────────────────────────
+// Hash scheme: #dashboard | #clients | #clients/{id} | #clients/{id}/edit
+//              #add | #audit | #reports | #company | #profile
+//              #users | #permissions | #incidents | #medications
+const ROUTABLE_VIEWS=['audit','reports','company','profile','users','permissions','incidents','medications','add'];
+function parseHash(hash){
+  const h=(hash||'').replace(/^#\/?/,'');
+  const [seg0,seg1,seg2]=h.split('/');
+  if(!seg0||seg0==='dashboard')return{view:'dashboard',clientId:null};
+  if(seg0==='clients'){
+    if(seg1&&seg2==='edit')return{view:'edit',clientId:seg1};
+    if(seg1)return{view:'detail',clientId:seg1};
+    return{view:'clients',clientId:null};
+  }
+  if(ROUTABLE_VIEWS.includes(seg0))return{view:seg0,clientId:null};
+  return{view:'dashboard',clientId:null};
+}
+function viewToHash(view,clientId){
+  if(view==='detail'&&clientId)return`#clients/${clientId}`;
+  if(view==='edit'&&clientId)return`#clients/${clientId}/edit`;
+  if(view==='dashboard')return'#dashboard';
+  return`#${view}`;
+}
+
 export default function App(){
   const [lang,setLang]=useState(()=>localStorage.getItem("cm-lang")||null);
   const [currentUser,setCurrentUser]=useState(null);
@@ -6367,6 +6391,41 @@ export default function App(){
       loadClientDetail(selected.id);
     }
   },[view,selected?.id,selected?._detailLoaded,loadClientDetail]);
+
+  // ── URL hash routing ───────────────────────────────────────────────────────
+  const initialHashApplied=useRef(false);
+
+  // Write: view+selected → hash (push a history entry on every navigation)
+  useEffect(()=>{
+    if(!currentUser)return;
+    const hash=viewToHash(view,selected?.id);
+    if(window.location.hash!==hash)history.pushState(null,'',hash);
+  },[view,selected?.id,currentUser]);
+
+  // Read: popstate (back/forward button) → view+selected
+  // Also applies the initial URL hash once, after login + clients have loaded
+  useEffect(()=>{
+    if(!currentUser||loading)return;
+    const applyHash=h=>{
+      const{view:v,clientId}=parseHash(h);
+      setView(v);
+      if(clientId){
+        const c=clients.find(x=>x.id===clientId);
+        setSelected(c||{id:clientId}); // partial obj — lazy-loader fills it in
+      }else{
+        setSelected(null);
+      }
+    };
+    // One-shot: honour the URL the user arrived at (direct link / page refresh)
+    if(!initialHashApplied.current){
+      initialHashApplied.current=true;
+      const{view:v,clientId}=parseHash(window.location.hash);
+      if(v!=='dashboard'||clientId)applyHash(window.location.hash);
+    }
+    const onPop=()=>applyHash(window.location.hash);
+    window.addEventListener('popstate',onPop);
+    return()=>window.removeEventListener('popstate',onPop);
+  },[currentUser,loading,clients]); // clients in deps so onPop closure has fresh list
 
   const activeCompanyId=selectedCompany||currentUser?.company_id;
 
