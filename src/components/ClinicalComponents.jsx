@@ -23,7 +23,7 @@ function PainAssessment({items,onChange}){
   return(
     <div>
       {summary&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
           <span style={{fontSize:22}}>{summary.latestScore>=7?"😣":summary.latestScore>=4?"😐":"😊"}</span>
           <div>
             <span style={{fontWeight:700,fontSize:13,color:summary.level.color}}>{summary.level.label} pain — {summary.latestScore}/10</span>
@@ -38,7 +38,7 @@ function PainAssessment({items,onChange}){
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#f59e0b",color:"#f59e0b"}} onClick={openNew}>+ Log Pain Assessment</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #f59e0b",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid #f59e0b",borderRadius:10,padding:14,marginBottom:12}}>
           <div className="three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
@@ -48,7 +48,7 @@ function PainAssessment({items,onChange}){
             <label style={LBL}>Pain Scale</label>
             <div style={{display:"flex",gap:6,marginBottom:10}}>
               {["numeric","faces"].map(m=>(
-                <button key={m} onClick={()=>setScaleMode(m)} style={{padding:"5px 14px",borderRadius:6,border:"1px solid "+(scaleMode===m?"#f59e0b":"rgba(255,255,255,0.1)"),background:scaleMode===m?"rgba(245,158,11,0.15)":"transparent",color:scaleMode===m?"#f59e0b":"rgba(240,242,250,0.3)",fontSize:12,fontWeight:600,cursor:"pointer",textTransform:"capitalize"}}>{m==="numeric"?"Numeric (0-10)":"FACES Scale"}</button>
+                <button key={m} onClick={()=>setScaleMode(m)} style={{padding:"5px 14px",borderRadius:6,border:"1px solid "+(scaleMode===m?"#f59e0b":"var(--color-border)"),background:scaleMode===m?"rgba(245,158,11,0.15)":"transparent",color:scaleMode===m?"#f59e0b":"var(--color-text-muted)",fontSize:12,fontWeight:600,cursor:"pointer",textTransform:"capitalize"}}>{m==="numeric"?"Numeric (0-10)":"FACES Scale"}</button>
               ))}
             </div>
             {scaleMode==="numeric"?(
@@ -63,7 +63,7 @@ function PainAssessment({items,onChange}){
             ):(
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {FACES_SCORES.map(f=>(
-                  <button key={f.score} onClick={()=>setEntry(v=>({...v,score:f.score}))} style={{flex:"1 1 60px",padding:"8px 4px",borderRadius:8,border:"2px solid "+(entry.score===f.score?painLevel(f.score).color:"rgba(255,255,255,0.1)"),background:entry.score===f.score?painLevel(f.score).color+"20":"transparent",cursor:"pointer",textAlign:"center"}}>
+                  <button key={f.score} onClick={()=>setEntry(v=>({...v,score:f.score}))} style={{flex:"1 1 60px",padding:"8px 4px",borderRadius:8,border:"2px solid "+(entry.score===f.score?painLevel(f.score).color:"var(--color-border)"),background:entry.score===f.score?painLevel(f.score).color+"20":"transparent",cursor:"pointer",textAlign:"center"}}>
                     <div style={{fontSize:24}}>{f.emoji}</div>
                     <div style={{fontSize:10,color:"var(--color-text-dim)",marginTop:2}}>{f.label}</div>
                     <div style={{fontSize:11,fontWeight:700,color:painLevel(f.score).color}}>{f.score}/10</div>
@@ -85,7 +85,7 @@ function PainAssessment({items,onChange}){
             <label style={LBL}>Character</label>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               {PAIN_CHARACTERS.map(ch=>(
-                <button key={ch} onClick={()=>setEntry(v=>({...v,character:v.character===ch?"":ch}))} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.character===ch?"#f59e0b":"rgba(255,255,255,0.1)"),background:entry.character===ch?"rgba(245,158,11,0.15)":"transparent",color:entry.character===ch?"#f59e0b":"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>{ch}</button>
+                <button key={ch} onClick={()=>setEntry(v=>({...v,character:v.character===ch?"":ch}))} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.character===ch?"#f59e0b":"var(--color-border)"),background:entry.character===ch?"rgba(245,158,11,0.15)":"transparent",color:entry.character===ch?"#f59e0b":"var(--color-text-muted)",fontSize:11,fontWeight:600,cursor:"pointer"}}>{ch}</button>
               ))}
             </div>
           </div>
@@ -111,7 +111,7 @@ function PainAssessment({items,onChange}){
           const sc=Number(row.score??0);
           const lv=painLevel(sc);
           return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
+            <div key={row.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}{row.time&&" "+row.time}</span>
@@ -162,16 +162,16 @@ function BradenScale({items,onChange}){
   return(
     <div>
       {summary&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
             <span style={{fontWeight:800,fontSize:22,color:summary.risk.color}}>{summary.score}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:summary.risk.color}}>{summary.risk.label}</div>
               <div style={{fontSize:11,color:"var(--color-text-dim)"}}>Score {summary.score}/{BRADEN_MAX} · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
             </div>
-            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"rgba(240,242,250,0.3)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
+            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"var(--color-text-muted)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
           </div>
-          <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",marginBottom:6}}>
+          <div style={{height:6,background:"rgba(128,128,128,0.12)",borderRadius:3,overflow:"hidden",marginBottom:6}}>
             <div style={{height:"100%",width:scoreBar(summary.score)+"%",background:summary.risk.color,borderRadius:3,transition:"width 0.3s"}}/>
           </div>
           <div style={{fontSize:11,color:"var(--color-text-muted)"}}>🔄 Recommended repositioning: <strong style={{color:"var(--color-text-secondary)"}}>{summary.latest.turning_schedule||summary.risk.turning}</strong></div>
@@ -190,14 +190,14 @@ function BradenScale({items,onChange}){
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#8b5cf6",color:"#8b5cf6"}} onClick={openNew}>+ Log Braden Assessment</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #8b5cf6",borderRadius:10,padding:14,marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid #8b5cf6",borderRadius:10,padding:14,marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"var(--color-bg-hover)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
             <span style={{fontWeight:800,fontSize:26,color:liveRisk.color}}>{liveScore}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:liveRisk.color}}>{liveRisk.label}</div>
               <div style={{fontSize:11,color:"var(--color-text-dim)"}}>of {BRADEN_MAX} · updates as you score</div>
             </div>
-            <div style={{flex:1,height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
+            <div style={{flex:1,height:6,background:"rgba(128,128,128,0.12)",borderRadius:3,overflow:"hidden"}}>
               <div style={{height:"100%",width:scoreBar(liveScore)+"%",background:liveRisk.color,borderRadius:3,transition:"width 0.2s"}}/>
             </div>
           </div>
@@ -222,7 +222,7 @@ function BradenScale({items,onChange}){
                       return(
                         <button key={score} onClick={()=>setEntry(v=>({...v,[sub.key]:score}))}
                           title={opt}
-                          style={{flex:1,padding:"6px 4px",borderRadius:6,border:"1px solid "+(active?col:"rgba(255,255,255,0.1)"),background:active?col+"25":"transparent",color:active?col:"var(--color-text-muted)",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center",lineHeight:1.2}}>
+                          style={{flex:1,padding:"6px 4px",borderRadius:6,border:"1px solid "+(active?col:"var(--color-border)"),background:active?col+"25":"transparent",color:active?col:"var(--color-text-muted)",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center",lineHeight:1.2}}>
                           <div style={{fontWeight:700,fontSize:13}}>{score}</div>
                           <div style={{fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt}</div>
                         </button>
@@ -249,7 +249,7 @@ function BradenScale({items,onChange}){
           const sc=bradenScore(row);
           const rk=bradenRisk(sc);
           return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
+            <div key={row.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
@@ -295,16 +295,16 @@ function CognitiveScreening({items,onChange}){
   return(
     <div>
       {summary&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
             <span style={{fontWeight:800,fontSize:22,color:summary.level.color}}>{summary.score}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:summary.level.color}}>{summary.level.label}</div>
               <div style={{fontSize:11,color:"var(--color-text-dim)"}}>{summary.latest.test_type||"MMSE"} · Score {summary.score}/30 · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
             </div>
-            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"rgba(240,242,250,0.3)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
+            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"var(--color-text-muted)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
           </div>
-          <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",marginBottom:6}}>
+          <div style={{height:6,background:"rgba(128,128,128,0.12)",borderRadius:3,overflow:"hidden",marginBottom:6}}>
             <div style={{height:"100%",width:Math.round((summary.score/30)*100)+"%",background:summary.level.color,borderRadius:3,transition:"width 0.3s"}}/>
           </div>
           {summary.dueReassess&&<div style={{fontSize:11,background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:6,padding:"4px 10px",color:"#f59e0b",marginTop:6}}>⚠️ Reassessment overdue — last screening was {summary.daysSince} days ago</div>}
@@ -316,14 +316,14 @@ function CognitiveScreening({items,onChange}){
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#a78bfa",color:"#a78bfa"}} onClick={openNew}>+ Log Screening</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #a78bfa",borderRadius:10,padding:14,marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid #a78bfa",borderRadius:10,padding:14,marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"var(--color-bg-hover)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
             <span style={{fontWeight:800,fontSize:26,color:liveLevel.color}}>{entry.score??30}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:liveLevel.color}}>{liveLevel.label}</div>
               <div style={{fontSize:11,color:"var(--color-text-dim)"}}>{entry.test_type||"MMSE"} · out of 30</div>
             </div>
-            <div style={{flex:1,height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
+            <div style={{flex:1,height:6,background:"rgba(128,128,128,0.12)",borderRadius:3,overflow:"hidden"}}>
               <div style={{height:"100%",width:Math.round((Number(entry.score??30)/30)*100)+"%",background:liveLevel.color,borderRadius:3,transition:"width 0.2s"}}/>
             </div>
           </div>
@@ -386,7 +386,7 @@ function CognitiveScreening({items,onChange}){
         {sorted.map(row=>{
           const lv=cognitiveLevel(row.test_type||"MMSE",row.score);
           return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
+            <div key={row.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
@@ -435,7 +435,7 @@ function ContinenceLog({items,onChange}){
   return(
     <div>
       {summary&&summary.recentCount>0&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
           <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"center"}}>
             <div style={{textAlign:"center"}}>
               <div style={{fontWeight:800,fontSize:22,color:summary.highFrequency?"#ef4444":"#06b6d4"}}>{summary.avgPerDay}</div>
@@ -459,7 +459,7 @@ function ContinenceLog({items,onChange}){
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#06b6d4",color:"#06b6d4"}} onClick={openNew}>+ Log Episode</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time||""} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
@@ -503,7 +503,7 @@ function ContinenceLog({items,onChange}){
         {sorted.map(row=>{
           const skinCol=row.skin_condition==="Breakdown"?"#ef4444":row.skin_condition==="Maceration"?"#f59e0b":row.skin_condition==="Redness"?"#fb923c":"#10b981";
           return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"9px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <div key={row.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:9,padding:"9px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
                   <span style={{fontWeight:700,fontSize:12,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}{row.time&&" "+row.time}</span>
@@ -546,7 +546,7 @@ function NutritionScreening({items,onChange}){
     const active=entry&&Number(entry[field])===val;
     return(
       <button onClick={()=>setEntry(v=>({...v,[field]:val}))} title={desc}
-        style={{flex:1,padding:"7px 5px",borderRadius:7,border:"1px solid "+(active?color:"rgba(255,255,255,0.1)"),background:active?color+"22":"transparent",color:active?color:"var(--color-text-muted)",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center"}}>
+        style={{flex:1,padding:"7px 5px",borderRadius:7,border:"1px solid "+(active?color:"var(--color-border)"),background:active?color+"22":"transparent",color:active?color:"var(--color-text-muted)",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center"}}>
         <div style={{fontWeight:700,fontSize:15}}>{val}</div>
         <div style={{fontSize:9,lineHeight:1.2}}>{label}</div>
       </button>
@@ -556,16 +556,16 @@ function NutritionScreening({items,onChange}){
   return(
     <div>
       {summary&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
             <span style={{fontWeight:800,fontSize:22,color:summary.risk.color}}>{summary.score}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:summary.risk.color}}>{summary.risk.label}</div>
               <div style={{fontSize:11,color:"var(--color-text-dim)"}}>MUST Score · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
             </div>
-            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="worsening"?"#ef4444":"rgba(240,242,250,0.3)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="worsening"?"↓ Worsening":"→ Stable"}</span>}
+            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="worsening"?"#ef4444":"var(--color-text-muted)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="worsening"?"↓ Worsening":"→ Stable"}</span>}
           </div>
-          <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",marginBottom:8}}>
+          <div style={{height:6,background:"rgba(128,128,128,0.12)",borderRadius:3,overflow:"hidden",marginBottom:8}}>
             <div style={{height:"100%",width:Math.min(100,Math.round((summary.score/4)*100))+"%",background:summary.risk.color,borderRadius:3,transition:"width 0.3s"}}/>
           </div>
           <div style={{fontSize:11,color:"var(--color-text-muted)"}}>📋 Action: <strong style={{color:"var(--color-text-secondary)"}}>{summary.risk.action}</strong></div>
@@ -583,14 +583,14 @@ function NutritionScreening({items,onChange}){
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#10b981",color:"#10b981"}} onClick={openNew}>+ Log Screening</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"var(--color-bg-hover)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
             <span style={{fontWeight:800,fontSize:26,color:liveRisk.color}}>{liveScore}</span>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:liveRisk.color}}>{liveRisk.label}</div>
               <div style={{fontSize:11,color:"var(--color-text-dim)"}}>MUST Score · updates as you score</div>
             </div>
-            <div style={{flex:1,height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
+            <div style={{flex:1,height:6,background:"rgba(128,128,128,0.12)",borderRadius:3,overflow:"hidden"}}>
               <div style={{height:"100%",width:Math.min(100,Math.round((liveScore/4)*100))+"%",background:liveRisk.color,borderRadius:3,transition:"width 0.2s"}}/>
             </div>
           </div>
@@ -617,7 +617,7 @@ function NutritionScreening({items,onChange}){
           <div style={{marginBottom:10}}>
             <label style={LBL}>Acute Illness Effect (+2 points if acutely ill / no nutritional intake ≥5 days)</label>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <button onClick={()=>setEntry(v=>({...v,acute_illness:!v.acute_illness}))} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+(entry.acute_illness?"#ef4444":"rgba(255,255,255,0.1)"),background:entry.acute_illness?"rgba(239,68,68,0.15)":"transparent",color:entry.acute_illness?"#ef4444":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13}}>
+              <button onClick={()=>setEntry(v=>({...v,acute_illness:!v.acute_illness}))} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+(entry.acute_illness?"#ef4444":"var(--color-border)"),background:entry.acute_illness?"rgba(239,68,68,0.15)":"transparent",color:entry.acute_illness?"#ef4444":"var(--color-text-muted)",fontWeight:600,fontSize:13}}>
                 {entry.acute_illness?"Yes — +2 applied":"No"}
               </button>
               <span style={{fontSize:11,color:"var(--color-text-dim)"}}>Tap to toggle</span>
@@ -631,7 +631,7 @@ function NutritionScreening({items,onChange}){
             </div>
             <div style={{display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
               <label style={{...LBL,marginBottom:8}}>Swallowing Difficulty</label>
-              <button onClick={()=>setEntry(v=>({...v,swallowing_difficulty:!v.swallowing_difficulty}))} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(entry.swallowing_difficulty?"#ef4444":"rgba(255,255,255,0.1)"),background:entry.swallowing_difficulty?"rgba(239,68,68,0.12)":"transparent",color:entry.swallowing_difficulty?"#ef4444":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13}}>
+              <button onClick={()=>setEntry(v=>({...v,swallowing_difficulty:!v.swallowing_difficulty}))} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(entry.swallowing_difficulty?"#ef4444":"var(--color-border)"),background:entry.swallowing_difficulty?"rgba(239,68,68,0.12)":"transparent",color:entry.swallowing_difficulty?"#ef4444":"var(--color-text-muted)",fontWeight:600,fontSize:13}}>
                 {entry.swallowing_difficulty?"Yes — Dysphagia":"No"}
               </button>
             </div>
@@ -656,7 +656,7 @@ function NutritionScreening({items,onChange}){
           const sc=mustScore(row);
           const rk=mustRisk(sc);
           return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
+            <div key={row.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
@@ -713,7 +713,7 @@ function WoundAssessment({items,onChange}){
       {summary&&summary.activeSites.length>0&&(
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
           {summary.activeSites.map(w=>{
-            const hc=WOUND_HEALING_COLOR[w.healing_status]||"rgba(240,242,250,0.3)";
+            const hc=WOUND_HEALING_COLOR[w.healing_status]||"var(--color-text-muted)";
             return(
               <div key={w.site} style={{padding:"6px 12px",borderRadius:10,background:hc+"15",border:"1px solid "+hc+"40",display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontWeight:700,fontSize:12,color:hc}}>🩹 {w.site}</span>
@@ -732,17 +732,17 @@ function WoundAssessment({items,onChange}){
       {allSites.length>2&&(
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
           {allSites.map(s=>(
-            <button key={s} onClick={()=>setFilterSite(s)} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+(filterSite===s?"#06b6d4":"rgba(255,255,255,0.1)"),background:filterSite===s?"rgba(6,182,212,0.15)":"transparent",color:filterSite===s?"#06b6d4":"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>{s}</button>
+            <button key={s} onClick={()=>setFilterSite(s)} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+(filterSite===s?"#06b6d4":"var(--color-border)"),background:filterSite===s?"rgba(6,182,212,0.15)":"transparent",color:filterSite===s?"#06b6d4":"var(--color-text-muted)",fontSize:11,fontWeight:600,cursor:"pointer"}}>{s}</button>
           ))}
         </div>
       )}
       {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
           <div className="three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
             <div><label style={LBL}>Healing Status</label>
-              <select style={{...INP,cursor:"pointer",color:WOUND_HEALING_COLOR[entry.healing_status]||"#e2e8f0",borderColor:WOUND_HEALING_COLOR[entry.healing_status]||"rgba(255,255,255,0.1)"}} value={entry.healing_status} onChange={e=>setEntry(v=>({...v,healing_status:e.target.value}))}>
+              <select style={{...INP,cursor:"pointer",color:WOUND_HEALING_COLOR[entry.healing_status]||"#e2e8f0",borderColor:WOUND_HEALING_COLOR[entry.healing_status]||"var(--color-border)"}} value={entry.healing_status} onChange={e=>setEntry(v=>({...v,healing_status:e.target.value}))}>
                 {WOUND_HEALING.map(h=><option key={h} value={h}>{h}</option>)}
               </select>
             </div>
@@ -772,13 +772,13 @@ function WoundAssessment({items,onChange}){
             <div>
               <label style={LBL}>Wound Bed</label>
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                {WOUND_BED.map(b=><button key={b} onClick={()=>setEntry(v=>({...v,wound_bed:b}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.wound_bed===b?"#06b6d4":"rgba(255,255,255,0.1)"),background:entry.wound_bed===b?"rgba(6,182,212,0.15)":"transparent",color:entry.wound_bed===b?"#06b6d4":"rgba(240,242,250,0.3)",fontSize:11,cursor:"pointer"}}>{b}</button>)}
+                {WOUND_BED.map(b=><button key={b} onClick={()=>setEntry(v=>({...v,wound_bed:b}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.wound_bed===b?"#06b6d4":"var(--color-border)"),background:entry.wound_bed===b?"rgba(6,182,212,0.15)":"transparent",color:entry.wound_bed===b?"#06b6d4":"var(--color-text-muted)",fontSize:11,cursor:"pointer"}}>{b}</button>)}
               </div>
             </div>
             <div>
               <label style={LBL}>Periwound Skin</label>
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                {WOUND_PERIWOUND.map(p=><button key={p} onClick={()=>setEntry(v=>({...v,periwound:p}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.periwound===p?"#06b6d4":"rgba(255,255,255,0.1)"),background:entry.periwound===p?"rgba(6,182,212,0.15)":"transparent",color:entry.periwound===p?"#06b6d4":"rgba(240,242,250,0.3)",fontSize:11,cursor:"pointer"}}>{p}</button>)}
+                {WOUND_PERIWOUND.map(p=><button key={p} onClick={()=>setEntry(v=>({...v,periwound:p}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.periwound===p?"#06b6d4":"var(--color-border)"),background:entry.periwound===p?"rgba(6,182,212,0.15)":"transparent",color:entry.periwound===p?"#06b6d4":"var(--color-text-muted)",fontSize:11,cursor:"pointer"}}>{p}</button>)}
               </div>
             </div>
           </div>
@@ -820,10 +820,10 @@ function WoundAssessment({items,onChange}){
       {filtered.length===0&&!showForm&&<div style={{color:"var(--color-text-muted)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No wound assessments logged yet</div>}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {filtered.map(row=>{
-          const hc=WOUND_HEALING_COLOR[row.healing_status]||"rgba(240,242,250,0.3)";
+          const hc=WOUND_HEALING_COLOR[row.healing_status]||"var(--color-text-muted)";
           const area=(row.length_cm&&row.width_cm)?Math.round(parseFloat(row.length_cm)*parseFloat(row.width_cm)*10)/10:null;
           return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+hc}}>
+            <div key={row.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+hc}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                   <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</span>
@@ -875,11 +875,11 @@ function ADLTracker({items,onChange}){
   return(
     <div>
       {summary&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
           <span style={{fontWeight:700,fontSize:13,color:summary.dep.color}}>{summary.dep.label} dependency</span>
           <span style={{fontSize:12,color:"var(--color-text-dim)"}}>Score: {summary.score}/18</span>
           {summary.trend&&(
-            <span style={{fontSize:12,fontWeight:600,color:summary.trend==="declining"?"#f87171":summary.trend==="improving"?"#10b981":"rgba(240,242,250,0.3)"}}>
+            <span style={{fontSize:12,fontWeight:600,color:summary.trend==="declining"?"#f87171":summary.trend==="improving"?"#10b981":"var(--color-text-muted)"}}>
               {summary.trend==="declining"?"↓ Declining":summary.trend==="improving"?"↑ Improving":"→ Stable"}
             </span>
           )}
@@ -896,7 +896,7 @@ function ADLTracker({items,onChange}){
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#10b981",color:"#10b981"}} onClick={openNew}>+ Log Assessment</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
@@ -908,7 +908,7 @@ function ADLTracker({items,onChange}){
                 <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                   {ADL_LEVELS.map(lvl=>(
                     <button key={lvl} onClick={()=>setEntry(v=>({...v,items:{...v.items,[k]:lvl}}))}
-                      style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"rgba(255,255,255,0.1)"),background:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]+"25":"transparent",color:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>
+                      style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"var(--color-border)"),background:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]+"25":"transparent",color:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"var(--color-text-muted)",fontSize:11,fontWeight:600,cursor:"pointer"}}>
                       {lvl}
                     </button>
                   ))}
@@ -929,7 +929,7 @@ function ADLTracker({items,onChange}){
           const sc=adlScore(row.items);
           const dep=adlDepLevel(sc);
           return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+dep.color}}>
+            <div key={row.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+dep.color}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
@@ -975,7 +975,7 @@ function IncidentReports({items,onChange,currentUser}){
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#ef4444",color:"#ef4444"}} onClick={openNew}>+ Log Incident</button>
       </div>
       {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #ef4444",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid #ef4444",borderRadius:10,padding:14,marginBottom:12}}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
@@ -985,7 +985,7 @@ function IncidentReports({items,onChange,currentUser}){
               </select>
             </div>
             <div><label style={LBL}>Severity</label>
-              <select style={{...INP,cursor:"pointer",color:INCIDENT_SEV_COLORS[entry.severity]||"#e2e8f0",borderColor:INCIDENT_SEV_COLORS[entry.severity]||"rgba(255,255,255,0.1)"}} value={entry.severity} onChange={e=>setEntry(v=>({...v,severity:e.target.value}))}>
+              <select style={{...INP,cursor:"pointer",color:INCIDENT_SEV_COLORS[entry.severity]||"#e2e8f0",borderColor:INCIDENT_SEV_COLORS[entry.severity]||"var(--color-border)"}} value={entry.severity} onChange={e=>setEntry(v=>({...v,severity:e.target.value}))}>
                 {["Minor","Moderate","Severe"].map(s=><option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -1012,7 +1012,7 @@ function IncidentReports({items,onChange,currentUser}){
         {sorted.map(item=>{
           const sc=INCIDENT_SEV_COLORS[item.severity]||"#f59e0b";
           return(
-            <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"12px 14px",borderLeft:"4px solid "+sc}}>
+            <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:9,padding:"12px 14px",borderLeft:"4px solid "+sc}}>
               <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
                 <div>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
@@ -1056,19 +1056,19 @@ function IntakeChecklist({items,onChange,currentUser}){
   return(
     <div>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
-        <div style={{flex:1,height:8,background:"rgba(255,255,255,0.03)",borderRadius:4,overflow:"hidden"}}>
-          <div style={{height:"100%",width:pct+"%",background:pct===100?"#10b981":"#6366f1",borderRadius:4,transition:"width 0.3s"}}/>
+        <div style={{flex:1,height:8,background:"rgba(128,128,128,0.12)",borderRadius:4,overflow:"hidden"}}>
+          <div style={{height:"100%",width:pct+"%",background:pct===100?"#10b981":"var(--color-accent)",borderRadius:4,transition:"width 0.3s"}}/>
         </div>
         <span style={{fontSize:12,fontWeight:700,color:pct===100?"#10b981":"var(--color-text-secondary)",whiteSpace:"nowrap"}}>{doneCount}/{full.length}{pct===100?" ✓ Complete":""}</span>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
         {full.map(item=>(
           <div key={item.key} onClick={()=>toggle(item.key)}
-            style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:9,border:"1px solid "+(item.done?"rgba(16,185,129,0.3)":"rgba(255,255,255,0.1)"),background:item.done?"rgba(16,185,129,0.08)":"transparent",cursor:"pointer"}}>
+            style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:9,border:"1px solid "+(item.done?"rgba(16,185,129,0.3)":"var(--color-border)"),background:item.done?"rgba(16,185,129,0.08)":"transparent",cursor:"pointer"}}>
             <div style={{width:20,height:20,borderRadius:5,border:"2px solid "+(item.done?"#10b981":"var(--color-text-muted)"),background:item.done?"#10b981":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12,color:"#fff",fontWeight:700}}>
               {item.done?"✓":""}
             </div>
-            <span style={{flex:1,fontSize:13,color:item.done?"#10b981":"rgba(240,242,250,0.8)",fontWeight:item.done?600:400}}>{item.label}</span>
+            <span style={{flex:1,fontSize:13,color:item.done?"#10b981":"var(--color-text-primary)",fontWeight:item.done?600:400}}>{item.label}</span>
             {item.done&&item.completed_by&&<span style={{fontSize:10,color:"var(--color-text-muted)",whiteSpace:"nowrap"}}>{item.completed_by}{item.completed_at?" · "+item.completed_at:""}</span>}
           </div>
         ))}
