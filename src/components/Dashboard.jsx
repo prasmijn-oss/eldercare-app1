@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { calcAge, calcFallRisk, getMedFlags, initials, avatarColor, calcAdlSummary, calcCognitiveSummary, calcWeightTrend, calcPainSummary, prefersReducedMotion } from "../lib/utils.js";
-import { COLORS } from "../lib/constants.js";
+import { calcAge, getMedFlags, initials, avatarColor, calcAdlSummary, calcCognitiveSummary, calcPainSummary, calcWoundSummary, calcBradenSummary, calcContinenceSummary, calcNutritionSummary, prefersReducedMotion, daysUntil, daysUntilBirthday, daysSince, checkAbnormalVitals, allergyMedConflicts, getMissedAppointments, expiryBadge } from "../lib/utils.js";
+import { COLORS, ADL_ITEMS, ADL_LEVEL_COLOR, WOUND_HEALING_COLOR, BRADEN_MAX } from "../lib/constants.js";
+
+const ADL_LABELS={bathing:"🛁 Bathing",dressing:"👕 Dressing",toileting:"🚽 Toileting",eating:"🍽️ Eating",mobility:"🚶 Mobility",grooming:"✂️ Grooming"};
 
 function TiltCard({icon,label,value,color,glowColor}){
   const ref=useRef(null);
