@@ -208,9 +208,11 @@ export const GCSS = [
   /* All nav items — dark text on white */
   "html.cm-light .nav-item { color: #374151 !important; background: transparent !important; border-color: transparent !important; }",
   "html.cm-light .nav-item:hover { color: #16a34a !important; background: #dcfce7 !important; }",
-  /* Active nav item — green */
-  "html.cm-light .nav-active { color: #16a34a !important; background: #dcfce7 !important; border-color: #bbf7d0 !important; font-weight: 600 !important; }",
-  "html.cm-light .nav-active > span { background: #16a34a !important; }",
+  /* Active nav item — solid green bg + white text, high contrast */
+  "html.cm-light .nav-active { color: #ffffff !important; background: #16a34a !important; border-color: #15803d !important; font-weight: 600 !important; }",
+  "html.cm-light .nav-active > span { background: #15803d !important; }",
+  "html.cm-light .nav-active svg { stroke: #ffffff !important; }",
+  "html.cm-light .nav-active span[style] { background: rgba(255,255,255,0.25) !important; color: #ffffff !important; }",
   /* Sidebar footer text */
   "html.cm-light .sidebar-footer-name { color: #374151 !important; }",
   "html.cm-light .sidebar-footer-role { color: #9ca3af !important; }",
