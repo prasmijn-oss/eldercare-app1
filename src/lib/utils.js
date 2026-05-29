@@ -346,16 +346,20 @@ export function scorePassword(pw) {
 }
 
 // ── RBAC ───────────────────────────────────────────────────────────────────
-// Global permissions cache — loaded from DB on login.
-// NOTE: This mutable module-level variable will be replaced by React context
-// in architectural queue item #3.
+// Module-level fallback cache — kept for any non-React callers.
+// React components should use PermissionsContext (see App.jsx) so that
+// permission changes trigger re-renders.
 export let LOADED_PERMS = null;
 
-export function can(role, action) {
-  if (LOADED_PERMS) return (LOADED_PERMS[role] || []).includes(action);
+// perms param is optional — pass the React context value to get reactive behaviour;
+// omit (or pass null) to fall back to the module-level cache or DEFAULT_PERMS.
+export function can(role, action, perms = LOADED_PERMS) {
+  if (perms) return (perms[role] || []).includes(action);
   return (DEFAULT_PERMS[role] || []).includes(action);
 }
 
+// Fetches permissions from DB, updates the module-level cache, and returns
+// the built perms object so callers can store it in React state.
 export async function loadPermissions(companyId) {
   try {
     const { data: global } = await supabase.from("permissions").select("role,action,allowed");
@@ -372,10 +376,12 @@ export async function loadPermissions(companyId) {
       if (allowed && !perms[role].includes(action)) { perms[role].push(action); }
       else if (!allowed) { perms[role] = perms[role].filter(a => a !== action); }
     });
-    LOADED_PERMS = perms;
+    LOADED_PERMS = perms; // keep module var in sync as fallback
+    return perms;
   } catch (e) {
     console.error("Failed to load permissions", e);
     LOADED_PERMS = null;
+    return null;
   }
 }
 

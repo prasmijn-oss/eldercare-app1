@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react";
+﻿import { useState, useEffect, useCallback, useRef, useMemo, Fragment, createContext, useContext } from "react";
 import { supabase, supabaseAdmin, SUPABASE_URL } from "./lib/supabase.js";
 import {
   COLORS, PLY, DIAGNOSES, MEDICATIONS, HIGH_RISK,
@@ -34,6 +34,7 @@ import { PasswordStrengthMeter, UserManagement } from "./components/UserManageme
 import { TiltCard, FlipCard, Dashboard } from "./components/Dashboard.jsx";
 import { AuditTrail } from "./components/AuditTrail.jsx";
 import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist } from "./components/ClinicalComponents.jsx";
+import { PermissionsContext } from "./lib/PermissionsContext.jsx";
 
 function buildNotifications(clients){
   const notifs=[];const now=new Date();
@@ -954,9 +955,10 @@ function EmergCard({client,onClose,t}){
 }
 
 function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,currentUser}){
+  const perms=useContext(PermissionsContext);
   const role=currentUser?.role||"user";
-  const canEdit=can(role,"edit");
-  const canDelete=can(role,"delete");
+  const canEdit=can(role,"edit",perms);
+  const canDelete=can(role,"delete",perms);
   const [showEmerg,setShowEmerg]=useState(false);
   const age=calcAge(client.date_of_birth);
   const color=avatarColor(client.name);
@@ -1690,7 +1692,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
         device:navigator.userAgent.slice(0,220),
       }).then(()=>{});
       // Reload permissions cache
-      if(applyMode==="now")await loadPermissions(activeCompanyId);
+      if(applyMode==="now")await refreshPerms(activeCompanyId);
       setPendingChanges({});
       await loadPerms();
       showToast("success",applyMode==="now"?"Permissions saved and applied immediately!":"Permissions saved â€” will apply on next login");
@@ -2588,6 +2590,12 @@ export default function App(){
   const [emailPrefs,setEmailPrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-email-prefs")||"{}") ;}catch{return {};}});
   const [appMsg,setAppMsg]=useState(null); // {type:"success"|"error", text:string}
   const showAppMsg=(type,text)=>{setAppMsg({type,text});setTimeout(()=>setAppMsg(null),3200);};
+  // ── Permissions (React context) ──────────────────────────────────────────────
+  const [perms,setPerms]=useState(null);
+  const refreshPerms=useCallback(async(companyId)=>{
+    const p=await loadPermissions(companyId); // also syncs LOADED_PERMS module var
+    setPerms(p);
+  },[]);
   // â”€â”€ Session timeout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [idleWarning,setIdleWarning]=useState(false);
   const [idleCountdown,setIdleCountdown]=useState(IDLE_WARN_SECS);
@@ -2617,7 +2625,7 @@ export default function App(){
       if(e.key==="?"||e.key==="."){setShowShortcuts(s=>!s);e.preventDefault();}
       else if(e.key==="Escape"){setShowShortcuts(false);setNotifOpen(false);setSidebarOpen(false);}
       else if(e.key==="d"&&!e.ctrlKey&&!e.metaKey&&!e.altKey){setView("dashboard");setSelected(null);}
-      else if(e.key==="n"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&can(currentUser.role,"add")){setSelected(null);setView("add");}
+      else if(e.key==="n"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&can(currentUser.role,"add",perms)){setSelected(null);setView("add");}
       // Use setView's functional form to read current view without a stale closure
       else if(e.key==="k"&&!e.ctrlKey&&!e.metaKey){e.preventDefault();setView(v=>{if(v!=="clients"){setSelected(null);setTimeout(()=>document.getElementById("cm-search")?.focus(),80);return"clients";}document.getElementById("cm-search")?.focus();return v;});}
       else if(e.key==="b"&&!e.ctrlKey&&!e.metaKey){setNotifOpen(s=>!s);}
@@ -2718,7 +2726,7 @@ export default function App(){
     if(data)setCompany(data);
   },[currentUser,selectedCompany]);
 
-  useEffect(()=>{if(currentUser){loadClients();loadCompany();loadPermissions(activeCompanyId);}},[currentUser,selectedCompany,searchAllCompanies,loadClients,loadCompany]);
+  useEffect(()=>{if(currentUser){loadClients();loadCompany();refreshPerms(activeCompanyId);}},[currentUser,selectedCompany,searchAllCompanies,loadClients,loadCompany,refreshPerms]);
 
   // â”€â”€ Supabase Realtime â€” auto-refresh clients when DB changes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(()=>{
@@ -2824,7 +2832,7 @@ export default function App(){
 
   const inlineUpdate=async(field,value)=>{
     if(!selected)return;
-    if(!can(currentUser?.role,"edit")){setError("You do not have permission to edit client data");return;}
+    if(!can(currentUser?.role,"edit",perms)){setError("You do not have permission to edit client data");return;}
     const{error}=await supabase.from("clients").update({[field]:JSON.stringify(value)}).eq("id",selected.id);
     if(error){setError("Failed to save "+field+": "+error.message);return;}
     setClients(cs=>cs.map(c=>c.id===selected.id?{...c,[field]:value}:c));
@@ -2977,6 +2985,7 @@ export default function App(){
   }
 
   return(
+    <PermissionsContext.Provider value={perms}>
     <div style={{minHeight:"100vh",background:"var(--color-bg-base)",fontFamily:"'DM Sans',system-ui,sans-serif"}}>
       <style dangerouslySetInnerHTML={{__html:GCSS}}/>
       {/* â”€â”€ Session timeout warning overlay â”€â”€ */}
@@ -2989,7 +2998,7 @@ export default function App(){
       <div className="mob-hdr">
         <button onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>â˜°</button>
         <span style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>CareManager</span>
-        {can(currentUser.role,"add")&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" style={{background:"linear-gradient(135deg,#4f6ef7,#6366f1)",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
+        {can(currentUser.role,"add",perms)&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" style={{background:"linear-gradient(135deg,#4f6ef7,#6366f1)",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
       </div>
       <div className={"overlay"+(sidebarOpen?" show":"")} onClick={()=>setSidebarOpen(false)}/>
       <div style={{display:"flex",minHeight:"100vh"}}>
@@ -3105,15 +3114,15 @@ export default function App(){
               };
               return(<>
                 {navBtn("reports","Reports",'<rect x="2" y="1" width="11" height="13" rx="1.5"/><line x1="4.5" y1="5" x2="10.5" y2="5"/><line x1="4.5" y1="8" x2="10.5" y2="8"/><line x1="4.5" y1="11" x2="8" y2="11"/>')}
-                {navBtn("users","Staff / Users",'<circle cx="6" cy="5" r="3"/><path d="M1 13c0-2.8 2.2-5 5-5"/><circle cx="11.5" cy="9" r="2.5"/><line x1="11.5" y1="11.5" x2="11.5" y2="14"/><line x1="10" y1="12.5" x2="13" y2="12.5"/>',can(currentUser.role,"users"))}
-                {navBtn("audit",t.auditTrail,'<circle cx="7.5" cy="7.5" r="6"/><polyline points="7.5,4.5 7.5,7.5 9.5,9.5"/>',can(currentUser.role,"audit"))}
+                {navBtn("users","Staff / Users",'<circle cx="6" cy="5" r="3"/><path d="M1 13c0-2.8 2.2-5 5-5"/><circle cx="11.5" cy="9" r="2.5"/><line x1="11.5" y1="11.5" x2="11.5" y2="14"/><line x1="10" y1="12.5" x2="13" y2="12.5"/>',can(currentUser.role,"users",perms))}
+                {navBtn("audit",t.auditTrail,'<circle cx="7.5" cy="7.5" r="6"/><polyline points="7.5,4.5 7.5,7.5 9.5,9.5"/>',can(currentUser.role,"audit",perms))}
               </>);
             })()}
             {/* ADMIN group â€” only if at least one admin view accessible */}
-            {(can(currentUser.role,"company")||can(currentUser.role,"permissions"))&&(
+            {(can(currentUser.role,"company",perms)||can(currentUser.role,"permissions",perms))&&(
               <>
                 <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Admin</div>
-                {can(currentUser.role,"company")&&(
+                {can(currentUser.role,"company",perms)&&(
                   <button onClick={()=>{setView("company");setSelected(null);setSidebarOpen(false);}}
                     className="nav-item"
                     style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:view==="company"?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:view==="company"?"rgba(99,102,241,0.12)":"transparent",color:view==="company"?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
@@ -3122,7 +3131,7 @@ export default function App(){
                     Company
                   </button>
                 )}
-                {can(currentUser.role,"permissions")&&(
+                {can(currentUser.role,"permissions",perms)&&(
                   <button onClick={()=>{setView("permissions");setSelected(null);setSidebarOpen(false);}}
                     className="nav-item"
                     style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:view==="permissions"?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:view==="permissions"?"rgba(99,102,241,0.12)":"transparent",color:view==="permissions"?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
@@ -3194,7 +3203,7 @@ export default function App(){
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <input id="cm-search" aria-label="Search clients" style={{height:34,width:160,padding:"0 12px",background:"rgba(255,255,255,0.04)",border:"1px solid var(--color-border)",borderRadius:8,fontSize:12,color:"var(--color-text-secondary)",fontFamily:"'DM Sans',sans-serif",outline:"none"}} placeholder={t.search||"Searchâ€¦"} value={search} onChange={e=>{setSearch(e.target.value);if(view!=="clients"&&e.target.value){setView("clients");setSelected(null);}}} onFocus={()=>{if(view!=="clients"){setView("clients");setSelected(null);}}}/>
-                  {can(currentUser.role,"add")&&(
+                  {can(currentUser.role,"add",perms)&&(
                     <button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client"
                       style={{height:34,padding:"0 16px",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:12,borderRadius:9,boxShadow:"0 4px 16px rgba(99,102,241,0.3)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
                       + {t.newClient.replace("+ ","")}
@@ -3210,9 +3219,9 @@ export default function App(){
             {error}
           </div>}
           {loading&&view==="dashboard"&&<div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"60px 0",fontFamily:"'DM Mono',monospace",fontSize:13}}>Loading...</div>}
-          {!loading&&view==="audit"&&can(currentUser.role,"audit")&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
+          {!loading&&view==="audit"&&can(currentUser.role,"audit",perms)&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
           {!loading&&view==="reports"&&<ReportsView clients={clients} company={company} currentUser={currentUser} t={t} logAudit={logAudit}/>}
-          {!loading&&view==="company"&&can(currentUser.role,"company")&&(
+          {!loading&&view==="company"&&can(currentUser.role,"company",perms)&&(
             <CompanyView company={company} onUpdate={updated=>{setCompany(updated);}} currentUser={currentUser} t={t}/>
           )}
           {!loading&&view==="profile"&&(
@@ -3223,10 +3232,10 @@ export default function App(){
               t={t}
             />
           )}
-          {!loading&&view==="users"&&can(currentUser.role,"users")&&(
+          {!loading&&view==="users"&&can(currentUser.role,"users",perms)&&(
             <UserManagement currentUser={currentUser} onRoleChange={refreshCurrentUser} activeCompanyId={activeCompanyId} t={t} logAudit={logAudit}/>
           )}
-          {!loading&&view==="permissions"&&can(currentUser.role,"permissions")&&(
+          {!loading&&view==="permissions"&&can(currentUser.role,"permissions",perms)&&(
             <PermissionsPanel activeCompanyId={activeCompanyId} currentUser={currentUser} t={t}/>
           )}
           {!loading&&view!=="audit"&&searchMode==="notes"&&search.trim().length>1?(
@@ -3474,7 +3483,7 @@ export default function App(){
                       {bulkMode?"âœ• Cancel":"â˜‘ Select"}
                     </button>
                     {/* New Client */}
-                    {can(currentUser.role,"add")&&(
+                    {can(currentUser.role,"add",perms)&&(
                       <button onClick={()=>{setSelected(null);setView("add");}}
                         style={{height:36,padding:"0 16px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",boxShadow:"0 4px 14px rgba(99,102,241,0.25)"}}>
                         + {t.newClient.replace("+ ","")}
@@ -3536,7 +3545,7 @@ export default function App(){
                     <div style={{fontSize:40,marginBottom:12}}>ðŸ”</div>
                     <div style={{fontSize:16,fontWeight:600,color:"var(--color-text-secondary)",marginBottom:6}}>{search?"No clients match your search":"No clients here"}</div>
                     <div style={{fontSize:13}}>{search?"Try a different search term":"Add your first client to get started"}</div>
-                    {can(currentUser.role,"add")&&!search&&(
+                    {can(currentUser.role,"add",perms)&&!search&&(
                       <button onClick={()=>{setSelected(null);setView("add");}} style={{marginTop:20,padding:"10px 20px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>
                         + {t.newClient.replace("+ ","")}
                       </button>
@@ -3627,7 +3636,7 @@ export default function App(){
                   <div style={{position:"fixed",bottom:"max(24px, env(safe-area-inset-bottom))",left:"50%",transform:"translateX(-50%)",background:"#1a1d36",border:"1px solid rgba(99,102,241,0.35)",borderRadius:14,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,zIndex:300,boxShadow:"0 8px 32px rgba(0,0,0,0.6)"}}>
                     <span style={{fontSize:13,fontWeight:700,color:"#a5b4fc",fontFamily:"'DM Mono',monospace"}}>{bulkSelected.size} selected</span>
                     <button onClick={bulkExportCSV} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(99,102,241,0.3)",background:"rgba(99,102,241,0.12)",color:"#a5b4fc",fontSize:12,fontWeight:700,cursor:"pointer"}}>Export CSV</button>
-                    {can(currentUser.role,"delete")&&clientFilter!=="archived"&&(
+                    {can(currentUser.role,"delete",perms)&&clientFilter!=="archived"&&(
                       <button onClick={()=>setBulkArchiveConfirm(true)} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(245,158,11,0.3)",background:"rgba(245,158,11,0.1)",color:"#fbbf24",fontSize:12,fontWeight:700,cursor:"pointer"}}>Archive Selected</button>
                     )}
                     <button onClick={()=>{setBulkMode(false);setBulkSelected(new Set());}} style={{padding:"8px 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"var(--color-text-secondary)",fontSize:12,cursor:"pointer"}}>Cancel</button>
@@ -3636,13 +3645,13 @@ export default function App(){
               </div>
             );
           })()}
-          {view==="add"&&can(currentUser.role,"add")&&(
+          {view==="add"&&can(currentUser.role,"add",perms)&&(
             <div>
               <div style={{fontSize:17,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",marginBottom:20}}>{t.newClient}</div>
               <ClientForm client={emptyClient()} onSave={saveClient} onCancel={()=>setView(selected?"detail":"clients")} saving={saving} t={t} currentUser={currentUser}/>
             </div>
           )}
-          {view==="edit"&&selected&&can(currentUser.role,"edit")&&(()=>{
+          {view==="edit"&&selected&&can(currentUser.role,"edit",perms)&&(()=>{
             const editClient=clients.find(c=>c.id===selected.id)||selected;
             if(!editClient.diagnoses)return null; // partial object guard
             return(
@@ -3795,6 +3804,7 @@ export default function App(){
         </div>
       )}
     </div>
+    </PermissionsContext.Provider>
   );
 }
 // cache bust Sat May 23 13:21:22 UTC 2026
