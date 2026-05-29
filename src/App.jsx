@@ -3597,11 +3597,11 @@ export default function App(){
                             </div>
                             <div style={{flex:1,minWidth:0}}>
                               <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
-                                <span style={{fontWeight:700,fontSize:14,color:c.archived?"rgba(240,242,250,0.4)":"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>{c.name}</span>
+                                <span style={{fontWeight:700,fontSize:14,color:c.archived?"var(--color-text-muted)":"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>{c.name}</span>
                                 {c.archived&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:4,background:"rgba(239,68,68,0.15)",color:"#f87171"}}>ARC</span>}
                                 {fr.level!=="Low"&&<span style={{fontSize:9,fontWeight:800,padding:"1px 5px",borderRadius:4,background:frColors[fr.level]+"18",color:frColors[fr.level]}}>{fr.level==="High"?"HFR":"MFR"}</span>}
                               </div>
-                              <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.3)",marginTop:2}}>
+                              <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--color-text-dim)",marginTop:2}}>
                                 {age!==null&&age+"y"}{c.room_or_address?(age!==null?" · ":"")+c.room_or_address:""}
                               </div>
                             </div>
@@ -3610,9 +3610,9 @@ export default function App(){
                           {diagTags.length>0&&(
                             <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
                               {diagTags.map((d,i)=>(
-                                <span key={i} style={{fontSize:10,padding:"2px 7px",borderRadius:5,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.15)",color:"rgba(240,242,250,0.5)",maxWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.value}</span>
+                                <span key={i} style={{fontSize:10,padding:"2px 7px",borderRadius:5,background:"var(--color-bg-active)",border:"1px solid var(--color-border-accent)",color:"var(--color-accent-light)",maxWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.value}</span>
                               ))}
-                              {diagMore>0&&<span style={{fontSize:10,padding:"2px 6px",borderRadius:5,background:"rgba(255,255,255,0.05)",color:"rgba(240,242,250,0.3)"}}>+{diagMore}</span>}
+                              {diagMore>0&&<span style={{fontSize:10,padding:"2px 6px",borderRadius:5,background:"var(--color-bg-hover)",color:"var(--color-text-dim)"}}>+{diagMore}</span>}
                             </div>
                           )}
                           {/* Stats mini-row */}
