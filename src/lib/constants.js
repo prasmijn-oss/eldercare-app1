@@ -205,11 +205,9 @@ export const GCSS = [
   "html.cm-light .mob-hdr { border-bottom-color: #bbf7d0 !important; }",
   /* Nav group labels — visible on white */
   "html.cm-light .nav-group-label { color: #9ca3af !important; }",
-  /* All nav items — dark text on white */
-  "html.cm-light .nav-item { color: #374151 !important; background: transparent !important; border-color: transparent !important; }",
+  /* Nav hover (inactive only) */
   "html.cm-light .nav-item:not(.nav-active):hover { color: #16a34a !important; background: #dcfce7 !important; }",
-  /* Active nav item — handled via CSS tokens (--color-bg-active, --color-accent-light) */
-  /* Accent bar and SVG icons in active nav */
+  /* Active nav count badge — white frosted pill on green bg */
   "html.cm-light .nav-active .nav-count-badge { background: rgba(255,255,255,0.25) !important; }",
   /* Sidebar footer text */
   "html.cm-light .sidebar-footer-name { color: #374151 !important; }",
