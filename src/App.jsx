@@ -7,7 +7,7 @@ import {
   MMSE_DOMAINS,
   CONTINENCE_TYPES, CONTINENCE_PRODUCTS, CONTINENCE_VOLUME, CONTINENCE_SKIN,
   WOUND_HEALING_COLOR,
-  ADL_ITEMS, ADL_LEVELS, ADL_LEVEL_SCORE, ADL_LEVEL_COLOR,
+  ADL_ITEMS, ADL_LABELS, ADL_LEVELS, ADL_LEVEL_SCORE, ADL_LEVEL_COLOR,
   IDLE_TIMEOUT_MS, IDLE_WARN_SECS,
   DEFAULT_PERMS, DEFAULT_INTAKE_ITEMS,
   PW_LEVELS, INP, LBL, ABTN, IBTN, GCSS,
@@ -1697,7 +1697,6 @@ function WoundAssessment({items,onChange}){
 }
 
 // ─── ADL Tracker ─────────────────────────────────────────────────────────────
-const ADL_LABELS={bathing:"🛁 Bathing",dressing:"👕 Dressing",toileting:"🚽 Toileting",eating:"🍽️ Eating",mobility:"🚶 Mobility",grooming:"✂️ Grooming"};
 function ADLTracker({items,onChange}){
   const [showForm,setShowForm]=useState(false);
   const [entry,setEntry]=useState(null);

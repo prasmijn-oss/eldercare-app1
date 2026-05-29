@@ -85,6 +85,7 @@ export const ADL_ITEMS       = ["bathing","dressing","toileting","eating","mobil
 export const ADL_LEVELS      = ["Independent","Supervised","Assisted","Dependent"];
 export const ADL_LEVEL_SCORE = {Independent:0,Supervised:1,Assisted:2,Dependent:3};
 export const ADL_LEVEL_COLOR = {Independent:"#10b981",Supervised:"#06b6d4",Assisted:"#f59e0b",Dependent:"#ef4444"};
+export const ADL_LABELS      = {bathing:"🛁 Bathing",dressing:"👕 Dressing",toileting:"🚽 Toileting",eating:"🍽️ Eating",mobility:"🚶 Mobility",grooming:"✂️ Grooming"};
 
 // ── Session / idle ─────────────────────────────────────────────────────────
 export const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
