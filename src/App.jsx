@@ -3148,27 +3148,27 @@ export default function App(){
           {/* ── Footer: user + icon buttons ── */}
           <div className="sidebar-footer" style={{borderTop:"1px solid var(--color-border)",padding:"10px 12px",display:"flex",alignItems:"center",gap:8}}>
             <div onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}}
-              style={{width:30,height:30,borderRadius:8,background:currentUser.avatar_url?"transparent":"linear-gradient(135deg,#6366f1,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,cursor:"pointer",overflow:"hidden"}}>
+              style={{width:32,height:32,borderRadius:8,background:currentUser.avatar_url?"transparent":"linear-gradient(135deg,#6366f1,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,cursor:"pointer",overflow:"hidden"}}>
               {currentUser.avatar_url?<img src={currentUser.avatar_url} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(currentUser.displayName||"?")}
             </div>
             <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}}>
               <div style={{fontSize:11,fontWeight:600,color:"rgba(240,242,250,0.65)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser.displayName}</div>
               <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)"}}>{currentUser.role==="superadmin"?"superadmin":currentUser.role==="admin"?"admin":currentUser.role==="power_user"?"power_user":currentUser.role||"user"}</div>
             </div>
-            <div style={{display:"flex",gap:4}}>
+            <div style={{display:"flex",gap:3,flexShrink:0}}>
               {(()=>{const unread=notifications.filter(n=>!readNotifIds.has(n.id)).length;return(
-                <button onClick={()=>setNotifOpen(o=>!o)} aria-label="Notifications" style={{position:"relative",width:36,height:36,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+                <button onClick={()=>setNotifOpen(o=>!o)} aria-label="Notifications" style={{position:"relative",width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",touchAction:"manipulation"}}>
                   <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M7.5 1.5a4 4 0 014 4v3l1 1.5H2.5L3.5 8.5v-3a4 4 0 014-4z"/><line x1="6" y1="12" x2="9" y2="12"/></svg>
-                  {unread>0&&<span style={{position:"absolute",top:5,right:5,width:5,height:5,borderRadius:"50%",background:"#ef4444",border:"1.5px solid #0c0f1f"}}/>}
+                  {unread>0&&<span style={{position:"absolute",top:4,right:4,width:5,height:5,borderRadius:"50%",background:"#ef4444",border:"1.5px solid #0c0f1f"}}/>}
                 </button>
               );})()}
-              <button onClick={()=>setDarkMode(d=>!d)} aria-label="Toggle theme" style={{width:36,height:36,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+              <button onClick={()=>setDarkMode(d=>!d)} aria-label="Toggle theme" style={{width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",touchAction:"manipulation"}}>
                 {darkMode
                   ?<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><circle cx="7" cy="7" r="2.5"/><line x1="7" y1="1" x2="7" y2="2.5"/><line x1="7" y1="11.5" x2="7" y2="13"/><line x1="1" y1="7" x2="2.5" y2="7"/><line x1="11.5" y1="7" x2="13" y2="7"/><line x1="2.9" y1="2.9" x2="3.9" y2="3.9"/><line x1="10.1" y1="10.1" x2="11.1" y2="11.1"/><line x1="11.1" y1="2.9" x2="10.1" y2="3.9"/><line x1="3.9" y1="10.1" x2="2.9" y2="11.1"/></svg>
                   :<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M12 8.5A5.5 5.5 0 015.5 2a5.5 5.5 0 000 11A5.5 5.5 0 0012 8.5z"/></svg>
                 }
               </button>
-              <button onClick={handleLogout} aria-label="Sign out" title={t.signOut} style={{width:36,height:36,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+              <button onClick={handleLogout} aria-label="Sign out" title={t.signOut} style={{width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",touchAction:"manipulation"}}>
                 <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M9 1H12a1 1 0 011 1v10a1 1 0 01-1 1H9"/><polyline points="6,10 9,7 6,4"/><line x1="9" y1="7" x2="1" y2="7"/></svg>
               </button>
             </div>
