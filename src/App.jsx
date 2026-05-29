@@ -3067,7 +3067,7 @@ export default function App(){
                   {clientsActive&&ACCENT_BAR}
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><circle cx="5" cy="5" r="3"/><path d="M1 13c0-2.8 2-5 4-5h2c2 0 4 2.2 4 5"/><circle cx="11.5" cy="5" r="2"/><path d="M13.5 13c0-2.2-1.3-4-3-4.5"/></svg>
                   <span style={{flex:1}}>Clients</span>
-                  <span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"var(--color-bg-active)",color:"var(--color-accent-light)",borderRadius:5,padding:"1px 6px",fontWeight:700}}>{activeClientCount}</span>
+                  <span className="nav-count-badge" style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"var(--color-bg-active)",color:"var(--color-accent-light)",borderRadius:5,padding:"1px 6px",fontWeight:700}}>{activeClientCount}</span>
                 </button>
               );
               // Incidents nav

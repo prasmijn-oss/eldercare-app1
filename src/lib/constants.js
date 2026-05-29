@@ -212,7 +212,7 @@ export const GCSS = [
   "html.cm-light .nav-active { color: #ffffff !important; background: #16a34a !important; border-color: #15803d !important; font-weight: 600 !important; }",
   "html.cm-light .nav-active > span { background: #15803d !important; }",
   "html.cm-light .nav-active svg { stroke: #ffffff !important; }",
-  "html.cm-light .nav-active span[style] { background: rgba(255,255,255,0.25) !important; color: #ffffff !important; }",
+  "html.cm-light .nav-active .nav-count-badge { background: rgba(255,255,255,0.25) !important; color: #ffffff !important; border-color: transparent !important; }",
   /* Sidebar footer text */
   "html.cm-light .sidebar-footer-name { color: #374151 !important; }",
   "html.cm-light .sidebar-footer-role { color: #9ca3af !important; }",
