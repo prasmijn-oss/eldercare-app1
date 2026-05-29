@@ -80,7 +80,7 @@ html.cm-light {
   --color-text-muted:     #9ca3af;
   /* Accent — green replaces indigo in light mode */
   --color-accent:         #16a34a;
-  --color-accent-light:   #22c55e;
+  --color-accent-light:   #15803d; /* dark green — readable on #dcfce7 fill (5.7:1 contrast) */
   --color-success:        #16a34a;
 }
 html.cm-light img, html.cm-light video { filter: none !important; }

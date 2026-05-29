@@ -3046,13 +3046,14 @@ export default function App(){
             {/* MAIN group */}
             <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"8px 0 4px"}}>Main</div>
             {(()=>{
+              const NAV_STYLE=(active)=>({width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid var(--color-border-accent)":"1px solid transparent",background:active?"var(--color-bg-active)":"transparent",color:active?"var(--color-accent-light)":"var(--color-text-secondary)",fontWeight:active?600:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"});
+              const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"var(--color-accent)",borderRadius:"0 3px 3px 0"}}/>;
               const navBtn=(v,label,icon)=>{
                 const active=view===v&&!selected;
                 return(
                   <button key={v} onClick={()=>{setView(v);setSelected(null);setSidebarOpen(false);}}
-                    className={active?"nav-item nav-active":"nav-item"}
-                    style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:active?"rgba(99,102,241,0.12)":"transparent",color:active?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
-                    {active&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
+                    className={active?"nav-item nav-active":"nav-item"} style={NAV_STYLE(active)}>
+                    {active&&ACCENT_BAR}
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">{icon}</svg>
                     {label}
                   </button>
@@ -3062,21 +3063,19 @@ export default function App(){
               const clientsActive=view==="clients"||view==="detail"||view==="edit";
               const clientsBtn=(
                 <button onClick={()=>{setView("clients");setSelected(null);setSidebarOpen(false);}}
-                  className={clientsActive?"nav-item nav-active":"nav-item"}
-                  style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:clientsActive?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:clientsActive?"rgba(99,102,241,0.12)":"transparent",color:clientsActive?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
-                  {clientsActive&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
+                  className={clientsActive?"nav-item nav-active":"nav-item"} style={NAV_STYLE(clientsActive)}>
+                  {clientsActive&&ACCENT_BAR}
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><circle cx="5" cy="5" r="3"/><path d="M1 13c0-2.8 2-5 4-5h2c2 0 4 2.2 4 5"/><circle cx="11.5" cy="5" r="2"/><path d="M13.5 13c0-2.2-1.3-4-3-4.5"/></svg>
                   <span style={{flex:1}}>Clients</span>
-                  <span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"rgba(99,102,241,0.18)",color:"#a5b4fc",borderRadius:5,padding:"1px 6px",fontWeight:700}}>{activeClientCount}</span>
+                  <span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"var(--color-bg-active)",color:"var(--color-accent-light)",borderRadius:5,padding:"1px 6px",fontWeight:700}}>{activeClientCount}</span>
                 </button>
               );
               // Incidents nav
               const incActive=view==="incidents";
               const incBtn=(
                 <button onClick={()=>{setView("incidents");setSelected(null);setSidebarOpen(false);}}
-                  className={incActive?"nav-item nav-active":"nav-item"}
-                  style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:incActive?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:incActive?"rgba(99,102,241,0.12)":"transparent",color:incActive?"#a5b4fc":"var(--color-text-secondary)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
-                  {incActive&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
+                  className={incActive?"nav-item nav-active":"nav-item"} style={NAV_STYLE(incActive)}>
+                  {incActive&&ACCENT_BAR}
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><path d="M7.5 2L2 12h11L7.5 2z"/><line x1="7.5" y1="6" x2="7.5" y2="9"/><circle cx="7.5" cy="10.5" r="0.5" fill="currentColor"/></svg>
                   <span style={{flex:1}}>Incidents</span>
                   {recentIncidentCount>0&&<span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"rgba(239,68,68,0.15)",color:"#f87171",borderRadius:5,padding:"1px 6px",fontWeight:700,border:"1px solid rgba(239,68,68,0.2)"}}>{recentIncidentCount}</span>}
@@ -3086,9 +3085,8 @@ export default function App(){
               const medActive=view==="medications";
               const medBtn=(
                 <button onClick={()=>{setView("medications");setSelected(null);setSidebarOpen(false);}}
-                  className={medActive?"nav-item nav-active":"nav-item"}
-                  style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:medActive?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:medActive?"rgba(99,102,241,0.12)":"transparent",color:medActive?"#a5b4fc":"var(--color-text-secondary)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
-                  {medActive&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
+                  className={medActive?"nav-item nav-active":"nav-item"} style={NAV_STYLE(medActive)}>
+                  {medActive&&ACCENT_BAR}
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="2" y="6" width="11" height="7" rx="1.5"/><path d="M5 6V4a2.5 2.5 0 015 0v2"/><line x1="7.5" y1="8.5" x2="7.5" y2="11"/><line x1="6" y1="9.75" x2="9" y2="9.75"/></svg>
                   <span style={{flex:1}}>Medications</span>
                   {medFlagCount>0&&<span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"rgba(245,158,11,0.15)",color:"#fbbf24",borderRadius:5,padding:"1px 6px",fontWeight:700,border:"1px solid rgba(245,158,11,0.2)"}}>{medFlagCount}</span>}
@@ -3099,14 +3097,15 @@ export default function App(){
             {/* MANAGEMENT group */}
             <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Management</div>
             {(()=>{
+              const NAV_STYLE=(active)=>({width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid var(--color-border-accent)":"1px solid transparent",background:active?"var(--color-bg-active)":"transparent",color:active?"var(--color-accent-light)":"var(--color-text-secondary)",fontWeight:active?600:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"});
+              const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"var(--color-accent)",borderRadius:"0 3px 3px 0"}}/>;
               const navBtn=(v,label,pathD,guard=true)=>{
                 if(!guard)return null;
                 const active=view===v;
                 return(
                   <button key={v} onClick={()=>{setView(v);setSelected(null);setSidebarOpen(false);}}
-                    className={active?"nav-item nav-active":"nav-item"}
-                    style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:active?"rgba(99,102,241,0.12)":"transparent",color:active?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
-                    {active&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
+                    className={active?"nav-item nav-active":"nav-item"} style={NAV_STYLE(active)}>
+                    {active&&ACCENT_BAR}
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true" dangerouslySetInnerHTML={{__html:pathD}}/>
                     {label}
                   </button>
@@ -3119,29 +3118,31 @@ export default function App(){
               </>);
             })()}
             {/* ADMIN group — only if at least one admin view accessible */}
-            {(can(currentUser.role,"company",perms)||can(currentUser.role,"permissions",perms))&&(
-              <>
-                <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Admin</div>
-                {can(currentUser.role,"company",perms)&&(
-                  <button onClick={()=>{setView("company");setSelected(null);setSidebarOpen(false);}}
-                    className={view==="company"?"nav-item nav-active":"nav-item"}
-                    style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:view==="company"?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:view==="company"?"rgba(99,102,241,0.12)":"transparent",color:view==="company"?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
-                    {view==="company"&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
-                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="2" y="5" width="11" height="9" rx="1"/><polyline points="5,5 5,2.5 10,2.5 10,5"/><line x1="7.5" y1="8" x2="7.5" y2="11"/><line x1="6" y1="9.5" x2="9" y2="9.5"/></svg>
-                    Company
-                  </button>
-                )}
-                {can(currentUser.role,"permissions",perms)&&(
-                  <button onClick={()=>{setView("permissions");setSelected(null);setSidebarOpen(false);}}
-                    className={view==="permissions"?"nav-item nav-active":"nav-item"}
-                    style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:view==="permissions"?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:view==="permissions"?"rgba(99,102,241,0.12)":"transparent",color:view==="permissions"?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
-                    {view==="permissions"&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
-                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="4" y="6" width="7" height="7" rx="1"/><path d="M5.5 6V4.5a2 2 0 014 0V6"/></svg>
-                    Permissions
-                  </button>
-                )}
-              </>
-            )}
+            {(can(currentUser.role,"company",perms)||can(currentUser.role,"permissions",perms))&&(()=>{
+              const NAV_STYLE=(active)=>({width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid var(--color-border-accent)":"1px solid transparent",background:active?"var(--color-bg-active)":"transparent",color:active?"var(--color-accent-light)":"var(--color-text-secondary)",fontWeight:active?600:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"});
+              const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"var(--color-accent)",borderRadius:"0 3px 3px 0"}}/>;
+              return(
+                <>
+                  <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Admin</div>
+                  {can(currentUser.role,"company",perms)&&(
+                    <button onClick={()=>{setView("company");setSelected(null);setSidebarOpen(false);}}
+                      className={view==="company"?"nav-item nav-active":"nav-item"} style={NAV_STYLE(view==="company")}>
+                      {view==="company"&&ACCENT_BAR}
+                      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="2" y="5" width="11" height="9" rx="1"/><polyline points="5,5 5,2.5 10,2.5 10,5"/><line x1="7.5" y1="8" x2="7.5" y2="11"/><line x1="6" y1="9.5" x2="9" y2="9.5"/></svg>
+                      Company
+                    </button>
+                  )}
+                  {can(currentUser.role,"permissions",perms)&&(
+                    <button onClick={()=>{setView("permissions");setSelected(null);setSidebarOpen(false);}}
+                      className={view==="permissions"?"nav-item nav-active":"nav-item"} style={NAV_STYLE(view==="permissions")}>
+                      {view==="permissions"&&ACCENT_BAR}
+                      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="4" y="6" width="7" height="7" rx="1"/><path d="M5.5 6V4.5a2 2 0 014 0V6"/></svg>
+                      Permissions
+                    </button>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
 
