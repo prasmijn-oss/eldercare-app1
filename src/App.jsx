@@ -1619,18 +1619,24 @@ function CompanyPicker({onSelect,currentUser,t}){
 }
 
 const ACTIONS=[
-  {key:"view",label:"View Clients",desc:"Can view client profiles"},
-  {key:"add",label:"Add Clients",desc:"Can create new clients"},
-  {key:"edit",label:"Edit Clients",desc:"Can edit client information"},
-  {key:"delete",label:"Delete Clients",desc:"Can permanently delete clients"},
-  {key:"audit",label:"Audit Trail",desc:"Can view audit logs"},
-  {key:"company",label:"Company Settings",desc:"Can edit company information"},
-  {key:"users",label:"User Management",desc:"Can manage users"},
-  {key:"permissions",label:"Permissions Panel",desc:"Can edit role permissions"},
+  {key:"view",       label:"View Clients",       icon:"👁",  desc:"Browse and read client profiles"},
+  {key:"add",        label:"Add Clients",         icon:"➕",  desc:"Create new client records"},
+  {key:"edit",       label:"Edit Clients",        icon:"✏️", desc:"Modify client data and assessments"},
+  {key:"delete",     label:"Delete Clients",      icon:"🗑",  desc:"Permanently delete client records"},
+  {key:"audit",      label:"Audit Trail",         icon:"📋", desc:"Access the full system audit log"},
+  {key:"company",    label:"Company Settings",    icon:"🏢", desc:"Edit company profile and settings"},
+  {key:"users",      label:"User Management",     icon:"👥", desc:"Create, edit and deactivate staff accounts"},
+  {key:"permissions",label:"Permissions Panel",   icon:"🔐", desc:"Edit what each role can do"},
 ];
 const ROLES=["superadmin","admin","power_user","user"];
 const ROLE_LABELS={superadmin:"Super Admin",admin:"Admin",power_user:"Power User",user:"User"};
-const ROLE_COLORS={superadmin:"#f59e0b",admin:"#6366f1",power_user:"#06b6d4",user:"#10b981"};
+const ROLE_COLORS={superadmin:"#f59e0b",admin:"var(--color-accent)",power_user:"#06b6d4",user:"#10b981"};
+const ROLE_DESC={
+  superadmin:"Full unrestricted access to all features and all companies.",
+  admin:"Manages users, clients, and company settings within their company.",
+  power_user:"Clinical staff — can view, add, and edit clients but not manage users.",
+  user:"Read-only care staff — can view clients and log assessments.",
+};
 
 function PermissionsPanel({activeCompanyId,currentUser,t}){
   const [globalPerms,setGlobalPerms]=useState([]);
@@ -1638,9 +1644,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [toast,setToast]=useState(null);
-  const [viewMode,setViewMode]=useState("grid"); // "grid" | "table"
-  const [tab,setTab]=useState("global"); // "global" | "company"
-  const [applyMode,setApplyMode]=useState("now"); // "now" | "next_login"
+  const [tab,setTab]=useState("global");
   const [pendingChanges,setPendingChanges]=useState({});
 
   const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
@@ -1720,161 +1724,164 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
   const hasPending=Object.keys(pendingChanges).length>0;
   const isCompanyTab=tab==="company";
 
+  // Toggle switch component (inline)
+  const Toggle=({val,onClick,locked,pending})=>(
+    <button onClick={locked?undefined:onClick} disabled={locked} aria-checked={val} role="switch"
+      style={{width:48,height:26,borderRadius:13,border:"none",flexShrink:0,
+        background:val?"#10b981":"var(--color-border)",
+        position:"relative",cursor:locked?"not-allowed":"pointer",
+        transition:"background 200ms ease",
+        outline:pending?"2px solid #f59e0b":"none",outlineOffset:2,
+        opacity:locked?0.5:1,touchAction:"manipulation"}}>
+      <span style={{position:"absolute",top:3,left:val?25:3,
+        width:20,height:20,borderRadius:"50%",background:"#fff",
+        transition:"left 200ms ease",boxShadow:"0 1px 4px rgba(0,0,0,0.25)"}}/>
+    </button>
+  );
+
   return(
-    <div style={{maxWidth:900}}>
+    <div style={{maxWidth:960}}>
+      {/* Toast */}
       {toast&&(
-        <div style={{position:"fixed",top:24,right:24,zIndex:999,padding:"12px 20px",borderRadius:10,background:toast.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
-          {toast.type==="success"?"✓ ":"✗ "}{toast.msg}
+        <div style={{position:"fixed",top:24,right:24,zIndex:1100,padding:"12px 20px",borderRadius:10,
+          background:toast.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,
+          boxShadow:"0 4px 20px rgba(0,0,0,0.35)",display:"flex",alignItems:"center",gap:8}}>
+          <span>{toast.type==="success"?"✓":"✗"}</span>{toast.msg}
         </div>
       )}
 
       {/* Header */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <div>
-          <div style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px"}}>🔐 Permissions</div>
-          <div style={{fontSize:13,color:"var(--color-text-dim)",marginTop:4}}>Control what each role can do</div>
+          <div style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px"}}>Permissions</div>
+          <div style={{fontSize:13,color:"var(--color-text-dim)",marginTop:3}}>Configure what each role can access and modify</div>
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
-          {/* View toggle */}
-          <div style={{display:"flex",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,overflow:"hidden"}}>
-            {[["grid","⊞ Grid"],["table","☰ Table"]].map(([id,label])=>(
-              <button key={id} onClick={()=>setViewMode(id)}
-                style={{padding:"7px 14px",border:"none",background:viewMode===id?"#6366f1":"transparent",color:viewMode===id?"#fff":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:12}}>
-                {label}
-              </button>
-            ))}
-          </div>
-          {/* Apply mode */}
-          <select value={applyMode} onChange={e=>setApplyMode(e.target.value)}
-            style={{...INP,marginBottom:0,fontSize:12,padding:"7px 12px",width:"auto"}}>
-            <option value="now">Apply immediately</option>
-            <option value="next_login">Apply on next login</option>
-          </select>
-          {/* Save */}
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          {hasPending&&(
+            <button onClick={()=>setPendingChanges({})}
+              style={{padding:"7px 14px",borderRadius:8,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+              Discard changes
+            </button>
+          )}
           <button onClick={saveChanges} disabled={saving||!hasPending}
-            style={{padding:"8px 20px",borderRadius:8,border:"none",background:hasPending?"#10b981":"rgba(255,255,255,0.1)",color:hasPending?"#fff":"rgba(240,242,250,0.3)",fontWeight:700,fontSize:13}}>
-            {saving?"Saving...":`Save${hasPending?` (${Object.keys(pendingChanges).length})`:""}` }
+            style={{padding:"8px 20px",borderRadius:8,border:"none",
+              background:hasPending?"#10b981":"var(--color-bg-hover)",
+              color:hasPending?"#fff":"var(--color-text-muted)",
+              fontWeight:700,fontSize:13,cursor:hasPending?"pointer":"not-allowed",transition:"background 150ms"}}>
+            {saving?"Saving…":`Save${hasPending?` (${Object.keys(pendingChanges).length})`:""}` }
           </button>
         </div>
       </div>
 
       {/* Tabs */}
       <div style={{display:"flex",gap:2,borderBottom:"1px solid var(--color-border)",marginBottom:20}}>
-        {[["global","🌐 Global Defaults"],["company","🏢 Company Override"]].map(([id,label])=>(
-          <button key={id} onClick={()=>setTab(id)}
-            style={{padding:"9px 20px",border:"none",borderBottom:tab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:tab===id?"#6366f1":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
+        {[["global","🌐 Global Defaults","Sets the default permissions for all companies"],
+          ["company","🏢 Company Override","Override global defaults for this specific company"]
+        ].map(([id,label,hint])=>(
+          <button key={id} onClick={()=>{setTab(id);setPendingChanges({});}}
+            title={hint}
+            style={{padding:"9px 20px",border:"none",borderBottom:tab===id?"2px solid var(--color-accent)":"2px solid transparent",
+              background:"transparent",color:tab===id?"var(--color-accent)":"var(--color-text-secondary)",
+              fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1,transition:"color 120ms"}}>
             {label}
           </button>
         ))}
       </div>
 
-      {tab==="company"&&!activeCompanyId&&(
-        <div style={{padding:20,background:"var(--color-bg-card)",borderRadius:12,color:"var(--color-text-dim)",textAlign:"center"}}>
-          Select a company first to manage company-specific overrides.
+      {tab==="company"&&(
+        <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",borderRadius:9,
+          background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",marginBottom:16}}>
+          <span style={{fontSize:14}}>ℹ️</span>
+          <span style={{fontSize:12,color:"#f59e0b",lineHeight:1.5}}>
+            Company overrides apply <strong>on top of</strong> global defaults — only changed permissions are stored here. Unset overrides fall back to global.
+            {!activeCompanyId&&<strong> Select a company first to use this tab.</strong>}
+          </span>
         </div>
       )}
 
-      {loading?<div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"40px 0"}}>Loading permissions...</div>:(
-
+      {tab==="company"&&!activeCompanyId?(
+        <div style={{padding:40,textAlign:"center",color:"var(--color-text-muted)"}}>
+          <div style={{fontSize:32,marginBottom:10}}>🏢</div>
+          <div style={{fontSize:15,fontWeight:600}}>No company selected</div>
+          <div style={{fontSize:13,marginTop:4}}>Switch to a company from the sidebar to manage overrides.</div>
+        </div>
+      ):loading?(
+        <div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"40px 0",fontFamily:"'DM Mono',monospace",fontSize:13}}>Loading permissions…</div>
+      ):(
         <>
-          {/* Pending changes banner */}
+          {/* Pending banner */}
           {hasPending&&(
-            <div style={{background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:10,padding:"10px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:13,color:"#f59e0b",fontWeight:600}}>⚠️ {Object.keys(pendingChanges).length} unsaved change{Object.keys(pendingChanges).length!==1?"s":""}</span>
-              <button onClick={()=>setPendingChanges({})} style={{border:"none",background:"transparent",color:"var(--color-text-dim)",fontSize:12,fontWeight:600}}>Discard</button>
+            <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.3)",
+              borderRadius:10,padding:"10px 16px",marginBottom:16,
+              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:13,color:"#f59e0b",fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+                ⚠️ {Object.keys(pendingChanges).length} unsaved change{Object.keys(pendingChanges).length!==1?"s":""}  — will apply immediately on save
+              </span>
             </div>
           )}
 
-          {/* GRID VIEW */}
-          {viewMode==="grid"&&(
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",minWidth:600}}>
-                <thead>
-                  <tr>
-                    <th style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,background:"var(--color-bg-card)",borderRadius:"8px 0 0 0"}}>ACTION</th>
-                    {ROLES.map(role=>(
-                      <th key={role} style={{padding:"12px 16px",textAlign:"center",fontSize:11,fontWeight:700,color:ROLE_COLORS[role],letterSpacing:0.5,background:"var(--color-bg-card)"}}>
-                        {ROLE_LABELS[role].toUpperCase()}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {ACTIONS.map((action,i)=>(
-                    <tr key={action.key} style={{background:i%2===0?"transparent":"rgba(255,255,255,0.03)"}}>
-                      <td style={{padding:"14px 16px"}}>
-                        <div style={{fontWeight:600,color:"var(--color-text-primary)",fontSize:13}}>{action.label}</div>
-                        <div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:2}}>{action.desc}</div>
-                      </td>
-                      {ROLES.map(role=>{
-                        const val=getPermValue(role,action.key,isCompanyTab&&!!activeCompanyId);
-                        const key=`${isCompanyTab?"c":"g"}_${role}_${action.key}`;
-                        const isPending=pendingChanges[key]!==undefined;
-                        const isLocked=role==="superadmin"&&action.key==="view";
-                        return(
-                          <td key={role} style={{padding:"14px 16px",textAlign:"center"}}>
-                            <button
-                              disabled={isLocked}
-                              onClick={()=>!isLocked&&togglePerm(role,action.key,isCompanyTab&&!!activeCompanyId)}
-                              style={{
-                                width:44,height:24,borderRadius:12,border:"none",
-                                background:val?"#10b981":"rgba(255,255,255,0.1)",
-                                position:"relative",cursor:isLocked?"not-allowed":"pointer",
-                                transition:"background 0.2s",
-                                boxShadow:isPending?"0 0 0 2px #f59e0b":"none",
-                              }}>
-                              <span style={{
-                                position:"absolute",top:2,left:val?22:2,
-                                width:20,height:20,borderRadius:"50%",
-                                background:"#fff",transition:"left 0.2s",
-                                boxShadow:"0 1px 3px rgba(0,0,0,0.3)",
-                              }}/>
-                            </button>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* TABLE VIEW */}
-          {viewMode==="table"&&(
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              {ROLES.map(role=>(
-                <div key={role} style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,overflow:"hidden"}}>
-                  <div style={{padding:"12px 16px",borderBottom:"1px solid var(--color-border)",display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontWeight:700,color:ROLE_COLORS[role],fontSize:14}}>{ROLE_LABELS[role]}</span>
-                    <span style={{fontSize:11,color:"var(--color-text-muted)"}}>
-                      {ACTIONS.filter(a=>getPermValue(role,a.key,isCompanyTab&&!!activeCompanyId)).length} of {ACTIONS.length} permissions enabled
-                    </span>
+          {/* Role cards */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            {ROLES.map(role=>{
+              const enabledCount=ACTIONS.filter(a=>getPermValue(role,a.key,isCompanyTab&&!!activeCompanyId)).length;
+              const roleColor=ROLE_COLORS[role];
+              const pendingForRole=ACTIONS.filter(a=>pendingChanges[`${isCompanyTab?"c":"g"}_${role}_${a.key}`]!==undefined).length;
+              return(
+                <div key={role} style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",
+                  borderRadius:14,overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,0.08)"}}>
+                  {/* Card header */}
+                  <div style={{padding:"14px 18px",borderBottom:"1px solid var(--color-border)",
+                    background:"var(--color-bg-hover)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                        <span style={{fontSize:13,fontWeight:800,color:roleColor,textTransform:"uppercase",letterSpacing:"0.4px"}}>{ROLE_LABELS[role]}</span>
+                        <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,
+                          background:roleColor+"18",color:roleColor,fontFamily:"'DM Mono',monospace"}}>
+                          {enabledCount}/{ACTIONS.length}
+                        </span>
+                        {pendingForRole>0&&<span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b"}}>{pendingForRole} pending</span>}
+                      </div>
+                      <div style={{fontSize:11,color:"var(--color-text-dim)",lineHeight:1.4}}>{ROLE_DESC[role]}</div>
+                    </div>
+                    {/* Enable all / none quick actions — skip superadmin */}
+                    {role!=="superadmin"&&(
+                      <div style={{display:"flex",gap:4,flexShrink:0}}>
+                        <button onClick={()=>{ACTIONS.forEach(a=>{if(!getPermValue(role,a.key,isCompanyTab&&!!activeCompanyId)){const k=`${isCompanyTab?"c":"g"}_${role}_${a.key}`;setPendingChanges(p=>({...p,[k]:true}));}});}}
+                          style={{fontSize:10,padding:"3px 8px",borderRadius:5,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>All</button>
+                        <button onClick={()=>{ACTIONS.forEach(a=>{if(getPermValue(role,a.key,isCompanyTab&&!!activeCompanyId)){const k=`${isCompanyTab?"c":"g"}_${role}_${a.key}`;setPendingChanges(p=>({...p,[k]:false}));}});}}
+                          style={{fontSize:10,padding:"3px 8px",borderRadius:5,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>None</button>
+                      </div>
+                    )}
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:0}}>
+                  {/* Permission rows */}
+                  <div>
                     {ACTIONS.map((action,i)=>{
                       const val=getPermValue(role,action.key,isCompanyTab&&!!activeCompanyId);
                       const key=`${isCompanyTab?"c":"g"}_${role}_${action.key}`;
                       const isPending=pendingChanges[key]!==undefined;
-                      const isLocked=role==="superadmin"&&action.key==="view";
+                      const isLocked=role==="superadmin";
                       return(
                         <div key={action.key}
-                          style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 16px",borderBottom:i<ACTIONS.length-2?"1px solid #0f172a":"none",background:isPending?"rgba(245,158,11,0.05)":"transparent"}}>
-                          <div>
-                            <div style={{fontSize:13,fontWeight:600,color:val?"#f1f5f9":"var(--color-text-muted)"}}>{action.label}</div>
-                            <div style={{fontSize:11,color:"var(--color-text-muted)"}}>{action.desc}</div>
+                          onClick={()=>!isLocked&&togglePerm(role,action.key,isCompanyTab&&!!activeCompanyId)}
+                          style={{display:"flex",alignItems:"center",gap:12,padding:"11px 18px",
+                            borderBottom:i<ACTIONS.length-1?"1px solid var(--color-border)":"none",
+                            cursor:isLocked?"default":"pointer",
+                            background:isPending?"rgba(245,158,11,0.05)":"transparent",
+                            transition:"background 80ms"}}>
+                          <span style={{fontSize:16,flexShrink:0,width:22,textAlign:"center"}}>{action.icon}</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:13,fontWeight:600,color:val?"var(--color-text-primary)":"var(--color-text-dim)"}}>{action.label}</div>
+                            <div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:1}}>{action.desc}</div>
                           </div>
-                          <input type="checkbox" checked={val} disabled={isLocked}
-                            onChange={()=>!isLocked&&togglePerm(role,action.key,isCompanyTab&&!!activeCompanyId)}
-                            style={{width:16,height:16,cursor:isLocked?"not-allowed":"pointer",accentColor:"#10b981"}}/>
+                          <Toggle val={val} onClick={()=>togglePerm(role,action.key,isCompanyTab&&!!activeCompanyId)} locked={isLocked} pending={isPending}/>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </>
       )}
     </div>
