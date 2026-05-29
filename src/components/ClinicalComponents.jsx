@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { uid, tod, painLevel, calcPainSummary, bradenScore, bradenRisk, calcBradenSummary, cognitiveLevel, calcCognitiveSummary, calcContinenceSummary, mustScore, mustRisk, calcNutritionSummary, calcWoundSummary, calcAdlSummary, adlScore, adlDepLevel } from "../lib/utils.js";
 import { INP, LBL, ABTN, IBTN, BRADEN_SUBSCALES, BRADEN_MAX, MMSE_DOMAINS, CONTINENCE_TYPES, CONTINENCE_PRODUCTS, CONTINENCE_VOLUME, CONTINENCE_SKIN, WOUND_HEALING_COLOR, ADL_ITEMS, ADL_LABELS, ADL_LEVELS, ADL_LEVEL_COLOR, DEFAULT_INTAKE_ITEMS } from "../lib/constants.js";
 
@@ -1216,4 +1216,260 @@ function MARTracker({marLog,medications,onChange,currentUser}){
   );
 }
 
-export { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker };
+// ─── Shift Handover Notes ─────────────────────────────────────────────────────
+const SHIFTS=[
+  {key:"morning",  label:"Morning Shift",  icon:"🌅", time:"06:00–14:00"},
+  {key:"afternoon",label:"Afternoon Shift", icon:"☀️", time:"14:00–22:00"},
+  {key:"night",    label:"Night Shift",     icon:"🌙", time:"22:00–06:00"},
+];
+const URGENCY_OPTS=["Routine","Watch","Urgent"];
+const URGENCY_COLOR={Routine:"#34d399",Watch:"#f59e0b",Urgent:"#ef4444"};
+
+function HandoverNotes({supabase,companyId,currentUser,clients}){
+  const [date,setDate]=useState(tod());
+  const [shift,setShift]=useState(()=>{
+    const h=new Date().getHours();
+    return h>=6&&h<14?"morning":h>=14&&h<22?"afternoon":"night";
+  });
+  const [notes,setNotes]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [showForm,setShowForm]=useState(false);
+  const [form,setForm]=useState({summary:"",outgoing_staff:"",incoming_staff:"",key_events:[],action_items:[]});
+  const [newEvent,setNewEvent]=useState({clientName:"",note:"",urgency:"Routine"});
+  const [newAction,setNewAction]=useState("");
+  const [signingOff,setSigningOff]=useState(null);
+
+  const load=async()=>{
+    setLoading(true);
+    const {data}=await supabase.from("handover_notes")
+      .select("*").eq("company_id",companyId).eq("date",date)
+      .order("created_at",{ascending:false});
+    setNotes(data||[]);
+    setLoading(false);
+  };
+
+  useEffect(()=>{load();},[date,companyId]);
+
+  const currentNote=notes.find(n=>n.shift===shift);
+  const otherNotes=notes.filter(n=>n.shift!==shift);
+
+  const startForm=()=>{
+    if(currentNote){
+      setForm({
+        summary:currentNote.summary||"",
+        outgoing_staff:currentNote.outgoing_staff||"",
+        incoming_staff:currentNote.incoming_staff||"",
+        key_events:JSON.parse(currentNote.key_events||"[]"),
+        action_items:JSON.parse(currentNote.action_items||"[]"),
+      });
+    } else {
+      setForm({summary:"",outgoing_staff:currentUser?.displayName||"",incoming_staff:"",key_events:[],action_items:[]});
+    }
+    setShowForm(true);
+  };
+
+  const save=async()=>{
+    setSaving(true);
+    const payload={
+      company_id:companyId,date,shift,
+      summary:form.summary,
+      outgoing_staff:form.outgoing_staff,
+      incoming_staff:form.incoming_staff,
+      key_events:JSON.stringify(form.key_events),
+      action_items:JSON.stringify(form.action_items),
+      created_by:currentUser?.displayName||currentUser?.email||"",
+    };
+    if(currentNote){
+      await supabase.from("handover_notes").update(payload).eq("id",currentNote.id);
+    } else {
+      await supabase.from("handover_notes").insert(payload);
+    }
+    setSaving(false);setShowForm(false);await load();
+  };
+
+  const signOff=async(note)=>{
+    setSigningOff(note.id);
+    await supabase.from("handover_notes").update({
+      signed_off_by:currentUser?.displayName||"",
+      signed_off_at:new Date().toISOString(),
+    }).eq("id",note.id);
+    setSigningOff(null);await load();
+  };
+
+  const addEvent=()=>{
+    if(!newEvent.clientName.trim()&&!newEvent.note.trim())return;
+    setForm(f=>({...f,key_events:[...f.key_events,{id:uid(),...newEvent}]}));
+    setNewEvent({clientName:"",note:"",urgency:"Routine"});
+  };
+
+  const addAction=()=>{
+    if(!newAction.trim())return;
+    setForm(f=>({...f,action_items:[...f.action_items,newAction.trim()]}));
+    setNewAction("");
+  };
+
+  const renderNote=(note,isMain)=>{
+    const events=JSON.parse(note.key_events||"[]");
+    const actions=JSON.parse(note.action_items||"[]");
+    const shiftInfo=SHIFTS.find(s=>s.key===note.shift)||{icon:"📋",label:note.shift,time:""};
+    const signed=!!note.signed_off_by;
+    return(
+      <div key={note.id} style={{background:"var(--color-bg-card)",border:"1px solid "+(signed?"rgba(16,185,129,0.3)":"var(--color-border)"),borderRadius:12,overflow:"hidden",marginBottom:isMain?0:12}}>
+        <div style={{padding:"12px 16px",borderBottom:"1px solid var(--color-border)",display:"flex",alignItems:"center",justifyContent:"space-between",background:signed?"rgba(16,185,129,0.06)":"transparent"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:18}}>{shiftInfo.icon}</span>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{shiftInfo.label} {shiftInfo.time&&<span style={{fontSize:11,color:"var(--color-text-muted)",fontFamily:"'DM Mono',monospace"}}>({shiftInfo.time})</span>}</div>
+              <div style={{fontSize:11,color:"var(--color-text-muted)"}}>By {note.created_by||"—"}{note.outgoing_staff?" · Out: "+note.outgoing_staff:""}{note.incoming_staff?" · In: "+note.incoming_staff:""}</div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            {signed?(
+              <span style={{fontSize:11,fontWeight:700,color:"#10b981",display:"flex",alignItems:"center",gap:4}}>✓ Signed off by {note.signed_off_by}</span>
+            ):(
+              <button onClick={()=>signOff(note)} disabled={signingOff===note.id}
+                style={{padding:"5px 12px",borderRadius:7,border:"1px solid #10b981",background:"transparent",color:"#10b981",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                {signingOff===note.id?"...":"✓ Sign Off"}
+              </button>
+            )}
+            {isMain&&<button onClick={startForm} style={{padding:"5px 12px",borderRadius:7,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-secondary)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Edit</button>}
+          </div>
+        </div>
+        {note.summary&&<div style={{padding:"12px 16px",fontSize:13,color:"var(--color-text-primary)",lineHeight:1.7,borderBottom:events.length>0||actions.length>0?"1px solid var(--color-border)":"none",whiteSpace:"pre-wrap"}}>{note.summary}</div>}
+        {events.length>0&&(
+          <div style={{padding:"10px 16px",borderBottom:actions.length>0?"1px solid var(--color-border)":"none"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:6}}>Key Events</div>
+            {events.map((e,i)=>(
+              <div key={e.id||i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:i<events.length-1?"1px solid var(--color-border)":"none"}}>
+                <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:4,background:URGENCY_COLOR[e.urgency]+"18",color:URGENCY_COLOR[e.urgency],whiteSpace:"nowrap",marginTop:1}}>{e.urgency}</span>
+                <div>
+                  {e.clientName&&<span style={{fontSize:12,fontWeight:700,color:"var(--color-text-primary)"}}>{e.clientName} — </span>}
+                  <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{e.note}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {actions.length>0&&(
+          <div style={{padding:"10px 16px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:6}}>Action Items</div>
+            {actions.map((a,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0",fontSize:12,color:"var(--color-text-secondary)"}}>
+                <span style={{color:"var(--color-accent)",fontWeight:700,fontSize:14}}>→</span>{a}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return(
+    <div>
+      {/* Date + shift selector */}
+      <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:16,flexWrap:"wrap"}}>
+        <input type="date" value={date} onChange={e=>setDate(e.target.value)}
+          style={{...INP,width:"auto",fontSize:13,padding:"7px 10px"}}/>
+        <div style={{display:"flex",gap:6}}>
+          {SHIFTS.map(s=>(
+            <button key={s.key} onClick={()=>setShift(s.key)}
+              style={{padding:"6px 12px",borderRadius:7,border:"1px solid "+(shift===s.key?"var(--color-accent)":"var(--color-border)"),background:shift===s.key?"var(--color-bg-active)":"var(--color-bg-hover)",color:shift===s.key?"var(--color-accent-light)":"var(--color-text-secondary)",fontSize:12,fontWeight:600,cursor:"pointer",touchAction:"manipulation"}}>
+              {s.icon} {s.label.split(" ")[0]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Current shift */}
+      {loading?<div style={{textAlign:"center",padding:32,color:"var(--color-text-muted)"}}>Loading...</div>:(
+        <>
+          {currentNote&&!showForm&&renderNote(currentNote,true)}
+          {!currentNote&&!showForm&&(
+            <div style={{textAlign:"center",padding:"32px 20px",border:"2px dashed var(--color-border)",borderRadius:12,marginBottom:16}}>
+              <div style={{fontSize:32,marginBottom:8}}>{SHIFTS.find(s=>s.key===shift)?.icon}</div>
+              <div style={{fontSize:14,fontWeight:600,color:"var(--color-text-primary)",marginBottom:4}}>No {SHIFTS.find(s=>s.key===shift)?.label} handover yet</div>
+              <div style={{fontSize:12,color:"var(--color-text-muted)",marginBottom:14}}>{date===tod()?"Start now to hand over to the incoming team.":"No handover was recorded for this shift."}</div>
+              {date===tod()&&<button onClick={startForm} style={{padding:"9px 22px",borderRadius:9,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>+ Start Handover</button>}
+            </div>
+          )}
+
+          {/* Form */}
+          {showForm&&(
+            <div style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:12,padding:16,marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)",marginBottom:12}}>{currentNote?"Edit":"New"} {SHIFTS.find(s=>s.key===shift)?.label} Handover</div>
+              <div style={{marginBottom:10}}>
+                <label style={LBL}>Outgoing Staff</label>
+                <input style={INP} value={form.outgoing_staff} onChange={e=>setForm(f=>({...f,outgoing_staff:e.target.value}))} placeholder="Your name"/>
+              </div>
+              <div style={{marginBottom:10}}>
+                <label style={LBL}>Incoming Staff</label>
+                <input style={INP} value={form.incoming_staff} onChange={e=>setForm(f=>({...f,incoming_staff:e.target.value}))} placeholder="Incoming staff name"/>
+              </div>
+              <div style={{marginBottom:12}}>
+                <label style={LBL}>Shift Summary</label>
+                <textarea style={{...INP,height:90,resize:"none",lineHeight:1.6}} value={form.summary} onChange={e=>setForm(f=>({...f,summary:e.target.value}))} placeholder="General shift summary, ward status, notable events…"/>
+              </div>
+
+              {/* Key events */}
+              <div style={{marginBottom:12}}>
+                <label style={LBL}>Key Events / Client Flags</label>
+                {form.key_events.map((e,i)=>(
+                  <div key={e.id||i} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5,padding:"6px 10px",background:"var(--color-bg-card)",borderRadius:7,border:"1px solid var(--color-border)"}}>
+                    <span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:4,background:URGENCY_COLOR[e.urgency]+"18",color:URGENCY_COLOR[e.urgency]}}>{e.urgency}</span>
+                    <span style={{fontSize:12,flex:1,color:"var(--color-text-primary)"}}>{e.clientName&&<strong>{e.clientName} — </strong>}{e.note}</span>
+                    <button onClick={()=>setForm(f=>({...f,key_events:f.key_events.filter((_,j)=>j!==i)}))} style={IBTN} aria-label="Remove">×</button>
+                  </div>
+                ))}
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  <select value={newEvent.urgency} onChange={e=>setNewEvent(v=>({...v,urgency:e.target.value}))}
+                    style={{...INP,width:"auto",fontSize:12,padding:"7px 10px",color:URGENCY_COLOR[newEvent.urgency]}}>
+                    {URGENCY_OPTS.map(u=><option key={u} value={u}>{u}</option>)}
+                  </select>
+                  <input style={{...INP,flex:"1 1 120px",fontSize:12,padding:"7px 10px"}} placeholder="Client name (optional)" value={newEvent.clientName} onChange={e=>setNewEvent(v=>({...v,clientName:e.target.value}))}/>
+                  <input style={{...INP,flex:"2 1 180px",fontSize:12,padding:"7px 10px"}} placeholder="Event / note…" value={newEvent.note} onChange={e=>setNewEvent(v=>({...v,note:e.target.value}))}
+                    onKeyDown={e=>e.key==="Enter"&&addEvent()}/>
+                  <button onClick={addEvent} style={ABTN}>+ Add</button>
+                </div>
+              </div>
+
+              {/* Action items */}
+              <div style={{marginBottom:14}}>
+                <label style={LBL}>Action Items for Incoming Team</label>
+                {form.action_items.map((a,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5,padding:"6px 10px",background:"var(--color-bg-card)",borderRadius:7,border:"1px solid var(--color-border)"}}>
+                    <span style={{color:"var(--color-accent)",fontWeight:700}}>→</span>
+                    <span style={{fontSize:12,flex:1,color:"var(--color-text-primary)"}}>{a}</span>
+                    <button onClick={()=>setForm(f=>({...f,action_items:f.action_items.filter((_,j)=>j!==i)}))} style={IBTN} aria-label="Remove">×</button>
+                  </div>
+                ))}
+                <div style={{display:"flex",gap:6}}>
+                  <input style={{...INP,flex:1,fontSize:12,padding:"7px 10px"}} placeholder="Action item…" value={newAction} onChange={e=>setNewAction(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&addAction()}/>
+                  <button onClick={addAction} style={ABTN}>+ Add</button>
+                </div>
+              </div>
+
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>setShowForm(false)} style={{...ABTN,borderStyle:"solid",borderColor:"var(--color-border)",color:"var(--color-text-secondary)"}}>Cancel</button>
+                <button onClick={save} disabled={saving} style={{padding:"9px 22px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                  {saving?"Saving…":"Save Handover"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Other shifts today */}
+          {otherNotes.length>0&&(
+            <div style={{marginTop:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:8}}>Other shifts this day</div>
+              {otherNotes.map(n=>renderNote(n,false))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+export { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, HandoverNotes };

@@ -33,7 +33,7 @@ import {
 import { PasswordStrengthMeter, UserManagement } from "./components/UserManagement.jsx";
 import { TiltCard, FlipCard, Dashboard } from "./components/Dashboard.jsx";
 import { AuditTrail } from "./components/AuditTrail.jsx";
-import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker } from "./components/ClinicalComponents.jsx";
+import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, HandoverNotes } from "./components/ClinicalComponents.jsx";
 import { PermissionsContext } from "./lib/PermissionsContext.jsx";
 
 function buildNotifications(clients){
@@ -3128,6 +3128,7 @@ export default function App(){
                 );
               };
               return(<>
+                {navBtn("handover","Handovers",'<rect x="1" y="3" width="13" height="10" rx="1.5"/><line x1="4" y1="7" x2="11" y2="7"/><line x1="4" y1="10" x2="8" y2="10"/><circle cx="11" cy="10" r="2" fill="currentColor" stroke="none"/>')}
                 {navBtn("reports","Reports",'<rect x="2" y="1" width="11" height="13" rx="1.5"/><line x1="4.5" y1="5" x2="10.5" y2="5"/><line x1="4.5" y1="8" x2="10.5" y2="8"/><line x1="4.5" y1="11" x2="8" y2="11"/>')}
                 {navBtn("users","Staff / Users",'<circle cx="6" cy="5" r="3"/><path d="M1 13c0-2.8 2.2-5 5-5"/><circle cx="11.5" cy="9" r="2.5"/><line x1="11.5" y1="11.5" x2="11.5" y2="14"/><line x1="10" y1="12.5" x2="13" y2="12.5"/>',can(currentUser.role,"users",perms))}
                 {navBtn("audit",t.auditTrail,'<circle cx="7.5" cy="7.5" r="6"/><polyline points="7.5,4.5 7.5,7.5 9.5,9.5"/>',can(currentUser.role,"audit",perms))}
@@ -3237,6 +3238,7 @@ export default function App(){
             {error}
           </div>}
           {loading&&view==="dashboard"&&<div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"60px 0",fontFamily:"'DM Mono',monospace",fontSize:13}}>Loading...</div>}
+          {!loading&&view==="handover"&&<HandoverNotes supabase={supabase} companyId={activeCompanyId} currentUser={currentUser} clients={clients}/>}
           {!loading&&view==="audit"&&can(currentUser.role,"audit",perms)&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
           {!loading&&view==="reports"&&<ReportsView clients={clients} company={company} currentUser={currentUser} t={t} logAudit={logAudit}/>}
           {!loading&&view==="company"&&can(currentUser.role,"company",perms)&&(
@@ -3365,14 +3367,93 @@ export default function App(){
             const allInc=clients.flatMap(c=>(c.incidents||[]).map(i=>({...i,clientName:c.name,client:c}))).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
             const ago7=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
             const recent=allInc.filter(i=>i.date&&i.date>=ago7);
+
+            // ── Trend data: last 8 weeks ──
+            const weeks=Array.from({length:8},(_,i)=>{
+              const end=new Date(Date.now()-(i)*7*864e5);
+              const start=new Date(Date.now()-(i+1)*7*864e5);
+              const endStr=end.toISOString().slice(0,10);
+              const startStr=start.toISOString().slice(0,10);
+              const label="Wk "+(8-i);
+              const count=allInc.filter(inc=>inc.date&&inc.date>=startStr&&inc.date<endStr).length;
+              return{label,count,startStr,endStr};
+            }).reverse();
+            const maxWeek=Math.max(...weeks.map(w=>w.count),1);
+
+            // ── By severity ──
+            const bySev=Object.entries(SEVCOLS).map(([sev,col])=>({sev,col,count:allInc.filter(i=>(i.severity||"Low")===sev).length})).filter(s=>s.count>0);
+
+            // ── By type ──
+            const typeMap={};allInc.forEach(i=>{const t=i.type||"Other";typeMap[t]=(typeMap[t]||0)+1;});
+            const byType=Object.entries(typeMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+            const maxType=Math.max(...byType.map(([,c])=>c),1);
+
             return(
               <div>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
                   <div>
                     <div style={{fontSize:20,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.4px"}}>Incidents</div>
                     <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginTop:2}}>{allInc.length} total · {recent.length} in last 7 days</div>
                   </div>
                 </div>
+
+                {/* ── Trend Charts ── */}
+                {allInc.length>0&&(
+                  <div className="three-col" style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:12,marginBottom:20}}>
+                    {/* Weekly bar chart */}
+                    <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:16}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:12}}>Trend — Last 8 Weeks</div>
+                      <div style={{display:"flex",alignItems:"flex-end",gap:6,height:80}}>
+                        {weeks.map((w,i)=>(
+                          <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                            <div style={{fontSize:9,fontWeight:700,color:w.count>0?"var(--color-text-secondary)":"transparent",fontFamily:"'DM Mono',monospace"}}>{w.count||""}</div>
+                            <div style={{width:"100%",borderRadius:"3px 3px 0 0",background:w.count>0?"var(--color-accent)":"var(--color-border)",height:Math.max(4,(w.count/maxWeek)*64)+"px",transition:"height 0.3s",opacity:i===7?1:0.6+i*0.05}}/>
+                            <div style={{fontSize:9,color:"var(--color-text-muted)",fontFamily:"'DM Mono',monospace"}}>{w.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* By severity */}
+                    <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:16}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:12}}>By Severity</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                        {bySev.map(({sev,col,count})=>(
+                          <div key={sev}>
+                            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
+                              <span style={{color:col,fontWeight:600}}>{sev}</span>
+                              <span style={{color:"var(--color-text-muted)",fontFamily:"'DM Mono',monospace"}}>{count}</span>
+                            </div>
+                            <div style={{height:6,borderRadius:3,background:"rgba(128,128,128,0.12)",overflow:"hidden"}}>
+                              <div style={{height:"100%",width:(count/allInc.length*100)+"%",background:col,borderRadius:3}}/>
+                            </div>
+                          </div>
+                        ))}
+                        {bySev.length===0&&<div style={{fontSize:12,color:"var(--color-text-muted)"}}>No data</div>}
+                      </div>
+                    </div>
+
+                    {/* By type */}
+                    <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:16}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:12}}>By Type</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        {byType.map(([type,count])=>(
+                          <div key={type}>
+                            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:2}}>
+                              <span style={{color:"var(--color-text-secondary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:90}}>{type}</span>
+                              <span style={{color:"var(--color-text-muted)",fontFamily:"'DM Mono',monospace",flexShrink:0}}>{count}</span>
+                            </div>
+                            <div style={{height:5,borderRadius:3,background:"rgba(128,128,128,0.12)",overflow:"hidden"}}>
+                              <div style={{height:"100%",width:(count/maxType*100)+"%",background:"var(--color-accent)",borderRadius:3,opacity:0.7}}/>
+                            </div>
+                          </div>
+                        ))}
+                        {byType.length===0&&<div style={{fontSize:12,color:"var(--color-text-muted)"}}>No data</div>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {allInc.length===0?(
                   <div style={{textAlign:"center",padding:"60px 20px",color:"var(--color-text-muted)"}}>
                     <div style={{fontSize:36,marginBottom:12}}>✓</div>
