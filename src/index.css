@@ -33,6 +33,10 @@
   --color-text-muted:   rgba(240,242,250,0.25);
   --color-accent:       var(--primitive-indigo-500);
   --color-accent-light: var(--primitive-indigo-300);
+  /* Primary button gradient */
+  --btn-primary-from:   #4f6ef7;
+  --btn-primary-to:     #6366f1;
+  --btn-primary-shadow: rgba(99,102,241,0.3);
   --color-success:      var(--primitive-emerald-400);
   --color-warning:      var(--primitive-amber-400);
   --color-danger:       var(--primitive-red-400);
@@ -81,6 +85,10 @@ html.cm-light {
   /* Accent — green replaces indigo in light mode */
   --color-accent:         #16a34a;
   --color-accent-light:   #ffffff;  /* white — text on solid green active bg (5.1:1 contrast) */
+  /* Primary button gradient */
+  --btn-primary-from:     #16a34a;
+  --btn-primary-to:       #15803d;
+  --btn-primary-shadow:   rgba(22,163,74,0.3);
   --color-success:        #16a34a;
 }
 html.cm-light img, html.cm-light video { filter: none !important; }

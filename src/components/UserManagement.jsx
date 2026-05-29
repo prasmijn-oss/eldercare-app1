@@ -420,8 +420,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     }catch{return"—";}
   };
 
-  const roleColor={superadmin:"#f59e0b",admin:"#6366f1",power_user:"#06b6d4",user:"#10b981",inactive:"var(--color-text-muted)"};
-  const roleBg={superadmin:"rgba(245,158,11,0.1)",admin:"rgba(99,102,241,0.1)",power_user:"rgba(6,182,212,0.1)",user:"rgba(16,185,129,0.1)",inactive:"rgba(71,85,105,0.1)"};
+  const roleColor={superadmin:"#f59e0b",admin:"var(--color-accent)",power_user:"#06b6d4",user:"#10b981",inactive:"var(--color-text-muted)"};
+  const roleBg={superadmin:"rgba(245,158,11,0.1)",admin:"var(--color-bg-active)",power_user:"rgba(6,182,212,0.1)",user:"rgba(16,185,129,0.1)",inactive:"rgba(71,85,105,0.1)"};
   const companyName=id=>companies.find(c=>c.id===id)?.name||"—";
 
 
@@ -457,11 +457,11 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           {mainTab==="users"&&(
             <>
               <button onClick={()=>{setShowExistingForm(s=>!s);setShowUserForm(false);setShowCompanyForm(false);}}
-                style={{padding:"10px 20px",borderRadius:10,border:"1px solid #6366f1",background:"transparent",color:"#6366f1",fontWeight:700,fontSize:14}}>
+                style={{padding:"10px 20px",borderRadius:10,border:"1px solid #6366f1",background:"transparent",color:"var(--color-accent)",fontWeight:700,fontSize:14}}>
                 {showExistingForm?"Cancel":"+ Existing User"}
               </button>
               <button onClick={()=>{setShowUserForm(s=>!s);setShowExistingForm(false);setShowCompanyForm(false);}}
-                style={{padding:"10px 20px",borderRadius:10,border:"none",background:"#6366f1",color:"#fff",fontWeight:700,fontSize:14}}>
+                style={{padding:"10px 20px",borderRadius:10,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:14}}>
                 {showUserForm?"Cancel":"+ New User"}
               </button>
             </>
@@ -469,7 +469,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           {mainTab==="companies"&&(
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <button onClick={()=>setShowArchived(s=>!s)}
-                style={{padding:"10px 16px",borderRadius:10,border:"1px solid "+(showArchived?"#f59e0b":"rgba(255,255,255,0.1)"),background:showArchived?"rgba(245,158,11,0.12)":"transparent",color:showArchived?"#f59e0b":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13}}>
+                style={{padding:"10px 16px",borderRadius:10,border:"1px solid "+(showArchived?"#f59e0b":"rgba(255,255,255,0.1)"),background:showArchived?"rgba(245,158,11,0.12)":"transparent",color:showArchived?"#f59e0b":"var(--color-text-muted)",fontWeight:600,fontSize:13}}>
                 {showArchived?"Hide Archived":"Show Archived"}
               </button>
               {currentUser?.role==="superadmin"&&(
@@ -487,7 +487,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
       <div style={{display:"flex",gap:2,borderBottom:"1px solid var(--color-border)",marginBottom:20}}>
         {[["users","👥 Users"],["companies","🏢 Companies"],["activity","📊 Activity"]].map(([id,label])=>(
           <button key={id} onClick={()=>{setMainTab(id);setShowUserForm(false);setShowCompanyForm(false);setSearch("");}}
-            style={{padding:"9px 20px",border:"none",borderBottom:mainTab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:mainTab===id?"#6366f1":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:14,cursor:"pointer",marginBottom:-1}}>
+            style={{padding:"9px 20px",border:"none",borderBottom:mainTab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:mainTab===id?"var(--color-accent)":"var(--color-text-muted)",fontWeight:600,fontSize:14,cursor:"pointer",marginBottom:-1}}>
             {label}
           </button>
         ))}
@@ -529,7 +529,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"rgba(255,255,255,0.03)",borderRadius:8,padding:12,border:"1px solid rgba(255,255,255,0.08)"}}>
                       {companies.map(c=>(
                         <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"var(--color-text-primary)",cursor:"pointer"}}>
-                          <input type="checkbox" checked={existingForm.company_ids.includes(c.id)} onChange={()=>onToggleCompany(c.id)} style={{accentColor:"#6366f1",width:15,height:15}}/>
+                          <input type="checkbox" checked={existingForm.company_ids.includes(c.id)} onChange={()=>onToggleCompany(c.id)} style={{accentColor:"var(--color-accent)",width:15,height:15}}/>
                           {c.name}
                         </label>
                       ))}
@@ -537,7 +537,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   </div>
                 </div>
                 <button type="submit" disabled={saving}
-                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"#6366f1",color:saving?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:14}}>
+                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"var(--color-accent)",color:saving?"var(--color-text-muted)":"#fff",fontWeight:700,fontSize:14}}>
                   {saving?"Adding...":"Add to Company"}
                 </button>
               </form>
@@ -567,7 +567,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"rgba(255,255,255,0.03)",borderRadius:8,padding:12,border:"1px solid rgba(255,255,255,0.08)"}}>
                       {companies.map(c=>(
                         <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"var(--color-text-primary)",cursor:"pointer"}}>
-                          <input type="checkbox" checked={userForm.company_ids.includes(c.id)} onChange={()=>onToggleUserCompany(c.id)} style={{accentColor:"#6366f1",width:15,height:15}}/>
+                          <input type="checkbox" checked={userForm.company_ids.includes(c.id)} onChange={()=>onToggleUserCompany(c.id)} style={{accentColor:"var(--color-accent)",width:15,height:15}}/>
                           {c.name}
                         </label>
                       ))}
@@ -578,7 +578,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   ⚠️ User will be required to change their password on first login.
                 </div>
                 <button type="submit" disabled={saving}
-                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:14}}>
+                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"var(--color-text-muted)":"#fff",fontWeight:700,fontSize:14}}>
                   {saving?"Creating...":"Create User"}
                 </button>
               </form>
@@ -590,7 +590,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
             <div style={{display:"flex",gap:2,borderBottom:"1px solid var(--color-border)"}}>
               {[["all","All"],["active","Active"],["inactive","Inactive"]].map(([id,label])=>(
                 <button key={id} onClick={()=>setUserTab(id)}
-                  style={{padding:"7px 16px",border:"none",borderBottom:userTab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:userTab===id?"#6366f1":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
+                  style={{padding:"7px 16px",border:"none",borderBottom:userTab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:userTab===id?"var(--color-accent)":"var(--color-text-muted)",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
                   {label}
                 </button>
               ))}
@@ -608,7 +608,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   <thead>
                     <tr style={{borderBottom:"1px solid var(--color-border)"}}>
                       {[["Name",160],["Email",160],["Role",110],["Companies",null],["Actions",180]].map(([h,minW])=>(
-                        <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
+                        <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"var(--color-accent)",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -655,7 +655,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                               if(currentUser.role!=="superadmin"&&(RORD[u.role]??9)<=(RORD[currentUser.role]??9)){showToast("error","You cannot change the role of a user with an equal or higher role");return;}
                               setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});
                             }}
-                            style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"rgba(240,242,250,0.3)",border:"1px solid "+(roleColor[u.role]||"rgba(255,255,255,0.1)"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                            style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"var(--color-text-muted)",border:"1px solid "+(roleColor[u.role]||"rgba(255,255,255,0.1)"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
                             <option value="user">User</option>
                             <option value="power_user">Power User</option>
                             <option value="admin">Admin</option>
@@ -695,7 +695,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                           {isEditing?(
                             <div style={{display:"flex",gap:6}}>
                               <button onClick={()=>saveUserEdit(u.user_id)} disabled={saving}
-                                style={{padding:"4px 11px",borderRadius:7,border:"none",background:"#6366f1",color:"#fff",fontSize:11,fontWeight:700}}>
+                                style={{padding:"4px 11px",borderRadius:7,border:"none",background:"var(--color-accent)",color:"#fff",fontSize:11,fontWeight:700}}>
                                 {saving?"…":"Save"}
                               </button>
                               <button onClick={()=>setEditingUser(null)}
@@ -771,7 +771,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 style={{...INP2,width:150}}/>
             </div>
             <button onClick={()=>loadActivity(activityDateFrom,activityDateTo)}
-              style={{padding:"8px 18px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:700,fontSize:13}}>Apply</button>
+              style={{padding:"8px 18px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:13}}>Apply</button>
             {(activityDateFrom||activityDateTo)&&(
               <button onClick={()=>{setActivityDateFrom("");setActivityDateTo("");loadActivity("","");}}
                 style={{padding:"8px 14px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-dim)",fontSize:13,fontWeight:600}}>Clear</button>
@@ -789,7 +789,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 <thead>
                   <tr style={{borderBottom:"1px solid var(--color-border)"}}>
                     {[["Staff Member",200],["Total Actions",130],["Last Active",170],["Top Action",null]].map(([h,minW])=>(
-                      <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
+                      <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"var(--color-accent)",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
                     ))}
                     <th style={{padding:"12px 16px",width:30}}></th>
                   </tr>
@@ -829,7 +829,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                             <td colSpan={5} style={{padding:"12px 20px 16px"}}>
                               <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>
                                 <div style={{flex:1,minWidth:200}}>
-                                  <div style={{fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,marginBottom:8}}>ACTION BREAKDOWN</div>
+                                  <div style={{fontSize:11,fontWeight:700,color:"var(--color-accent)",letterSpacing:0.5,marginBottom:8}}>ACTION BREAKDOWN</div>
                                   <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                                     {Object.entries(s.actions).sort((a,b)=>b[1]-a[1]).map(([action,count])=>(
                                       <span key={action} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:8,padding:"4px 10px",fontSize:12,color:"var(--color-text-secondary)"}}>
@@ -840,7 +840,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                 </div>
                                 {s.recentClients.length>0&&(
                                   <div style={{minWidth:180}}>
-                                    <div style={{fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,marginBottom:8}}>RECENT CLIENTS</div>
+                                    <div style={{fontSize:11,fontWeight:700,color:"var(--color-accent)",letterSpacing:0.5,marginBottom:8}}>RECENT CLIENTS</div>
                                     <div style={{display:"flex",flexDirection:"column",gap:4}}>
                                       {s.recentClients.map(c=>(
                                         <span key={c} style={{fontSize:12,color:"var(--color-text-secondary)"}}>• {c}</span>
@@ -882,7 +882,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   ✓ Default hours of operation will be set automatically. You can update them in Company Settings.
                 </div>
                 <button type="submit" disabled={saving}
-                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:14}}>
+                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"var(--color-text-muted)":"#fff",fontWeight:700,fontSize:14}}>
                   {saving?"Creating...":"Create Company"}
                 </button>
               </form>
@@ -957,8 +957,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                             <div style={{fontSize:10,color:"var(--color-text-dim)",fontWeight:600}}>CLIENTS</div>
                             {st.archivedClients>0&&<div style={{fontSize:9,color:"var(--color-text-muted)",marginTop:2}}>{st.archivedClients} archived</div>}
                           </div>
-                          <div style={{textAlign:"center",background:"rgba(99,102,241,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
-                            <div style={{fontSize:22,fontWeight:700,color:"#6366f1"}}>{st.users}</div>
+                          <div style={{textAlign:"center",background:"var(--color-bg-active)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
+                            <div style={{fontSize:22,fontWeight:700,color:"var(--color-accent)"}}>{st.users}</div>
                             <div style={{fontSize:10,color:"var(--color-text-dim)",fontWeight:600}}>USERS</div>
                           </div>
                           <div style={{textAlign:"center",background:"rgba(71,85,105,0.2)",borderRadius:10,padding:"10px 16px",minWidth:80}}>
@@ -1073,7 +1073,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   else if(type==="role_change")await updateRole(userId,meta.newRole);
                   else if(type==="remove_company")await removeFromCompany(userId,meta.companyId);
                 }}
-                style={{padding:"10px 28px",borderRadius:9,border:"none",background:pendingAction.type==="role_change"?"#6366f1":"#dc2626",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity:saving?0.6:1}}>
+                style={{padding:"10px 28px",borderRadius:9,border:"none",background:pendingAction.type==="role_change"?"var(--color-accent)":"#dc2626",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity:saving?0.6:1}}>
                 {saving?"Working…":"Confirm"}
               </button>
             </div>

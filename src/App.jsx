@@ -494,7 +494,7 @@ function VitalsTracker({vitals,onChange,t}){
           </div>
           <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
             <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>setShowForm(false)}>{t.cancel}</button>
-            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:600}} onClick={save}>{t.save}</button>
+            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:600}} onClick={save}>{t.save}</button>
           </div>
         </div>
       )}
@@ -777,7 +777,7 @@ function AppointmentLog({items,onChange}){
           <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...INP,height:56,resize:"vertical"}} value={entry.notes} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Additional notes..."/></div>
           <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
             <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
-            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
+            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
           </div>
         </div>
       )}
@@ -1015,7 +1015,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </>
         ):(
           <>
-            <button onClick={doExport} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",fontWeight:600,fontSize:13}}>Export PDF</button>
+            <button onClick={doExport} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:600,fontSize:13}}>Export PDF</button>
             <button onClick={()=>setShowEmerg(true)} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontWeight:600,fontSize:13}}>Emergency Card</button>
             <button onClick={doPrint} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:13}}>Print</button>
             {canEdit&&<button onClick={onEdit} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontWeight:600,fontSize:13}}>{t.edit}</button>}
@@ -2306,7 +2306,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
       <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--color-bg-card)",borderRadius:10,padding:4}}>
         {TABS.map(tb=>(
           <button key={tb.id} onClick={()=>{setTab(tb.id);setMsg(null);}}
-            style={{flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:tab===tb.id?"#6366f1":"transparent",color:tab===tb.id?"#fff":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:12,cursor:"pointer"}}>
+            style={{flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:tab===tb.id?"var(--color-accent)":"transparent",color:tab===tb.id?"#fff":"var(--color-text-secondary)",fontWeight:600,fontSize:12,cursor:"pointer"}}>
             {tb.label}
           </button>
         ))}
@@ -2319,12 +2319,12 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
           <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
             <div style={{position:"relative"}}>
               {currentUser.avatar_url?
-                <img src={currentUser.avatar_url} alt="avatar" style={{width:72,height:72,borderRadius:"50%",objectFit:"cover",border:"3px solid #6366f1"}}/>:
-                <div style={{width:72,height:72,borderRadius:"50%",background:"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:700,color:"#fff"}}>{(currentUser.displayName||"?")[0].toUpperCase()}</div>
+                <img src={currentUser.avatar_url} alt="avatar" style={{width:72,height:72,borderRadius:"50%",objectFit:"cover",border:"3px solid var(--color-accent)"}}/>:
+                <div style={{width:72,height:72,borderRadius:"50%",background:"var(--color-accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:700,color:"#fff"}}>{(currentUser.displayName||"?")[0].toUpperCase()}</div>
               }
             </div>
             <div>
-              <label style={{background:"#6366f1",border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"inline-block"}}>
+              <label style={{background:"var(--color-accent)",border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"inline-block"}}>
                 {uploading?"Uploading...":"📷 Change Photo"}
                 <input type="file" accept="image/*" onChange={uploadAvatar} style={{display:"none"}} disabled={uploading}/>
               </label>
@@ -2349,7 +2349,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
               <label style={LB}>Role</label>
               <input style={{...INP3,opacity:0.5}} value={currentUser.role} disabled/>
             </div>
-            <button onClick={saveProfile} disabled={saving} style={{background:"#6366f1",border:"none",borderRadius:8,padding:"10px",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",marginTop:4}}>
+            <button onClick={saveProfile} disabled={saving} style={{background:"var(--color-accent)",border:"none",borderRadius:8,padding:"10px",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",marginTop:4}}>
               {saving?"Saving...":"Save Changes"}
             </button>
           </div>
@@ -2998,7 +2998,7 @@ export default function App(){
       <div className="mob-hdr">
         <button onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" style={{background:"rgba(128,128,128,0.12)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>☰</button>
         <span style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>CareManager</span>
-        {can(currentUser.role,"add",perms)&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" className="btn-new-client" style={{background:"linear-gradient(135deg,#4f6ef7,#6366f1)",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
+        {can(currentUser.role,"add",perms)&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" className="btn-new-client" style={{background:"linear-gradient(135deg,var(--btn-primary-from),var(--btn-primary-to))",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
       </div>
       <div className={"overlay"+(sidebarOpen?" show":"")} onClick={()=>setSidebarOpen(false)}/>
       <div style={{display:"flex",minHeight:"100vh"}}>
@@ -3007,7 +3007,7 @@ export default function App(){
           {/* ── Brand ── */}
           <div style={{padding:"16px 14px 12px",borderBottom:"1px solid var(--color-border)"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-              <div style={{width:34,height:34,borderRadius:10,background:"linear-gradient(145deg,#4f6ef7,#7c3aed)",boxShadow:"0 0 0 1px rgba(99,102,241,0.3),0 8px 20px rgba(99,102,241,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <div style={{width:34,height:34,borderRadius:10,background:"linear-gradient(145deg,var(--btn-primary-from),var(--btn-primary-to))",boxShadow:"0 0 0 1px var(--btn-primary-shadow),0 8px 20px var(--btn-primary-shadow)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2.5v11M3 7.5h10" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
               </div>
               <div>
@@ -3207,7 +3207,7 @@ export default function App(){
                   <input id="cm-search" aria-label="Search clients" style={{height:34,width:160,padding:"0 12px",background:"rgba(255,255,255,0.04)",border:"1px solid var(--color-border)",borderRadius:8,fontSize:12,color:"var(--color-text-secondary)",fontFamily:"'DM Sans',sans-serif",outline:"none"}} placeholder={t.search||"Search…"} value={search} onChange={e=>{setSearch(e.target.value);if(view!=="clients"&&e.target.value){setView("clients");setSelected(null);}}} onFocus={()=>{if(view!=="clients"){setView("clients");setSelected(null);}}}/>
                   {can(currentUser.role,"add",perms)&&(
                     <button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" className="btn-new-client"
-                      style={{height:34,padding:"0 16px",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:12,borderRadius:9,boxShadow:"0 4px 16px rgba(99,102,241,0.3)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
+                      style={{height:34,padding:"0 16px",background:"linear-gradient(135deg,var(--btn-primary-from),var(--btn-primary-to))",color:"#fff",fontWeight:700,fontSize:12,borderRadius:9,boxShadow:"0 4px 16px var(--btn-primary-shadow)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
                       + {t.newClient.replace("+ ","")}
                     </button>
                   )}
@@ -3487,7 +3487,7 @@ export default function App(){
                     {/* New Client */}
                     {can(currentUser.role,"add",perms)&&(
                       <button onClick={()=>{setSelected(null);setView("add");}}
-                        style={{height:36,padding:"0 16px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",boxShadow:"0 4px 14px rgba(99,102,241,0.25)"}}>
+                        style={{height:36,padding:"0 16px",borderRadius:9,border:"none",background:"linear-gradient(135deg,var(--btn-primary-from),var(--btn-primary-to))",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",boxShadow:"0 4px 14px rgba(99,102,241,0.25)"}}>
                         + {t.newClient.replace("+ ","")}
                       </button>
                     )}
@@ -3548,7 +3548,7 @@ export default function App(){
                     <div style={{fontSize:16,fontWeight:600,color:"var(--color-text-secondary)",marginBottom:6}}>{search?"No clients match your search":"No clients here"}</div>
                     <div style={{fontSize:13}}>{search?"Try a different search term":"Add your first client to get started"}</div>
                     {can(currentUser.role,"add",perms)&&!search&&(
-                      <button onClick={()=>{setSelected(null);setView("add");}} style={{marginTop:20,padding:"10px 20px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                      <button onClick={()=>{setSelected(null);setView("add");}} style={{marginTop:20,padding:"10px 20px",borderRadius:9,border:"none",background:"linear-gradient(135deg,var(--btn-primary-from),var(--btn-primary-to))",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>
                         + {t.newClient.replace("+ ","")}
                       </button>
                     )}
