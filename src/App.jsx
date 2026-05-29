@@ -123,7 +123,7 @@ function SearchDrop({value,onChange,options,placeholder}){
         <div style={{position:"absolute",top:"100%",left:0,right:0,background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,zIndex:999,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",maxHeight:220,overflowY:"auto"}}>
           {filtered.map(opt=>(
             <div key={opt} onMouseDown={()=>pick(opt)}
-              style={{padding:"9px 12px",cursor:"pointer",fontSize:13,color:"rgba(240,242,250,0.7)",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+              style={{padding:"9px 12px",cursor:"pointer",fontSize:13,color:"var(--color-text-secondary)",borderBottom:"1px solid var(--color-border)"}}>
               {opt}
             </div>
           ))}
@@ -234,7 +234,7 @@ function MedList({items,onChange,t}){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       {items.map(item=>(
-        <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:12}}>
+        <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:12}}>
           <div style={{marginBottom:8}}>
             <label style={LBL}>{t.medName}</label>
             <SearchDrop value={item.name} onChange={v=>upd(item.id,"name",v)} options={MEDICATIONS} placeholder={t.searchMed}/>
@@ -307,7 +307,7 @@ function NotesList({items,onChange,t}){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       {/* Filter Bar */}
-      <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:12}}>
+      <div style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:12}}>
         <div className="notes-filter" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
           <div>
             <label style={LBL}>{t.date}</label>
@@ -346,7 +346,7 @@ function NotesList({items,onChange,t}){
           {hasFilter?"No notes match your filters":t.noNotes}
         </div>
       ):filtered.map(item=>(
-        <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:12}}>
+        <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:12}}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"160px 1fr 1fr auto",gap:8,alignItems:"center",marginBottom:10}}>
             <div><label style={LBL}>{t.date}</label><input type="date" style={INP} value={item.date} onChange={e=>upd(item.id,"date",e.target.value)}/></div>
             <div><label style={LBL}>{t.role}</label>
@@ -448,7 +448,7 @@ function VitalsTracker({vitals,onChange,t}){
 
       {/* ── Weight Trend Mini-Chart (shown when ≥2 weight entries exist) ── */}
       {weightPts.length>=2&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"10px 12px",marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:"10px 12px",marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
             <span style={{fontSize:11,fontWeight:700,color:"#10b981",letterSpacing:0.4}}>⚖ WEIGHT TREND</span>
             <span style={{fontSize:11,color:"var(--color-text-dim)"}}>{weightPts[0].kg} → {weightPts[weightPts.length-1].kg} kg</span>
@@ -462,7 +462,7 @@ function VitalsTracker({vitals,onChange,t}){
       )}
 
       {vitals.length>=2&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:12,marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:12,marginBottom:12}}>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
             {metrics.map(m=>(
               <button key={m.key} onClick={()=>setMetric(m.key)}
@@ -475,7 +475,7 @@ function VitalsTracker({vitals,onChange,t}){
         </div>
       )}
       {showForm&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #6366f1",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid #6366f1",borderRadius:10,padding:14,marginBottom:12}}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>{t.date}</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>{t.bloodPressure}</label>
@@ -501,7 +501,7 @@ function VitalsTracker({vitals,onChange,t}){
       {sorted.length===0?<div style={{color:"var(--color-text-muted)",fontSize:13,textAlign:"center",padding:"20px 0"}}>{t.noVitals}</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {sorted.map(v=>(
-            <div key={v.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:8,padding:"10px 14px"}}>
+            <div key={v.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:8,padding:"10px 14px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                 <span style={{fontWeight:600,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(v.date+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</span>
                 <button onClick={()=>rm(v.id)} style={{background:"none",border:"none",color:"var(--color-text-muted)",fontSize:12}}>x</button>
@@ -541,7 +541,7 @@ function CarePlan({items,onChange,t}){
       {items.map(item=>{
         const gs=GSTATUSES.find(s=>s.value===item.status)||GSTATUSES[0];
         return(
-          <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:12,borderLeft:"3px solid "+gs.color}}>
+          <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:12,borderLeft:"3px solid "+gs.color}}>
             <div style={{marginBottom:8}}><label style={LBL}>{t.goalLabel}</label><input style={INP} placeholder={t.goalLabel+"..."} value={item.goal} onChange={e=>upd(item.id,"goal",e.target.value)}/></div>
             <div style={{marginBottom:8}}><label style={LBL}>{t.planLabel}</label><textarea style={{...INP,height:64,resize:"vertical"}} placeholder={t.planLabel+"..."} value={item.plan} onChange={e=>upd(item.id,"plan",e.target.value)}/></div>
             <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
@@ -573,7 +573,7 @@ function DocTracker({items,onChange,t}){
         const days=daysUntil(item.expiry);
         const badge=expiryBadge(days);
         return(
-          <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:12,display:"flex",gap:10,alignItems:"center",borderLeft:badge?"3px solid "+badge.color:"3px solid rgba(255,255,255,0.1)"}}>
+          <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:12,display:"flex",gap:10,alignItems:"center",borderLeft:badge?"3px solid "+badge.color:"3px solid rgba(255,255,255,0.1)"}}>
             <div className="fg three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,flex:1}}>
               <div><label style={LBL}>{t.docName}</label><input style={INP} placeholder="e.g. AZV Card..." value={item.name} onChange={e=>upd(item.id,"name",e.target.value)}/></div>
               <div><label style={LBL}>{t.expiry}</label><input type="date" style={INP} value={item.expiry||""} onChange={e=>upd(item.id,"expiry",e.target.value)}/></div>
@@ -609,7 +609,7 @@ function InvItem({item,onUpd,onDel,t}){
     setUploading(false);
   };
   return(
-    <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,overflow:"hidden"}}>
+    <div style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,overflow:"hidden"}}>
       <div onClick={()=>ref.current&&ref.current.click()}
         style={{width:"100%",height:120,background:item.photo_url?"transparent":"rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",borderBottom:"1px solid var(--color-border)",position:"relative"}}>
         {item.photo_url?<img src={item.photo_url} alt={item.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{textAlign:"center",color:"var(--color-text-muted)"}}><div style={{fontSize:28}}>+</div><div style={{fontSize:11,marginTop:4}}>Add photo</div></div>}
@@ -673,7 +673,7 @@ function FamilyContacts({items,onChange}){
     <div style={{display:"flex",flexDirection:"column",gap:8}}>
       {items.length===0&&<div style={{color:"var(--color-text-muted)",fontSize:13,textAlign:"center",padding:"16px 0"}}>No family contacts added yet</div>}
       {items.map(item=>(
-        <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid "+(item.is_primary?"rgba(99,102,241,0.4)":"rgba(255,255,255,0.1)"),borderRadius:10,overflow:"hidden"}}>
+        <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid "+(item.is_primary?"rgba(99,102,241,0.4)":"rgba(255,255,255,0.1)"),borderRadius:10,overflow:"hidden"}}>
           <div onClick={()=>setExpanded(expanded===item.id?null:item.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer"}}>
             <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(item.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(item.name||"?")}</div>
             <div style={{flex:1,minWidth:0}}>
@@ -748,7 +748,7 @@ function AppointmentLog({items,onChange}){
         </div>
       )}
       {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #6366f1",borderRadius:10,padding:14,marginBottom:12}}>
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid #6366f1",borderRadius:10,padding:14,marginBottom:12}}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
             <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
@@ -786,7 +786,7 @@ function AppointmentLog({items,onChange}){
         {sorted.map(item=>{
           const sc=APPT_STATUS_COLORS[item.status]||"rgba(240,242,250,0.3)";
           return(
-            <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+sc}}>
+            <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+sc}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                   <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(item.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}{item.time&&" at "+item.time}</span>
@@ -937,8 +937,8 @@ function EmergCard({client,onClose,t}){
             </div>
             <div style={{background:"rgba(6,182,212,0.1)",border:"2px solid rgba(6,182,212,0.3)",borderRadius:10,padding:"12px 14px"}}>
               <div style={{fontSize:11,fontWeight:800,color:"#06b6d4",marginBottom:6}}>DOCTORS</div>
-              {client.dr_di_cas&&<div style={{fontSize:13,color:"rgba(240,242,250,0.7)"}}><strong>GP:</strong> {client.dr_di_cas}</div>}
-              {client.dr_specialista&&<div style={{fontSize:13,color:"rgba(240,242,250,0.7)"}}><strong>Spec:</strong> {client.dr_specialista}</div>}
+              {client.dr_di_cas&&<div style={{fontSize:13,color:"var(--color-text-secondary)"}}><strong>GP:</strong> {client.dr_di_cas}</div>}
+              {client.dr_specialista&&<div style={{fontSize:13,color:"var(--color-text-secondary)"}}><strong>Spec:</strong> {client.dr_specialista}</div>}
               {!client.dr_di_cas&&!client.dr_specialista&&<div style={{color:"var(--color-text-dim)"}}>{t.notProvided}</div>}
             </div>
           </div>
@@ -1087,7 +1087,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
             <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
               <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:12}}>MEDICATIONS</div>
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:sched.length>0?16:0}}>
-                {fm.map(m=><div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"rgba(255,255,255,0.03)",borderRadius:8}}>
+                {fm.map(m=><div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"var(--color-bg-hover)",borderRadius:8}}>
                   <span style={{fontWeight:700,color:"var(--color-text-primary)",flex:2}}>{m.name}</span>
                   {m.dosage&&<span style={{color:"var(--color-text-secondary)",flex:1}}>{m.dosage}</span>}
                   {m.frequency&&<span style={{color:"var(--color-text-dim)",flex:1,fontSize:12}}>{m.frequency}</span>}
@@ -1100,7 +1100,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
                     {sched.map(slot=>(
                       <div key={slot.key} style={{background:slot.color+"10",border:"1px solid "+slot.color+"30",borderRadius:8,padding:"8px 10px"}}>
                         <div style={{fontWeight:700,fontSize:11,color:slot.color,marginBottom:6}}>{labs[slot.key]}</div>
-                        {slot.meds.map(m=><div key={m.id} style={{fontSize:12,color:"rgba(240,242,250,0.7)"}}>{m.name}{m.dosage&&" - "+m.dosage}</div>)}
+                        {slot.meds.map(m=><div key={m.id} style={{fontSize:12,color:"var(--color-text-secondary)"}}>{m.name}{m.dosage&&" - "+m.dosage}</div>)}
                       </div>
                     ))}
                   </div>
@@ -1120,7 +1120,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
                 const cc={Excellent:"#10b981",Good:"#06b6d4",Fair:"#f59e0b",Poor:"#ef4444"};
                 const c=cc[item.condition]||"rgba(240,242,250,0.3)";
                 return(
-                  <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)"}}>
+                  <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:9,overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)"}}>
                     {item.photo_url?<img src={item.photo_url} alt={item.name} style={{width:"100%",height:90,objectFit:"cover",display:"block"}}/>:<div style={{width:"100%",height:90,background:"var(--color-bg-card)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"var(--color-text-muted)"}}>+</div>}
                     <div style={{padding:"8px 10px"}}>
                       <div style={{fontWeight:700,fontSize:12,color:"var(--color-text-primary)",marginBottom:4}}>{item.name||"Item"}</div>
@@ -1186,7 +1186,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
                     <span style={{fontSize:12,color:"#7c3aed",fontWeight:700}}>{new Date(n.date+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</span>
                     {(n.role||n.staff_name)&&<span style={{fontSize:11,background:"rgba(124,58,237,0.1)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:20,padding:"2px 8px",color:"#7c3aed",fontWeight:600}}>{n.role}{n.role&&n.staff_name&&" - "}{n.staff_name}</span>}
                   </div>
-                  <div style={{color:"rgba(240,242,250,0.7)",fontSize:14,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{n.text}</div>
+                  <div style={{color:"var(--color-text-secondary)",fontSize:14,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{n.text}</div>
                 </div>
               ))}
             </div>
@@ -1199,7 +1199,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
             <div style={{fontWeight:700,color:"#ec4899",fontSize:13,marginBottom:12}}>👨‍👩‍👧 FAMILY CONTACTS</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {(client.family_contacts||[]).map(c=>(
-                <div key={c.id} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",borderRadius:8}}>
+                <div key={c.id} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 12px",background:"var(--color-bg-hover)",borderRadius:8}}>
                   <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name||"?")}</div>
                   <div style={{flex:1}}>
                     <div style={{fontWeight:600,fontSize:13,color:"var(--color-text-primary)"}}>{c.name}{c.is_primary&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:20,background:"rgba(99,102,241,0.15)",color:"#a5b4fc",marginLeft:6}}>Primary</span>}</div>
@@ -1285,7 +1285,7 @@ function LangPicker({onSelect}){
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {LANG_OPTIONS.map(l=>(
             <button key={l.code} onClick={()=>onSelect(l.code)}
-              style={{display:"flex",alignItems:"center",gap:16,padding:"14px 18px",borderRadius:12,border:"1px solid rgba(255,255,255,0.08)",background:"rgba(255,255,255,0.03)",color:"var(--color-text-primary)",fontSize:16,fontWeight:600}}>
+              style={{display:"flex",alignItems:"center",gap:16,padding:"14px 18px",borderRadius:12,border:"1px solid rgba(255,255,255,0.08)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:16,fontWeight:600}}>
               <span style={{fontSize:18,fontWeight:800,color:"#6366f1",width:40,textAlign:"center"}}>{l.emoji}</span><span>{l.label}</span>
             </button>
           ))}
@@ -1457,7 +1457,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
             <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16}}>
               <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>🖼 Company Logo</div>
               <div style={{display:"flex",gap:16,alignItems:"center"}}>
-                <div style={{width:120,height:120,border:"2px dashed rgba(255,255,255,0.15)",borderRadius:12,background:"rgba(255,255,255,0.03)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+                <div style={{width:120,height:120,border:"2px dashed rgba(255,255,255,0.15)",borderRadius:12,background:"var(--color-bg-hover)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
                   {logoPreview
                     ?<div style={{background:"#fff",width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",padding:8}}><img src={logoPreview} alt="preview" style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain"}}/></div>
                     :<span style={{color:"var(--color-text-muted)",fontSize:12}}>No logo</span>}
@@ -2290,7 +2290,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
     {id:"sessions",label:"📱 Sessions"},
   ];
 
-  const INP3={background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:8,padding:"10px 14px",color:"var(--color-text-primary)",fontSize:14,width:"100%"};
+  const INP3={background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:8,padding:"10px 14px",color:"var(--color-text-primary)",fontSize:14,width:"100%"};
   const LB={fontSize:12,color:"var(--color-text-secondary)",fontWeight:600,marginBottom:4,display:"block"};
 
   return(
@@ -2387,7 +2387,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
             <div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"24px 0"}}>No login history yet</div>:
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {loginHistory.map((h,i)=>(
-                <div key={i} style={{background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"12px 14px",border:"1px solid rgba(255,255,255,0.08)"}}>
+                <div key={i} style={{background:"var(--color-bg-hover)",borderRadius:8,padding:"12px 14px",border:"1px solid rgba(255,255,255,0.08)"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                     <span style={{color:"#22c55e",fontSize:13,fontWeight:600}}>✓ Login</span>
                     <span style={{color:"var(--color-text-muted)",fontSize:12}}>{new Date(h.at).toLocaleString()}</span>
@@ -2403,7 +2403,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
       {/* Sessions Tab */}
       {tab==="sessions"&&(
         <div style={{background:"var(--color-bg-card)",borderRadius:12,padding:24,border:"1px solid rgba(255,255,255,0.08)"}}>
-          <div style={{background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"14px",border:"1px solid #22c55e",marginBottom:16}}>
+          <div style={{background:"var(--color-bg-hover)",borderRadius:8,padding:"14px",border:"1px solid #22c55e",marginBottom:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{color:"#22c55e",fontWeight:600,fontSize:13}}>● Current Session</div>
@@ -2469,7 +2469,7 @@ function ForcePasswordChange({currentUser,onDone}){
             <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--color-text-dim)",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"}}>New Password</label>
             <input type="password" value={pw} onChange={e=>setPw(e.target.value)}
               placeholder="Min. 10 characters"
-              style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.03)",color:"var(--color-text-primary)",fontSize:14}}
+              style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid rgba(255,255,255,0.1)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:14}}
               onKeyDown={e=>e.key==="Enter"&&document.getElementById("fpc-confirm")?.focus()}/>
             <PasswordStrengthMeter password={pw}/>
           </div>
@@ -2477,7 +2477,7 @@ function ForcePasswordChange({currentUser,onDone}){
             <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--color-text-dim)",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"}}>Confirm Password</label>
             <input id="fpc-confirm" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)}
               placeholder="Repeat new password"
-              style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid "+(confirm&&pw&&confirm!==pw?"#ef4444":"rgba(255,255,255,0.1)"),background:"rgba(255,255,255,0.03)",color:"var(--color-text-primary)",fontSize:14}}
+              style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid "+(confirm&&pw&&confirm!==pw?"#ef4444":"rgba(255,255,255,0.1)"),background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:14}}
               onKeyDown={e=>e.key==="Enter"&&handle()}/>
             {confirm&&pw&&confirm!==pw&&<div style={{fontSize:11,color:"#ef4444",marginTop:5}}>⚠ Passwords do not match</div>}
           </div>
@@ -2996,7 +2996,7 @@ export default function App(){
         </div>
       )}
       <div className="mob-hdr">
-        <button onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>☰</button>
+        <button onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" style={{background:"rgba(128,128,128,0.12)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>☰</button>
         <span style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>CareManager</span>
         {can(currentUser.role,"add",perms)&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" className="btn-new-client" style={{background:"linear-gradient(135deg,#4f6ef7,#6366f1)",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
       </div>
@@ -3016,9 +3016,9 @@ export default function App(){
               </div>
             </div>
             {/* Company chip */}
-            {company&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:8}}>
+            {company&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:8}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:"#34d399",boxShadow:"0 0 6px #34d399",flexShrink:0}}/>
-              <span style={{fontSize:11,fontWeight:500,color:"rgba(240,242,250,0.55)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{company.name||"Company"}</span>
+              <span style={{fontSize:11,fontWeight:500,color:"var(--color-text-secondary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{company.name||"Company"}</span>
             </div>}
           </div>
 
@@ -3035,7 +3035,7 @@ export default function App(){
           {(currentUser?.allRoles||[]).length>1&&(
             <div style={{padding:"8px 14px",borderBottom:"1px solid var(--color-border)"}}>
               <button onClick={()=>{setSelectedCompany(null);setCompany(null);setClients([]);setSelected(null);setView("dashboard");}}
-                style={{width:"100%",padding:"6px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.03)",color:"var(--color-text-secondary)",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"left"}}>
+                style={{width:"100%",padding:"6px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-secondary)",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"left"}}>
                 ↔ Switch Company
               </button>
             </div>
@@ -3044,7 +3044,7 @@ export default function App(){
           {/* ── Nav ── */}
           <div style={{padding:"8px 8px 4px",flex:"0 0 auto"}}>
             {/* MAIN group */}
-            <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"8px 0 4px"}}>Main</div>
+            <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"var(--color-text-muted)",padding:"0 8px",margin:"8px 0 4px"}}>Main</div>
             {(()=>{
               const NAV_STYLE=(active)=>({width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid var(--color-border-accent)":"1px solid transparent",background:active?"var(--color-bg-active)":"transparent",color:active?"var(--color-accent-light)":"var(--color-text-secondary)",fontWeight:active?600:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"});
               const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"rgba(0,0,0,0.25)",borderRadius:"0 3px 3px 0"}}/>;
@@ -3095,7 +3095,7 @@ export default function App(){
               return <>{dashBtn}{clientsBtn}{incBtn}{medBtn}</>;
             })()}
             {/* MANAGEMENT group */}
-            <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Management</div>
+            <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"var(--color-text-muted)",padding:"0 8px",margin:"10px 0 4px"}}>Management</div>
             {(()=>{
               const NAV_STYLE=(active)=>({width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid var(--color-border-accent)":"1px solid transparent",background:active?"var(--color-bg-active)":"transparent",color:active?"var(--color-accent-light)":"var(--color-text-secondary)",fontWeight:active?600:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"});
               const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"rgba(0,0,0,0.25)",borderRadius:"0 3px 3px 0"}}/>;
@@ -3123,7 +3123,7 @@ export default function App(){
               const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"rgba(0,0,0,0.25)",borderRadius:"0 3px 3px 0"}}/>;
               return(
                 <>
-                  <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Admin</div>
+                  <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"var(--color-text-muted)",padding:"0 8px",margin:"10px 0 4px"}}>Admin</div>
                   {can(currentUser.role,"company",perms)&&(
                     <button onClick={()=>{setView("company");setSelected(null);setSidebarOpen(false);}}
                       className={view==="company"?"nav-item nav-active":"nav-item"} style={NAV_STYLE(view==="company")}>
@@ -3154,7 +3154,7 @@ export default function App(){
             </div>
             <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}}>
               <div className="sidebar-footer-name" style={{fontSize:11,fontWeight:600,color:"rgba(240,242,250,0.65)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser.displayName}</div>
-              <div className="sidebar-footer-role" style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)"}}>{currentUser.role==="superadmin"?"superadmin":currentUser.role==="admin"?"admin":currentUser.role==="power_user"?"power_user":currentUser.role||"user"}</div>
+              <div className="sidebar-footer-role" style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)"}}>{currentUser.role==="superadmin"?"superadmin":currentUser.role==="admin"?"admin":currentUser.role==="power_user"?"power_user":currentUser.role||"user"}</div>
             </div>
             <div style={{display:"flex",gap:3,flexShrink:0}}>
               {(()=>{const unread=notifications.filter(n=>!readNotifIds.has(n.id)).length;return(
@@ -3181,7 +3181,7 @@ export default function App(){
               {LANG_OPTIONS.map(l=>(
                 <button key={l.code} onClick={()=>selectLang(l.code)} title={l.label}
                   className={lang===l.code?"lang-btn-active":"lang-btn-inactive"}
-                  style={{background:lang===l.code?"rgba(99,102,241,0.18)":"transparent",border:"none",borderRadius:5,padding:"3px 5px",fontSize:10,fontWeight:700,fontFamily:"'DM Mono',monospace",color:lang===l.code?"#a5b4fc":"rgba(240,242,250,0.22)",cursor:"pointer"}}>
+                  style={{background:lang===l.code?"rgba(99,102,241,0.18)":"transparent",border:"none",borderRadius:5,padding:"3px 5px",fontSize:10,fontWeight:700,fontFamily:"'DM Mono',monospace",color:lang===l.code?"#a5b4fc":"var(--color-text-muted)",cursor:"pointer"}}>
                   {l.emoji}
                 </button>
               ))}
@@ -3201,7 +3201,7 @@ export default function App(){
               <div className="main-topbar" style={{background:"var(--color-bg-surface)",borderBottom:"1px solid var(--color-border)",padding:"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,position:"sticky",top:0,zIndex:50}}>
                 <div>
                   <div style={{fontSize:17,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>{greeting}, {firstName}.</div>
-                  <div className="topbar-meta" style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)",marginTop:3}}>{dateStr} · {activeCount} ACTIVE CLIENTS{company?.name?" · "+company.name.toUpperCase():""}</div>
+                  <div className="topbar-meta" style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginTop:3}}>{dateStr} · {activeCount} ACTIVE CLIENTS{company?.name?" · "+company.name.toUpperCase():""}</div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <input id="cm-search" aria-label="Search clients" style={{height:34,width:160,padding:"0 12px",background:"rgba(255,255,255,0.04)",border:"1px solid var(--color-border)",borderRadius:8,fontSize:12,color:"var(--color-text-secondary)",fontFamily:"'DM Sans',sans-serif",outline:"none"}} placeholder={t.search||"Search…"} value={search} onChange={e=>{setSearch(e.target.value);if(view!=="clients"&&e.target.value){setView("clients");setSelected(null);}}} onFocus={()=>{if(view!=="clients"){setView("clients");setSelected(null);}}}/>
@@ -3739,7 +3739,7 @@ export default function App(){
                 {notifs.some(n=>!readNotifIds.has(n.id))&&(
                   <button onClick={markAllRead} style={{padding:"5px 10px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-dim)",fontSize:11,fontWeight:600}}>Mark all read</button>
                 )}
-                <button onClick={()=>setNotifOpen(false)} style={{padding:"5px 10px",borderRadius:7,border:"none",background:"rgba(255,255,255,0.03)",color:"var(--color-text-dim)",fontSize:16,fontWeight:700}}>×</button>
+                <button onClick={()=>setNotifOpen(false)} style={{padding:"5px 10px",borderRadius:7,border:"none",background:"var(--color-bg-hover)",color:"var(--color-text-dim)",fontSize:16,fontWeight:700}}>×</button>
               </div>
             </div>
             <div style={{flex:1,overflowY:"auto"}}>
@@ -3792,7 +3792,7 @@ export default function App(){
             <div style={{fontSize:12,color:"var(--color-text-muted)",marginBottom:20}}>Works when no input is focused</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[["d","Dashboard"],["n","New client"],["k","Focus search"],["b","Notifications"],["?","This help"],["Esc","Close panels"]].map(([key,desc])=>(
-                <div key={key} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+                <div key={key} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid var(--color-border)"}}>
                   <span className="shortcut-key">{key}</span>
                   <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{desc}</span>
                 </div>
