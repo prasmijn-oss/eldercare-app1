@@ -68,7 +68,7 @@ html.cm-light {
   --color-bg-surface:     #ffffff;
   --color-bg-card:        #ffffff;
   --color-bg-hover:       rgba(22,163,74,0.06);
-  --color-bg-active:      #dcfce7;
+  --color-bg-active:      #16a34a;    /* solid green — active nav bg */
   /* Borders */
   --color-border:         #e5e7eb;
   --color-border-strong:  #d1d5db;
@@ -80,7 +80,7 @@ html.cm-light {
   --color-text-muted:     #9ca3af;
   /* Accent — green replaces indigo in light mode */
   --color-accent:         #16a34a;
-  --color-accent-light:   #15803d; /* dark green — readable on #dcfce7 fill (5.7:1 contrast) */
+  --color-accent-light:   #ffffff;  /* white — text on solid green active bg (5.1:1 contrast) */
   --color-success:        #16a34a;
 }
 html.cm-light img, html.cm-light video { filter: none !important; }

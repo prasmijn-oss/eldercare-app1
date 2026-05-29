@@ -3047,7 +3047,7 @@ export default function App(){
             <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"8px 0 4px"}}>Main</div>
             {(()=>{
               const NAV_STYLE=(active)=>({width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid var(--color-border-accent)":"1px solid transparent",background:active?"var(--color-bg-active)":"transparent",color:active?"var(--color-accent-light)":"var(--color-text-secondary)",fontWeight:active?600:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"});
-              const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"var(--color-accent)",borderRadius:"0 3px 3px 0"}}/>;
+              const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"rgba(0,0,0,0.25)",borderRadius:"0 3px 3px 0"}}/>;
               const navBtn=(v,label,icon)=>{
                 const active=view===v&&!selected;
                 return(
@@ -3098,7 +3098,7 @@ export default function App(){
             <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Management</div>
             {(()=>{
               const NAV_STYLE=(active)=>({width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid var(--color-border-accent)":"1px solid transparent",background:active?"var(--color-bg-active)":"transparent",color:active?"var(--color-accent-light)":"var(--color-text-secondary)",fontWeight:active?600:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"});
-              const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"var(--color-accent)",borderRadius:"0 3px 3px 0"}}/>;
+              const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"rgba(0,0,0,0.25)",borderRadius:"0 3px 3px 0"}}/>;
               const navBtn=(v,label,pathD,guard=true)=>{
                 if(!guard)return null;
                 const active=view===v;
@@ -3120,7 +3120,7 @@ export default function App(){
             {/* ADMIN group — only if at least one admin view accessible */}
             {(can(currentUser.role,"company",perms)||can(currentUser.role,"permissions",perms))&&(()=>{
               const NAV_STYLE=(active)=>({width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid var(--color-border-accent)":"1px solid transparent",background:active?"var(--color-bg-active)":"transparent",color:active?"var(--color-accent-light)":"var(--color-text-secondary)",fontWeight:active?600:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"});
-              const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"var(--color-accent)",borderRadius:"0 3px 3px 0"}}/>;
+              const ACCENT_BAR=<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"rgba(0,0,0,0.25)",borderRadius:"0 3px 3px 0"}}/>;
               return(
                 <>
                   <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Admin</div>

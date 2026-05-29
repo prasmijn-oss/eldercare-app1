@@ -207,12 +207,10 @@ export const GCSS = [
   "html.cm-light .nav-group-label { color: #9ca3af !important; }",
   /* All nav items — dark text on white */
   "html.cm-light .nav-item { color: #374151 !important; background: transparent !important; border-color: transparent !important; }",
-  "html.cm-light .nav-item:hover { color: #16a34a !important; background: #dcfce7 !important; }",
-  /* Active nav item — solid green bg + white text, high contrast */
-  "html.cm-light .nav-active { color: #ffffff !important; background: #16a34a !important; border-color: #15803d !important; font-weight: 600 !important; }",
-  "html.cm-light .nav-active > span { background: #15803d !important; }",
-  "html.cm-light .nav-active svg { stroke: #ffffff !important; }",
-  "html.cm-light .nav-active .nav-count-badge { background: rgba(255,255,255,0.25) !important; color: #ffffff !important; border-color: transparent !important; }",
+  "html.cm-light .nav-item:not(.nav-active):hover { color: #16a34a !important; background: #dcfce7 !important; }",
+  /* Active nav item — handled via CSS tokens (--color-bg-active, --color-accent-light) */
+  /* Accent bar and SVG icons in active nav */
+  "html.cm-light .nav-active .nav-count-badge { background: rgba(255,255,255,0.25) !important; }",
   /* Sidebar footer text */
   "html.cm-light .sidebar-footer-name { color: #374151 !important; }",
   "html.cm-light .sidebar-footer-role { color: #9ca3af !important; }",
