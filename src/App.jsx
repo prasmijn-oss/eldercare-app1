@@ -33,7 +33,7 @@ import {
 import { PasswordStrengthMeter, UserManagement } from "./components/UserManagement.jsx";
 import { TiltCard, FlipCard, Dashboard } from "./components/Dashboard.jsx";
 import { AuditTrail } from "./components/AuditTrail.jsx";
-import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist } from "./components/ClinicalComponents.jsx";
+import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker } from "./components/ClinicalComponents.jsx";
 import { PermissionsContext } from "./lib/PermissionsContext.jsx";
 
 function buildNotifications(clients){
@@ -850,6 +850,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
       <Sec icon="📅" title="Appointments & Transport" accent="#06b6d4" defaultOpen={false}><AppointmentLog items={d.appointments||[]} onChange={v=>s("appointments",v)}/></Sec>
       <Sec icon="⚠️" title="Incident Reports" accent="#ef4444" defaultOpen={false}><IncidentReports items={d.incidents||[]} onChange={v=>s("incidents",v)} currentUser={currentUser}/></Sec>
       <Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
+      <Sec icon="💊" title="MAR — Daily Medication Log" accent="#16a34a" defaultOpen={true}><MARTracker marLog={d.mar_log||[]} medications={d.medications||[]} onChange={v=>s("mar_log",v)} currentUser={currentUser}/></Sec>
       <Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
       <Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
       <Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>
@@ -2967,6 +2968,10 @@ export default function App(){
   const medFlagCount=useMemo(()=>clients.filter(c=>{
     const f=getMedFlags(c);return f.polypharmacy||f.highRisk.length>0;
   }).length,[clients]);
+  const missedApptCount=useMemo(()=>{
+    const today=tod();
+    return clients.filter(c=>!c.archived).reduce((s,c)=>s+(c.appointments||[]).filter(a=>a.date&&(a.status==="No-Show"||(a.status==="Scheduled"&&a.date<today))).length,0);
+  },[clients]);
 
   if(!authChecked)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--color-bg-card)",color:"#6366f1",fontSize:18,fontFamily:"serif"}}>Loading...</div>;
   if(!currentUser)return lang?<Login onLogin={setCurrentUser} t={t}/>:<LangPicker onSelect={selectLang}/>;
@@ -3081,6 +3086,17 @@ export default function App(){
                   {recentIncidentCount>0&&<span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"rgba(239,68,68,0.15)",color:"#f87171",borderRadius:5,padding:"1px 6px",fontWeight:700,border:"1px solid rgba(239,68,68,0.2)"}}>{recentIncidentCount}</span>}
                 </button>
               );
+              // Appointments nav
+              const apptActive=view==="appointments";
+              const apptBtn=(
+                <button onClick={()=>{setView("appointments");setSelected(null);setSidebarOpen(false);}}
+                  className={apptActive?"nav-item nav-active":"nav-item"} style={NAV_STYLE(apptActive)}>
+                  {apptActive&&ACCENT_BAR}
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="1.5" y="3" width="12" height="10" rx="1.5"/><path d="M5 3V1.5M10 3V1.5"/><line x1="1.5" y1="7" x2="13.5" y2="7"/></svg>
+                  <span style={{flex:1}}>Appointments</span>
+                  {missedApptCount>0&&<span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"rgba(245,158,11,0.15)",color:"#fbbf24",borderRadius:5,padding:"1px 6px",fontWeight:700,border:"1px solid rgba(245,158,11,0.2)"}}>{missedApptCount}</span>}
+                </button>
+              );
               // Medications nav
               const medActive=view==="medications";
               const medBtn=(
@@ -3092,7 +3108,7 @@ export default function App(){
                   {medFlagCount>0&&<span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"rgba(245,158,11,0.15)",color:"#fbbf24",borderRadius:5,padding:"1px 6px",fontWeight:700,border:"1px solid rgba(245,158,11,0.2)"}}>{medFlagCount}</span>}
                 </button>
               );
-              return <>{dashBtn}{clientsBtn}{incBtn}{medBtn}</>;
+              return <>{dashBtn}{clientsBtn}{incBtn}{apptBtn}{medBtn}</>;
             })()}
             {/* MANAGEMENT group */}
             <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"var(--color-text-muted)",padding:"0 8px",margin:"10px 0 4px"}}>Management</div>
@@ -3386,6 +3402,66 @@ export default function App(){
                       );
                     })}
                   </div>
+                )}
+              </div>
+            );
+          })()}
+          {!loading&&view==="appointments"&&(()=>{
+            const today=tod();
+            const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+            const cutoffStr=cutoff.toISOString().slice(0,10);
+            const allOverdue=clients.filter(c=>!c.archived).flatMap(c=>
+              (c.appointments||[])
+                .filter(a=>a.date&&(a.status==="No-Show"||(a.status==="Scheduled"&&a.date<today)))
+                .map(a=>({...a,clientName:c.name,client:c}))
+            ).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+            const recent30=allOverdue.filter(a=>a.date&&a.date>=cutoffStr);
+            const older=allOverdue.filter(a=>!a.date||a.date<cutoffStr);
+            const renderRow=(a,i)=>(
+              <div key={a.id||i} onClick={()=>{setSelected(a.client);setView("detail");trackRecent(a.client);}}
+                className="dash-row" style={{display:"flex",alignItems:"center",gap:14,padding:"11px 16px",borderRadius:9,cursor:"pointer",border:"1px solid var(--color-border)",marginBottom:6,background:"var(--color-bg-card)"}}>
+                <div style={{width:36,height:36,borderRadius:10,background:a.status==="No-Show"?"rgba(239,68,68,0.12)":"rgba(245,158,11,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>
+                  {a.status==="No-Show"?"🚫":"⏰"}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{a.clientName}</div>
+                  <div style={{fontSize:12,color:"var(--color-text-secondary)",marginTop:1}}>{a.type||"Appointment"}{a.transport?" · Transport: "+a.transport:""}</div>
+                  {a.notes&&<div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.notes}</div>}
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontSize:12,fontFamily:"'DM Mono',monospace",color:a.status==="No-Show"?"#ef4444":"#f59e0b",fontWeight:700}}>{a.status}</div>
+                  <div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:1}}>{a.date}</div>
+                </div>
+              </div>
+            );
+            return(
+              <div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                  <div style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px"}}>Missed Appointments</div>
+                  <div style={{fontSize:12,color:"var(--color-text-muted)",fontFamily:"'DM Mono',monospace"}}>{allOverdue.length} total</div>
+                </div>
+                <div style={{fontSize:13,color:"var(--color-text-dim)",marginBottom:20}}>Overdue (Scheduled past due) and No-Show appointments across all active clients.</div>
+                {allOverdue.length===0?(
+                  <div style={{textAlign:"center",padding:"48px 20px",color:"var(--color-text-muted)"}}>
+                    <div style={{fontSize:40,marginBottom:10}}>✅</div>
+                    <div style={{fontSize:15,fontWeight:600}}>No missed appointments</div>
+                    <div style={{fontSize:13,marginTop:4}}>All appointments are on track.</div>
+                  </div>
+                ):(
+                  <>
+                    {recent30.length>0&&(
+                      <>
+                        <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",textTransform:"uppercase",letterSpacing:"0.6px",marginBottom:8}}>Last 30 days ({recent30.length})</div>
+                        {recent30.map(renderRow)}
+                      </>
+                    )}
+                    {older.length>0&&(
+                      <>
+                        <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",textTransform:"uppercase",letterSpacing:"0.6px",margin:"16px 0 8px"}}>Older ({older.length})</div>
+                        {older.map(renderRow)}
+                      </>
+                    )}
+                  </>
                 )}
               </div>
             );

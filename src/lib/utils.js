@@ -412,6 +412,7 @@ export function toDb(d) {
     cognitive_assessments:  JSON.stringify(d.cognitive_assessments || []),
     continence_logs:        JSON.stringify(d.continence_logs || []),
     nutrition_assessments:  JSON.stringify(d.nutrition_assessments || []),
+    mar_log:                JSON.stringify(d.mar_log || []),
   };
 }
 
@@ -438,6 +439,7 @@ export function fromDb(row) {
     cognitive_assessments: p(row.cognitive_assessments, []),
     continence_logs:       p(row.continence_logs,       []),
     nutrition_assessments: p(row.nutrition_assessments, []),
+    mar_log:               p(row.mar_log,               []),
   };
 }
 

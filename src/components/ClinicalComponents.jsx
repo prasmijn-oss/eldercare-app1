@@ -1077,4 +1077,143 @@ function IntakeChecklist({items,onChange,currentUser}){
   );
 }
 
-export { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist };
+// ─── MAR Tracker ──────────────────────────────────────────────────────────────
+const SLOTS=[
+  {key:"morning",  label:"Morning",  short:"AM",  icon:"🌅"},
+  {key:"afternoon",label:"Afternoon",short:"PM",  icon:"☀️"},
+  {key:"evening",  label:"Evening",  short:"Eve", icon:"🌆"},
+  {key:"night",    label:"Night",    short:"Ngt", icon:"🌙"},
+];
+
+function MARTracker({marLog,medications,onChange,currentUser}){
+  const [date,setDate]=useState(tod());
+
+  const meds=(medications||[]).filter(m=>m.name&&m.name.trim());
+  const activeMeds=meds.filter(m=>SLOTS.some(s=>m.timing&&m.timing[s.key]));
+
+  // Get all entries for selected date
+  const dayEntries=(marLog||[]).filter(e=>e.date===date);
+
+  const getEntry=(medName,slot)=>dayEntries.find(e=>e.medication_name===medName&&e.slot===slot);
+
+  const toggle=(med,slot)=>{
+    const existing=getEntry(med.name,slot);
+    const now=new Date().toISOString();
+    let updated;
+    if(existing&&existing.given){
+      // Un-give
+      updated=(marLog||[]).map(e=>(e.date===date&&e.medication_name===med.name&&e.slot===slot)
+        ?{...e,given:false,given_by:"",given_at:""}:e);
+    } else if(existing){
+      // Mark given
+      updated=(marLog||[]).map(e=>(e.date===date&&e.medication_name===med.name&&e.slot===slot)
+        ?{...e,given:true,given_by:currentUser?.displayName||"",given_at:now}:e);
+    } else {
+      // New entry
+      const entry={id:uid(),date,medication_name:med.name,dosage:med.dosage||"",slot,given:true,given_by:currentUser?.displayName||"",given_at:now,notes:""};
+      updated=[...(marLog||[]),entry];
+    }
+    // Prune entries older than 90 days
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
+    const cutoffStr=cutoff.toISOString().slice(0,10);
+    onChange(updated.filter(e=>e.date>=cutoffStr));
+  };
+
+  const givenCount=dayEntries.filter(e=>e.given).length;
+  const totalSlots=activeMeds.reduce((s,m)=>s+SLOTS.filter(sl=>m.timing&&m.timing[sl.key]).length,0);
+
+  // Navigate dates
+  const changeDate=offset=>{
+    const d=new Date(date+"T00:00:00");
+    d.setDate(d.getDate()+offset);
+    setDate(d.toISOString().slice(0,10));
+  };
+  const isToday=date===tod();
+
+  if(meds.length===0)return(
+    <div style={{textAlign:"center",padding:"32px 20px",color:"var(--color-text-muted)"}}>
+      <div style={{fontSize:32,marginBottom:8}}>💊</div>
+      <div style={{fontSize:14,fontWeight:600}}>No medications on record</div>
+      <div style={{fontSize:12,marginTop:4}}>Add medications first to use the MAR</div>
+    </div>
+  );
+
+  return(
+    <div>
+      {/* Date navigator */}
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+        <button onClick={()=>changeDate(-1)} style={{width:32,height:32,borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-secondary)",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
+        <div style={{flex:1,textAlign:"center"}}>
+          <div style={{fontSize:14,fontWeight:700,color:"var(--color-text-primary)"}}>{new Date(date+"T00:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})}</div>
+          {isToday&&<div style={{fontSize:11,color:"var(--color-accent)",fontWeight:600,fontFamily:"'DM Mono',monospace"}}>TODAY</div>}
+        </div>
+        <button onClick={()=>changeDate(1)} disabled={isToday} style={{width:32,height:32,borderRadius:8,border:"1px solid var(--color-border)",background:isToday?"transparent":"var(--color-bg-hover)",color:isToday?"var(--color-text-muted)":"var(--color-text-secondary)",fontSize:16,cursor:isToday?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",opacity:isToday?0.4:1}}>›</button>
+      </div>
+
+      {/* Progress bar */}
+      {totalSlots>0&&(
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,padding:"10px 14px",background:"var(--color-bg-hover)",borderRadius:9,border:"1px solid var(--color-border)"}}>
+          <div style={{flex:1,height:6,background:"rgba(128,128,128,0.12)",borderRadius:3,overflow:"hidden"}}>
+            <div style={{height:"100%",width:(totalSlots>0?(givenCount/totalSlots)*100:0)+"%",background:givenCount===totalSlots&&totalSlots>0?"#10b981":"var(--color-accent)",borderRadius:3,transition:"width 0.3s"}}/>
+          </div>
+          <span style={{fontSize:12,fontWeight:700,color:givenCount===totalSlots&&totalSlots>0?"#10b981":"var(--color-text-secondary)",whiteSpace:"nowrap",fontFamily:"'DM Mono',monospace"}}>{givenCount}/{totalSlots} given</span>
+        </div>
+      )}
+
+      {/* Medication rows */}
+      {activeMeds.length===0?(
+        <div style={{textAlign:"center",padding:"20px",color:"var(--color-text-muted)",fontSize:13}}>No medications have a scheduled time set. Edit medications and set Morning/Afternoon/Evening/Night.</div>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {activeMeds.map(med=>{
+            const activeSlots=SLOTS.filter(s=>med.timing&&med.timing[s.key]);
+            return(
+              <div key={med.id||med.name} style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:10,overflow:"hidden"}}>
+                {/* Med header */}
+                <div style={{padding:"10px 14px",borderBottom:"1px solid var(--color-border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{med.name}</div>
+                    {(med.dosage||med.frequency)&&<div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:1}}>{[med.dosage,med.frequency].filter(Boolean).join(" · ")}</div>}
+                  </div>
+                  <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)"}}>{activeSlots.length} slot{activeSlots.length!==1?"s":""}/day</div>
+                </div>
+                {/* Slot buttons */}
+                <div style={{display:"flex",gap:8,padding:"10px 14px",flexWrap:"wrap"}}>
+                  {activeSlots.map(slot=>{
+                    const entry=getEntry(med.name,slot.key);
+                    const given=entry?.given;
+                    return(
+                      <button key={slot.key} onClick={()=>toggle(med,slot.key)}
+                        style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"8px 14px",borderRadius:8,border:"2px solid "+(given?"#10b981":"var(--color-border)"),background:given?"rgba(16,185,129,0.1)":"var(--color-bg-hover)",cursor:"pointer",minWidth:70,transition:"all 120ms",touchAction:"manipulation"}}>
+                        <span style={{fontSize:18}}>{slot.icon}</span>
+                        <span style={{fontSize:11,fontWeight:700,color:given?"#10b981":"var(--color-text-secondary)"}}>{slot.short}</span>
+                        {given?(
+                          <div style={{textAlign:"center"}}>
+                            <div style={{fontSize:9,color:"#10b981",fontWeight:600}}>✓ Given</div>
+                            {entry.given_by&&<div style={{fontSize:9,color:"var(--color-text-muted)"}}>{entry.given_by}</div>}
+                            {entry.given_at&&<div style={{fontSize:9,color:"var(--color-text-muted)",fontFamily:"'DM Mono',monospace"}}>{new Date(entry.given_at).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}</div>}
+                          </div>
+                        ):(
+                          <div style={{fontSize:9,color:"var(--color-text-muted)"}}>Tap to give</div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* PRN / unscheduled meds note */}
+      {meds.length>activeMeds.length&&(
+        <div style={{marginTop:12,padding:"8px 12px",borderRadius:8,background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",fontSize:11,color:"var(--color-text-muted)"}}>
+          💊 {meds.length-activeMeds.length} PRN / unscheduled medication{meds.length-activeMeds.length!==1?"s":""} not shown — edit medications to set a schedule.
+        </div>
+      )}
+    </div>
+  );
+}
+
+export { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker };
