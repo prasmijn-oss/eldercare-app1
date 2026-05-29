@@ -3,6 +3,7 @@ import { supabase } from "./supabase.js";
 import {
   COLORS, PLY, HIGH_RISK,
   FALL_RISK_DIAG, FALL_RISK_MEDS,
+  DRUG_INTERACTIONS,
   BRADEN_SUBSCALES,
   ADL_ITEMS, ADL_LEVEL_SCORE,
   DEFAULT_PERMS, DEFAULT_INTAKE_ITEMS,
@@ -167,6 +168,29 @@ export function allergyMedConflicts(c) {
     const mn = m.name.toLowerCase().trim();
     return allergies.some(a => mn.includes(a) || a.includes(mn));
   });
+}
+
+// Returns array of interaction warnings for a new med against existing meds.
+// newMedName: string, existingMeds: [{name:string}]
+export function checkDrugInteractions(newMedName, existingMeds) {
+  if (!newMedName || !newMedName.trim()) return [];
+  const newLower = newMedName.toLowerCase().trim();
+  const existingNames = (existingMeds || [])
+    .filter(m => m.name && m.name.trim())
+    .map(m => m.name.toLowerCase().trim());
+  const hits = [];
+  for (const rule of DRUG_INTERACTIONS) {
+    const newMatchesA = newLower.includes(rule.a);
+    const newMatchesB = newLower.includes(rule.b);
+    if (newMatchesA) {
+      const conflict = existingNames.find(n => n.includes(rule.b));
+      if (conflict) hits.push({ severity: rule.severity, msg: rule.msg, conflictsWith: conflict });
+    } else if (newMatchesB) {
+      const conflict = existingNames.find(n => n.includes(rule.a));
+      if (conflict) hits.push({ severity: rule.severity, msg: rule.msg, conflictsWith: conflict });
+    }
+  }
+  return hits;
 }
 
 export function expiryBadge(d) {

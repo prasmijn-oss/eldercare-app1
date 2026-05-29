@@ -18,7 +18,7 @@ import {
   calcAge, daysUntil, daysSince, daysUntilBirthday,
   initials, avatarColor,
   getMedFlags, calcFallRisk, calcWeightTrend, getMissedAppointments,
-  checkAbnormalVitals, allergyMedConflicts, expiryBadge,
+  checkAbnormalVitals, allergyMedConflicts, checkDrugInteractions, expiryBadge,
   adlScore, adlDepLevel, calcAdlSummary,
   painLevel, calcPainSummary,
   calcWoundSummary,
@@ -233,11 +233,24 @@ function MedList({items,onChange,t}){
   const labs={morning:t.morning,afternoon:t.afternoon,evening:t.evening,night:t.night};
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      {items.map(item=>(
-        <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:12}}>
+      {items.map(item=>{
+        // Check interactions against all OTHER medications
+        const others=items.filter(i=>i.id!==item.id);
+        const interactions=checkDrugInteractions(item.name,others);
+        return(
+        <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid "+(interactions.some(i=>i.severity==="high")?"rgba(239,68,68,0.4)":interactions.length>0?"rgba(245,158,11,0.35)":"var(--color-border)"),borderRadius:10,padding:12}}>
           <div style={{marginBottom:8}}>
             <label style={LBL}>{t.medName}</label>
             <SearchDrop value={item.name} onChange={v=>upd(item.id,"name",v)} options={MEDICATIONS} placeholder={t.searchMed}/>
+            {interactions.map((ix,i)=>(
+              <div key={i} style={{display:"flex",gap:7,alignItems:"flex-start",marginTop:6,padding:"7px 10px",borderRadius:7,background:ix.severity==="high"?"rgba(239,68,68,0.08)":"rgba(245,158,11,0.08)",border:"1px solid "+(ix.severity==="high"?"rgba(239,68,68,0.3)":"rgba(245,158,11,0.3)")}}>
+                <span style={{fontSize:14,flexShrink:0}}>{ix.severity==="high"?"⚠️":"⚡"}</span>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:ix.severity==="high"?"#ef4444":"#f59e0b",marginBottom:1}}>Drug Interaction — {ix.severity==="high"?"HIGH RISK":"Moderate"}</div>
+                  <div style={{fontSize:11,color:"var(--color-text-secondary)",lineHeight:1.5}}>{ix.msg}</div>
+                </div>
+              </div>
+            ))}
           </div>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
             <div><label style={LBL}>{t.dosage}</label><input style={INP} placeholder="e.g. 10mg" value={item.dosage} onChange={e=>upd(item.id,"dosage",e.target.value)}/></div>
@@ -257,9 +270,10 @@ function MedList({items,onChange,t}){
               })}
             </div>
           </div>
-          {items.length>1&&<button style={{...IBTN,marginTop:8}} onClick={()=>rm(item.id)}>x</button>}
+          {items.length>1&&<button style={{...IBTN,marginTop:8}} aria-label="Remove" onClick={()=>rm(item.id)}>x</button>}
         </div>
-      ))}
+        );
+      })}
       <button style={ABTN} onClick={add}>{t.addMed}</button>
     </div>
   );

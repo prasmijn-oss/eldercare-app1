@@ -49,6 +49,53 @@ export const FALL_RISK_MEDS={
   "Insulin Basal":1,"Insulin Rapid":1,"Levodopa":1,"Donepezil":1,"Memantine":1,
 };
 
+// ── Drug Interaction Database ─────────────────────────────────────────────
+// Each entry: { a: keyword, b: keyword, severity: "high"|"moderate", msg: warning }
+// Keyword matching is case-insensitive substring match against medication names.
+export const DRUG_INTERACTIONS = [
+  // Anticoagulants + NSAIDs / antiplatelets
+  { a:"warfarin",      b:"aspirin",       severity:"high",     msg:"Warfarin + Aspirin: Major bleeding risk. Monitor INR closely." },
+  { a:"warfarin",      b:"ibuprofen",     severity:"high",     msg:"Warfarin + Ibuprofen: Significantly increased bleeding risk." },
+  { a:"warfarin",      b:"naproxen",      severity:"high",     msg:"Warfarin + Naproxen: Significantly increased bleeding risk." },
+  { a:"warfarin",      b:"diclofenac",    severity:"high",     msg:"Warfarin + Diclofenac: Major bleeding risk. Avoid combination." },
+  { a:"rivaroxaban",   b:"aspirin",       severity:"high",     msg:"Rivaroxaban + Aspirin: Increased major bleeding risk." },
+  { a:"clopidogrel",   b:"aspirin",       severity:"moderate", msg:"Dual antiplatelet therapy: Increased bleeding risk — ensure this is intentional." },
+  { a:"warfarin",      b:"amiodarone",    severity:"high",     msg:"Warfarin + Amiodarone: Amiodarone markedly increases warfarin effect. Reduce warfarin dose, monitor INR." },
+  { a:"warfarin",      b:"fluconazole",   severity:"high",     msg:"Warfarin + Fluconazole: Strong INR elevation. Reduce warfarin dose." },
+  { a:"warfarin",      b:"metronidazole", severity:"high",     msg:"Warfarin + Metronidazole: Increases anticoagulant effect. Monitor INR." },
+  // Opioids + sedatives
+  { a:"morphine",      b:"diazepam",      severity:"high",     msg:"Opioid + Benzodiazepine: Risk of respiratory depression and sedation. Use caution." },
+  { a:"morphine",      b:"lorazepam",     severity:"high",     msg:"Opioid + Benzodiazepine: Risk of respiratory depression and sedation." },
+  { a:"morphine",      b:"midazolam",     severity:"high",     msg:"Opioid + Benzodiazepine: Risk of respiratory depression and sedation." },
+  { a:"tramadol",      b:"diazepam",      severity:"high",     msg:"Tramadol + Benzodiazepine: Additive CNS depression and fall risk." },
+  { a:"tramadol",      b:"zolpidem",      severity:"moderate", msg:"Tramadol + Zolpidem: Additive sedation and fall risk." },
+  { a:"morphine",      b:"zolpidem",      severity:"moderate", msg:"Opioid + Zolpidem: Additive sedation — monitor closely." },
+  // Cardiac
+  { a:"digoxin",       b:"amiodarone",    severity:"high",     msg:"Digoxin + Amiodarone: Amiodarone increases digoxin levels — reduce digoxin dose by 50%." },
+  { a:"digoxin",       b:"furosemide",    severity:"moderate", msg:"Digoxin + Furosemide: Furosemide-induced hypokalaemia increases digoxin toxicity risk." },
+  { a:"digoxin",       b:"verapamil",     severity:"high",     msg:"Digoxin + Verapamil: Verapamil increases digoxin levels and AV block risk." },
+  { a:"metoprolol",    b:"verapamil",     severity:"high",     msg:"Beta-blocker + Verapamil: Risk of bradycardia, heart block, and cardiac arrest." },
+  { a:"atenolol",      b:"verapamil",     severity:"high",     msg:"Beta-blocker + Verapamil: Risk of bradycardia and AV block." },
+  { a:"metoprolol",    b:"diltiazem",     severity:"moderate", msg:"Beta-blocker + Diltiazem: Additive AV node suppression — monitor heart rate." },
+  // ACE inhibitors / ARBs + potassium
+  { a:"lisinopril",    b:"spironolactone",severity:"moderate", msg:"ACE inhibitor + Spironolactone: Risk of hyperkalaemia. Monitor potassium." },
+  { a:"ramipril",      b:"spironolactone",severity:"moderate", msg:"ACE inhibitor + Spironolactone: Risk of hyperkalaemia. Monitor potassium." },
+  { a:"perindopril",   b:"spironolactone",severity:"moderate", msg:"ACE inhibitor + Spironolactone: Risk of hyperkalaemia. Monitor potassium." },
+  // SSRIs + other serotonergics
+  { a:"sertraline",    b:"tramadol",      severity:"high",     msg:"SSRI + Tramadol: Risk of serotonin syndrome (agitation, hyperthermia, tachycardia)." },
+  { a:"fluoxetine",    b:"tramadol",      severity:"high",     msg:"SSRI + Tramadol: Risk of serotonin syndrome." },
+  { a:"paroxetine",    b:"tramadol",      severity:"high",     msg:"SSRI + Tramadol: Risk of serotonin syndrome." },
+  // Statins + interactions
+  { a:"simvastatin",   b:"amiodarone",    severity:"high",     msg:"Simvastatin + Amiodarone: Increased risk of myopathy/rhabdomyolysis. Limit simvastatin to 20mg." },
+  { a:"simvastatin",   b:"amlodipine",    severity:"moderate", msg:"Simvastatin + Amlodipine: Increased simvastatin exposure — limit dose." },
+  // Metformin + renal/contrast concerns
+  { a:"metformin",     b:"furosemide",    severity:"moderate", msg:"Metformin + Furosemide: Furosemide may increase metformin levels. Monitor renal function." },
+  // NSAIDs + antihypertensives
+  { a:"ibuprofen",     b:"lisinopril",    severity:"moderate", msg:"NSAID + ACE inhibitor: NSAIDs reduce antihypertensive effect and increase renal risk." },
+  { a:"ibuprofen",     b:"furosemide",    severity:"moderate", msg:"NSAID + Furosemide: NSAIDs reduce diuretic effect and may worsen renal function." },
+  { a:"naproxen",      b:"lisinopril",    severity:"moderate", msg:"NSAID + ACE inhibitor: Reduced antihypertensive effect and increased renal risk." },
+];
+
 // ── Braden Scale ───────────────────────────────────────────────────────────
 export const BRADEN_SUBSCALES=[
   {key:"sensory_perception",label:"Sensory Perception",max:4,options:["Completely Limited","Very Limited","Slightly Limited","No Impairment"]},
