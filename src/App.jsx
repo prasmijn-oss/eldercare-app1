@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react";
+﻿import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react";
 import { supabase, supabaseAdmin, SUPABASE_URL } from "./lib/supabase.js";
 import {
   COLORS, PLY, DIAGNOSES, MEDICATIONS, HIGH_RISK,
@@ -33,6 +33,7 @@ import {
 import { PasswordStrengthMeter, UserManagement } from "./components/UserManagement.jsx";
 import { TiltCard, FlipCard, Dashboard } from "./components/Dashboard.jsx";
 import { AuditTrail } from "./components/AuditTrail.jsx";
+import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist } from "./components/ClinicalComponents.jsx";
 
 function buildNotifications(clients){
   const notifs=[];const now=new Date();
@@ -41,58 +42,58 @@ function buildNotifications(clients){
     (c.documents||[]).forEach(d=>{
       if(!d.expiry)return;
       const days=Math.ceil((new Date(d.expiry)-now)/86400000);
-      if(days>=0&&days<=30)notifs.push({id:`doc-${c.id}-${d.id||d.name}`,type:"expiry",urgency:days<=7?"high":"medium",icon:"📄",title:"Document expiring soon",body:`${d.name||"Doc"} for ${c.name} — ${days===0?"today":days+" day"+(days!==1?"s":"")}`,clientId:c.id,clientName:c.name});
-      else if(days<0&&days>=-7)notifs.push({id:`docx-${c.id}-${d.id||d.name}`,type:"expired",urgency:"high",icon:"🚨",title:"Document expired",body:`${d.name||"Doc"} for ${c.name} expired ${Math.abs(days)} day${Math.abs(days)!==1?"s":""} ago`,clientId:c.id,clientName:c.name});
+      if(days>=0&&days<=30)notifs.push({id:`doc-${c.id}-${d.id||d.name}`,type:"expiry",urgency:days<=7?"high":"medium",icon:"ðŸ“„",title:"Document expiring soon",body:`${d.name||"Doc"} for ${c.name} â€” ${days===0?"today":days+" day"+(days!==1?"s":"")}`,clientId:c.id,clientName:c.name});
+      else if(days<0&&days>=-7)notifs.push({id:`docx-${c.id}-${d.id||d.name}`,type:"expired",urgency:"high",icon:"ðŸš¨",title:"Document expired",body:`${d.name||"Doc"} for ${c.name} expired ${Math.abs(days)} day${Math.abs(days)!==1?"s":""} ago`,clientId:c.id,clientName:c.name});
     });
     (c.appointments||[]).filter(a=>a.status==="Scheduled"&&a.date).forEach(a=>{
       const days=Math.ceil((new Date(a.date)-now)/86400000);
-      if(days>=0&&days<=7)notifs.push({id:`apt-${c.id}-${a.id}`,type:"appointment",urgency:days===0?"high":"low",icon:"📅",title:`Appointment ${days===0?"today":"in "+days+" day"+(days!==1?"s":"")}`,body:`${c.name} — ${a.type||"Appointment"}`,clientId:c.id,clientName:c.name});
+      if(days>=0&&days<=7)notifs.push({id:`apt-${c.id}-${a.id}`,type:"appointment",urgency:days===0?"high":"low",icon:"ðŸ“…",title:`Appointment ${days===0?"today":"in "+days+" day"+(days!==1?"s":"")}`,body:`${c.name} â€” ${a.type||"Appointment"}`,clientId:c.id,clientName:c.name});
     });
     const fr=calcFallRisk(c);
-    if(fr.level==="High")notifs.push({id:`fr-${c.id}`,type:"fall_risk",urgency:"medium",icon:"🚶",title:"High fall risk",body:`${c.name} scores ${fr.score} — ${fr.factors.slice(0,2).join(", ")}`,clientId:c.id,clientName:c.name});
+    if(fr.level==="High")notifs.push({id:`fr-${c.id}`,type:"fall_risk",urgency:"medium",icon:"ðŸš¶",title:"High fall risk",body:`${c.name} scores ${fr.score} â€” ${fr.factors.slice(0,2).join(", ")}`,clientId:c.id,clientName:c.name});
     const wt=calcWeightTrend(c.vitals);
-    if(wt)notifs.push({id:`wt-${c.id}`,type:"weight_trend",urgency:wt.severity,icon:wt.direction==="gain"?"⚖️":"📉",title:`Rapid weight ${wt.direction}`,body:`${c.name} — ${wt.amount}kg ${wt.direction} in ${wt.days} day${wt.days!==1?"s":""} (${wt.fromKg}→${wt.toKg} kg)`,clientId:c.id,clientName:c.name});
+    if(wt)notifs.push({id:`wt-${c.id}`,type:"weight_trend",urgency:wt.severity,icon:wt.direction==="gain"?"âš–ï¸":"ðŸ“‰",title:`Rapid weight ${wt.direction}`,body:`${c.name} â€” ${wt.amount}kg ${wt.direction} in ${wt.days} day${wt.days!==1?"s":""} (${wt.fromKg}â†’${wt.toKg} kg)`,clientId:c.id,clientName:c.name});
     const ma=getMissedAppointments(c.appointments);
-    if(ma.pattern)notifs.push({id:`ma-${c.id}`,type:"missed_appt",urgency:"high",icon:"📅",title:"Repeated missed appointments",body:`${c.name} — ${ma.recentMissed.length} missed/overdue in the last 30 days`,clientId:c.id,clientName:c.name});
-    else if(ma.overdue.length>0)notifs.push({id:`ma-${c.id}`,type:"missed_appt",urgency:"medium",icon:"📅",title:"Overdue appointment",body:`${c.name} — ${ma.overdue.length} scheduled appointment${ma.overdue.length!==1?"s":""} past due`,clientId:c.id,clientName:c.name});
+    if(ma.pattern)notifs.push({id:`ma-${c.id}`,type:"missed_appt",urgency:"high",icon:"ðŸ“…",title:"Repeated missed appointments",body:`${c.name} â€” ${ma.recentMissed.length} missed/overdue in the last 30 days`,clientId:c.id,clientName:c.name});
+    else if(ma.overdue.length>0)notifs.push({id:`ma-${c.id}`,type:"missed_appt",urgency:"medium",icon:"ðŸ“…",title:"Overdue appointment",body:`${c.name} â€” ${ma.overdue.length} scheduled appointment${ma.overdue.length!==1?"s":""} past due`,clientId:c.id,clientName:c.name});
     const adl=calcAdlSummary(c.adl_logs);
-    if(adl&&adl.dep.label==="High")notifs.push({id:`adl-${c.id}`,type:"adl",urgency:"medium",icon:"🧍",title:"High ADL dependency",body:`${c.name} — score ${adl.score}/18 (${adl.dep.label})${adl.trend&&adl.trend==="declining"?" · declining":""}`,clientId:c.id,clientName:c.name});
+    if(adl&&adl.dep.label==="High")notifs.push({id:`adl-${c.id}`,type:"adl",urgency:"medium",icon:"ðŸ§",title:"High ADL dependency",body:`${c.name} â€” score ${adl.score}/18 (${adl.dep.label})${adl.trend&&adl.trend==="declining"?" Â· declining":""}`,clientId:c.id,clientName:c.name});
     const pain=calcPainSummary(c.pain_assessments);
     if(pain){
-      if(pain.latestScore>=7)notifs.push({id:`pain-${c.id}`,type:"pain",urgency:"high",icon:"🩹",title:"Severe pain reported",body:`${c.name} — score ${pain.latestScore}/10 (${pain.latest.location||"unspecified location"})`,clientId:c.id,clientName:c.name});
-      else if(pain.persistent)notifs.push({id:`pain-${c.id}`,type:"pain",urgency:"medium",icon:"🩹",title:"Persistent moderate pain",body:`${c.name} — ${pain.recentModerateCount} assessments ≥4/10 in last 7 days`,clientId:c.id,clientName:c.name});
+      if(pain.latestScore>=7)notifs.push({id:`pain-${c.id}`,type:"pain",urgency:"high",icon:"ðŸ©¹",title:"Severe pain reported",body:`${c.name} â€” score ${pain.latestScore}/10 (${pain.latest.location||"unspecified location"})`,clientId:c.id,clientName:c.name});
+      else if(pain.persistent)notifs.push({id:`pain-${c.id}`,type:"pain",urgency:"medium",icon:"ðŸ©¹",title:"Persistent moderate pain",body:`${c.name} â€” ${pain.recentModerateCount} assessments â‰¥4/10 in last 7 days`,clientId:c.id,clientName:c.name});
     }
     const braden=calcBradenSummary(c.braden_assessments);
     if(braden){
-      if(braden.score<=12)notifs.push({id:`braden-${c.id}`,type:"braden",urgency:"high",icon:"🛏",title:`${braden.risk.label} — pressure ulcer`,body:`${c.name} — Braden score ${braden.score}/${BRADEN_MAX} · ${braden.risk.turning}`,clientId:c.id,clientName:c.name});
-      else if(braden.score<=14)notifs.push({id:`braden-${c.id}`,type:"braden",urgency:"medium",icon:"🛏",title:"Moderate pressure ulcer risk",body:`${c.name} — Braden score ${braden.score}/${BRADEN_MAX}`,clientId:c.id,clientName:c.name});
+      if(braden.score<=12)notifs.push({id:`braden-${c.id}`,type:"braden",urgency:"high",icon:"ðŸ›",title:`${braden.risk.label} â€” pressure ulcer`,body:`${c.name} â€” Braden score ${braden.score}/${BRADEN_MAX} Â· ${braden.risk.turning}`,clientId:c.id,clientName:c.name});
+      else if(braden.score<=14)notifs.push({id:`braden-${c.id}`,type:"braden",urgency:"medium",icon:"ðŸ›",title:"Moderate pressure ulcer risk",body:`${c.name} â€” Braden score ${braden.score}/${BRADEN_MAX}`,clientId:c.id,clientName:c.name});
     }
     const ws=calcWoundSummary(c.wound_assessments);
     if(ws){
-      if(ws.deteriorating.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"high",icon:"🩺",title:"Deteriorating wound",body:`${c.name} — ${ws.deteriorating.map(w=>w.site).join(", ")}`,clientId:c.id,clientName:c.name});
-      else if(ws.highStage.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"high",icon:"🩺",title:"Stage III/IV pressure ulcer",body:`${c.name} — ${ws.highStage.map(w=>w.site+(w.stage?" ("+w.stage+")":"")).join(", ")}`,clientId:c.id,clientName:c.name});
-      else if(ws.activeSites.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"low",icon:"🩺",title:`Active wound${ws.activeSites.length!==1?"s":""}`,body:`${c.name} — ${ws.activeSites.length} active site${ws.activeSites.length!==1?"s":""}`,clientId:c.id,clientName:c.name});
+      if(ws.deteriorating.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"high",icon:"ðŸ©º",title:"Deteriorating wound",body:`${c.name} â€” ${ws.deteriorating.map(w=>w.site).join(", ")}`,clientId:c.id,clientName:c.name});
+      else if(ws.highStage.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"high",icon:"ðŸ©º",title:"Stage III/IV pressure ulcer",body:`${c.name} â€” ${ws.highStage.map(w=>w.site+(w.stage?" ("+w.stage+")":"")).join(", ")}`,clientId:c.id,clientName:c.name});
+      else if(ws.activeSites.length>0)notifs.push({id:`wound-${c.id}`,type:"wound",urgency:"low",icon:"ðŸ©º",title:`Active wound${ws.activeSites.length!==1?"s":""}`,body:`${c.name} â€” ${ws.activeSites.length} active site${ws.activeSites.length!==1?"s":""}`,clientId:c.id,clientName:c.name});
     }
     const cog=calcCognitiveSummary(c.cognitive_assessments);
     if(cog){
-      if(cog.level.label==="Severe Impairment")notifs.push({id:`cog-${c.id}`,type:"cognitive",urgency:"high",icon:"🧠",title:"Severe cognitive impairment",body:`${c.name} — ${cog.latest.test_type||"MMSE"} score ${cog.score}/30${cog.trend==="declining"?" · declining":""}`,clientId:c.id,clientName:c.name});
-      else if(cog.level.label==="Moderate Impairment"||cog.trend==="declining")notifs.push({id:`cog-${c.id}`,type:"cognitive",urgency:"medium",icon:"🧠",title:`${cog.level.label==="Moderate Impairment"?"Moderate cognitive impairment":"Declining cognitive score"}`,body:`${c.name} — ${cog.latest.test_type||"MMSE"} score ${cog.score}/30`,clientId:c.id,clientName:c.name});
-      if(cog.dueReassess)notifs.push({id:`cog-due-${c.id}`,type:"cognitive_due",urgency:"low",icon:"🧠",title:"Cognitive reassessment overdue",body:`${c.name} — last screened ${cog.daysSince} days ago`,clientId:c.id,clientName:c.name});
+      if(cog.level.label==="Severe Impairment")notifs.push({id:`cog-${c.id}`,type:"cognitive",urgency:"high",icon:"ðŸ§ ",title:"Severe cognitive impairment",body:`${c.name} â€” ${cog.latest.test_type||"MMSE"} score ${cog.score}/30${cog.trend==="declining"?" Â· declining":""}`,clientId:c.id,clientName:c.name});
+      else if(cog.level.label==="Moderate Impairment"||cog.trend==="declining")notifs.push({id:`cog-${c.id}`,type:"cognitive",urgency:"medium",icon:"ðŸ§ ",title:`${cog.level.label==="Moderate Impairment"?"Moderate cognitive impairment":"Declining cognitive score"}`,body:`${c.name} â€” ${cog.latest.test_type||"MMSE"} score ${cog.score}/30`,clientId:c.id,clientName:c.name});
+      if(cog.dueReassess)notifs.push({id:`cog-due-${c.id}`,type:"cognitive_due",urgency:"low",icon:"ðŸ§ ",title:"Cognitive reassessment overdue",body:`${c.name} â€” last screened ${cog.daysSince} days ago`,clientId:c.id,clientName:c.name});
     }
     const cont=calcContinenceSummary(c.continence_logs);
     if(cont){
-      if(cont.skinIssue)notifs.push({id:`cont-skin-${c.id}`,type:"continence",urgency:"high",icon:"💧",title:"Continence-related skin breakdown",body:`${c.name} — skin integrity issue recorded in last 7 days`,clientId:c.id,clientName:c.name});
-      else if(cont.highFrequency)notifs.push({id:`cont-${c.id}`,type:"continence",urgency:"medium",icon:"💧",title:"High incontinence frequency",body:`${c.name} — avg ${cont.avgPerDay} episodes/day over last 7 days`,clientId:c.id,clientName:c.name});
+      if(cont.skinIssue)notifs.push({id:`cont-skin-${c.id}`,type:"continence",urgency:"high",icon:"ðŸ’§",title:"Continence-related skin breakdown",body:`${c.name} â€” skin integrity issue recorded in last 7 days`,clientId:c.id,clientName:c.name});
+      else if(cont.highFrequency)notifs.push({id:`cont-${c.id}`,type:"continence",urgency:"medium",icon:"ðŸ’§",title:"High incontinence frequency",body:`${c.name} â€” avg ${cont.avgPerDay} episodes/day over last 7 days`,clientId:c.id,clientName:c.name});
     }
     const nutr=calcNutritionSummary(c.nutrition_assessments);
     if(nutr){
-      if(nutr.score>=2)notifs.push({id:`nutr-${c.id}`,type:"nutrition",urgency:"medium",icon:"🥗",title:"High nutritional risk (MUST)",body:`${c.name} — MUST score ${nutr.score} · ${nutr.risk.action}`,clientId:c.id,clientName:c.name});
-      else if(nutr.score===1)notifs.push({id:`nutr-${c.id}`,type:"nutrition",urgency:"low",icon:"🥗",title:"Medium nutritional risk (MUST)",body:`${c.name} — MUST score 1 · ${nutr.risk.action}`,clientId:c.id,clientName:c.name});
+      if(nutr.score>=2)notifs.push({id:`nutr-${c.id}`,type:"nutrition",urgency:"medium",icon:"ðŸ¥—",title:"High nutritional risk (MUST)",body:`${c.name} â€” MUST score ${nutr.score} Â· ${nutr.risk.action}`,clientId:c.id,clientName:c.name});
+      else if(nutr.score===1)notifs.push({id:`nutr-${c.id}`,type:"nutrition",urgency:"low",icon:"ðŸ¥—",title:"Medium nutritional risk (MUST)",body:`${c.name} â€” MUST score 1 Â· ${nutr.risk.action}`,clientId:c.id,clientName:c.name});
     }
     (c.incidents||[]).forEach(inc=>{
       if(!inc.date)return;
       const days=Math.ceil((now-new Date(inc.date))/86400000);
-      if(days<=7)notifs.push({id:`inc-${c.id}-${inc.id}`,type:"incident",urgency:inc.severity==="Severe"?"high":inc.severity==="Moderate"?"medium":"low",icon:"⚠️",title:`${inc.type||"Incident"} reported`,body:`${c.name} — ${inc.severity||""} ${days===0?"today":days===1?"yesterday":days+"d ago"}`,clientId:c.id,clientName:c.name});
+      if(days<=7)notifs.push({id:`inc-${c.id}-${inc.id}`,type:"incident",urgency:inc.severity==="Severe"?"high":inc.severity==="Moderate"?"medium":"low",icon:"âš ï¸",title:`${inc.type||"Incident"} reported`,body:`${c.name} â€” ${inc.severity||""} ${days===0?"today":days===1?"yesterday":days+"d ago"}`,clientId:c.id,clientName:c.name});
     });
   });
   const ord={high:0,medium:1,low:2};
@@ -157,7 +158,7 @@ function ClientPhoto({path,style,alt="",fallback=null}){
   const [src,setSrc]=useState(()=>path?.startsWith("http")?path:null);
   useEffect(()=>{
     if(!path){setSrc(null);return;}
-    if(path.startsWith("http")){setSrc(path);return;} // legacy public URL — use as-is
+    if(path.startsWith("http")){setSrc(path);return;} // legacy public URL â€” use as-is
     let cancelled=false;
     supabase.storage.from("client-photos").createSignedUrl(path,3600)
       .then(({data})=>{if(!cancelled)setSrc(data?.signedUrl||null);});
@@ -177,7 +178,7 @@ function PhotoUp({value,onChange,clientId,t}){
     const path=clientId+"."+ext;
     const {error}=await supabase.storage.from("client-photos").upload(path,file,{upsert:true,contentType:file.type});
     if(error){alert("Upload failed: "+error.message);setLoading(false);return;}
-    // Store only the storage path — display via signed URL (private bucket)
+    // Store only the storage path â€” display via signed URL (private bucket)
     onChange(path);
     setLoading(false);
   };
@@ -417,7 +418,7 @@ function VitalsTracker({vitals,onChange,t}){
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#6366f1"}} onClick={openForm}>{t.logVitals}</button>
       </div>
 
-      {/* ── Weight Trend Alert Banner ── */}
+      {/* â”€â”€ Weight Trend Alert Banner â”€â”€ */}
       {weightTrend&&(()=>{
         const isHigh=weightTrend.severity==="high";
         const ac=isHigh?"#ef4444":"#f59e0b";
@@ -427,14 +428,14 @@ function VitalsTracker({vitals,onChange,t}){
         return(
           <div style={{background:isHigh?"rgba(239,68,68,0.08)":"rgba(245,158,11,0.08)",border:"1px solid "+(isHigh?"rgba(239,68,68,0.35)":"rgba(245,158,11,0.35)"),borderRadius:10,padding:"12px 14px",marginBottom:12}}>
             <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-              <span style={{fontSize:22,lineHeight:1,flexShrink:0}}>{weightTrend.direction==="gain"?"⚖️":"📉"}</span>
+              <span style={{fontSize:22,lineHeight:1,flexShrink:0}}>{weightTrend.direction==="gain"?"âš–ï¸":"ðŸ“‰"}</span>
               <div style={{flex:1}}>
                 <div style={{fontWeight:700,fontSize:13,color:ac,marginBottom:3}}>
-                  {isHigh?"🔴 Alert":"🟡 Monitor"}: Rapid weight {weightTrend.direction} — {weightTrend.amount} kg in {weightTrend.days} day{weightTrend.days!==1?"s":""}
+                  {isHigh?"ðŸ”´ Alert":"ðŸŸ¡ Monitor"}: Rapid weight {weightTrend.direction} â€” {weightTrend.amount} kg in {weightTrend.days} day{weightTrend.days!==1?"s":""}
                 </div>
                 <div style={{fontSize:12,color:"var(--color-text-secondary)",marginBottom:4}}>
                   {weightTrend.fromKg} kg ({new Date(weightTrend.fromDate+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})})
-                  {" → "}
+                  {" â†’ "}
                   {weightTrend.toKg} kg ({new Date(weightTrend.toDate+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})})
                 </div>
                 <div style={{fontSize:11,color:"var(--color-text-dim)",fontStyle:"italic"}}>{rec}</div>
@@ -444,12 +445,12 @@ function VitalsTracker({vitals,onChange,t}){
         );
       })()}
 
-      {/* ── Weight Trend Mini-Chart (shown when ≥2 weight entries exist) ── */}
+      {/* â”€â”€ Weight Trend Mini-Chart (shown when â‰¥2 weight entries exist) â”€â”€ */}
       {weightPts.length>=2&&(
         <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"10px 12px",marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-            <span style={{fontSize:11,fontWeight:700,color:"#10b981",letterSpacing:0.4}}>⚖ WEIGHT TREND</span>
-            <span style={{fontSize:11,color:"var(--color-text-dim)"}}>{weightPts[0].kg} → {weightPts[weightPts.length-1].kg} kg</span>
+            <span style={{fontSize:11,fontWeight:700,color:"#10b981",letterSpacing:0.4}}>âš– WEIGHT TREND</span>
+            <span style={{fontSize:11,color:"var(--color-text-dim)"}}>{weightPts[0].kg} â†’ {weightPts[weightPts.length-1].kg} kg</span>
           </div>
           <VChart data={weightPts.map(p=>p.kg)} color={weightTrend?.severity==="high"?"#ef4444":weightTrend?.severity==="medium"?"#f59e0b":"#10b981"} unit="kg"/>
           <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
@@ -659,7 +660,7 @@ function Inventory({items,onChange,t}){
   );
 }
 
-// ─── Family Contacts ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Family Contacts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const RELATIONSHIPS=["Spouse","Parent","Child","Sibling","Grandchild","Grandparent","Friend","Guardian","Legal Representative","Other"];
 function FamilyContacts({items,onChange}){
   const [expanded,setExpanded]=useState(null);
@@ -676,7 +677,7 @@ function FamilyContacts({items,onChange}){
             <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(item.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(item.name||"?")}</div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontWeight:600,fontSize:13,color:"var(--color-text-primary)"}}>{item.name||"New Contact"}</div>
-              <div style={{fontSize:11,color:"var(--color-text-dim)"}}>{item.relationship}{item.phone?" · "+item.phone:""}</div>
+              <div style={{fontSize:11,color:"var(--color-text-dim)"}}>{item.relationship}{item.phone?" Â· "+item.phone:""}</div>
             </div>
             {item.is_primary&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(99,102,241,0.15)",color:"#a5b4fc"}}>Primary</span>}
             <span style={{color:"var(--color-text-muted)",fontSize:12}}>{expanded===item.id?"^":"v"}</span>
@@ -696,7 +697,7 @@ function FamilyContacts({items,onChange}){
               </div>
               <div><label style={LBL}>Notes</label><input style={INP} value={item.notes} onChange={e=>upd(item.id,"notes",e.target.value)} placeholder="e.g. Available evenings only..."/></div>
               <div style={{display:"flex",gap:8,justifyContent:"space-between",alignItems:"center"}}>
-                {!item.is_primary?<button onClick={()=>setPrimary(item.id)} style={{background:"none",border:"1px solid #6366f1",borderRadius:6,padding:"4px 12px",color:"#6366f1",fontSize:11,fontWeight:700}}>★ Set as Primary</button>:<span style={{fontSize:11,color:"#6366f1",fontWeight:700}}>★ Primary Contact</span>}
+                {!item.is_primary?<button onClick={()=>setPrimary(item.id)} style={{background:"none",border:"1px solid #6366f1",borderRadius:6,padding:"4px 12px",color:"#6366f1",fontSize:11,fontWeight:700}}>â˜… Set as Primary</button>:<span style={{fontSize:11,color:"#6366f1",fontWeight:700}}>â˜… Primary Contact</span>}
                 <button onClick={()=>rm(item.id)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,padding:"4px 12px",color:"#ef4444",fontSize:11,fontWeight:600}}>Remove</button>
               </div>
             </div>
@@ -708,7 +709,7 @@ function FamilyContacts({items,onChange}){
   );
 }
 
-// ─── Appointment Log ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Appointment Log â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const APPT_TYPES=["Doctor Visit","Specialist","Lab / Imaging","Physiotherapy","Dentist","Transport Only","Other"];
 const APPT_STATUSES=["Scheduled","Completed","Cancelled","No-Show"];
 const APPT_STATUS_COLORS={Scheduled:"#6366f1",Completed:"#10b981",Cancelled:"rgba(240,242,250,0.3)","No-Show":"#f59e0b"};
@@ -729,11 +730,11 @@ function AppointmentLog({items,onChange}){
         <span style={{fontSize:13,color:"var(--color-text-dim)"}}>{items.length} appointment{items.length!==1?"s":""}</span>
         <button style={{...ABTN,borderStyle:"solid",borderColor:"#6366f1"}} onClick={openNew}>+ Log Appointment</button>
       </div>
-      {/* ── Missed appointment alert banner ── */}
+      {/* â”€â”€ Missed appointment alert banner â”€â”€ */}
       {(ma.pattern||ma.overdue.length>0||ma.noShows.length>0)&&(
         <div style={{background:ma.pattern?"rgba(239,68,68,0.08)":"rgba(245,158,11,0.07)",border:"1px solid "+(ma.pattern?"rgba(239,68,68,0.35)":"rgba(245,158,11,0.35)"),borderRadius:10,padding:"10px 14px",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:ma.pattern||ma.overdue.length>0?6:0}}>
-            <span style={{fontSize:15}}>{ma.pattern?"🚨":"⚠️"}</span>
+            <span style={{fontSize:15}}>{ma.pattern?"ðŸš¨":"âš ï¸"}</span>
             <span style={{fontWeight:700,fontSize:13,color:ma.pattern?"#f87171":"#fbbf24"}}>
               {ma.pattern?"Repeated missed appointment pattern detected":"Appointment follow-up required"}
             </span>
@@ -741,7 +742,7 @@ function AppointmentLog({items,onChange}){
           <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
             {ma.noShows.length>0&&<span style={{fontSize:12,color:"#f87171",fontWeight:600}}>No-Shows: {ma.noShows.length}</span>}
             {ma.overdue.length>0&&<span style={{fontSize:12,color:"#fbbf24",fontWeight:600}}>Overdue (still Scheduled): {ma.overdue.length}</span>}
-            {ma.pattern&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{ma.recentMissed.length} missed / overdue in last 30 days — update status or reschedule</span>}
+            {ma.pattern&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{ma.recentMissed.length} missed / overdue in last 30 days â€” update status or reschedule</span>}
           </div>
         </div>
       )}
@@ -796,10 +797,10 @@ function AppointmentLog({items,onChange}){
                 </div>
               </div>
               <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                <span style={{fontSize:12,color:"var(--color-text-dim)"}}>📋 {item.type}</span>
-                {item.provider&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>👨‍⚕️ {item.provider}</span>}
-                {item.location&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>📍 {item.location}</span>}
-                {item.transport_needed&&<span style={{fontSize:11,fontWeight:600,color:"#f59e0b"}}>🚗 {item.transport_type}</span>}
+                <span style={{fontSize:12,color:"var(--color-text-dim)"}}>ðŸ“‹ {item.type}</span>
+                {item.provider&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>ðŸ‘¨â€âš•ï¸ {item.provider}</span>}
+                {item.location&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>ðŸ“ {item.location}</span>}
+                {item.transport_needed&&<span style={{fontSize:11,fontWeight:600,color:"#f59e0b"}}>ðŸš— {item.transport_type}</span>}
               </div>
               {item.notes&&<div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:4,fontStyle:"italic"}}>{item.notes}</div>}
             </div>
@@ -810,1109 +811,6 @@ function AppointmentLog({items,onChange}){
   );
 }
 
-// ─── Pain Assessment ──────────────────────────────────────────────────────────
-const PAIN_CHARACTERS=["Sharp","Dull","Burning","Aching","Throbbing","Stabbing","Cramping","Pressure"];
-const PAIN_DURATIONS=["Constant","Intermittent","On movement","At rest","Breakthrough"];
-const PAIN_EFFECTIVENESS=["None","Partial","Full"];
-const FACES_SCORES=[{score:0,emoji:"😊",label:"No pain"},{score:2,emoji:"🙂",label:"Mild"},{score:4,emoji:"😐",label:"Moderate"},{score:6,emoji:"😟",label:"Some severe"},{score:8,emoji:"😣",label:"Very severe"},{score:10,emoji:"😭",label:"Worst pain"}];
-
-function PainAssessment({items,onChange}){
-  const [showForm,setShowForm]=useState(false);
-  const [entry,setEntry]=useState(null);
-  const [scaleMode,setScaleMode]=useState("numeric"); // "numeric" | "faces"
-  const blank=()=>({id:uid(),date:tod(),time:"",recorded_by:"",scale:"numeric",score:0,location:"",character:"",duration:"",intervention:"",effectiveness:"",notes:""});
-  const openNew=()=>{const b=blank();setEntry(b);setScaleMode("numeric");setShowForm(true);};
-  const openEdit=row=>{setEntry({...row});setScaleMode(row.scale||"numeric");setShowForm(true);};
-  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),{...entry,scale:scaleMode}].sort((a,b)=>b.date.localeCompare(a.date)||(b.time||"").localeCompare(a.time||"")));setShowForm(false);setEntry(null);};
-  const rm=id=>onChange(items.filter(i=>i.id!==id));
-  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date)||(b.time||"").localeCompare(a.time||""));
-  const summary=calcPainSummary(items);
-
-  return(
-    <div>
-      {/* Latest summary */}
-      {summary&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-          <span style={{fontSize:22}}>{summary.latestScore>=7?"😣":summary.latestScore>=4?"😐":"😊"}</span>
-          <div>
-            <span style={{fontWeight:700,fontSize:13,color:summary.level.color}}>{summary.level.label} pain — {summary.latestScore}/10</span>
-            {summary.latest.location&&<span style={{fontSize:12,color:"var(--color-text-dim)",marginLeft:8}}>📍 {summary.latest.location}</span>}
-          </div>
-          {summary.persistent&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>⚠ Persistent ({summary.recentModerateCount}x this week)</span>}
-          <span style={{fontSize:12,color:"var(--color-text-muted)",marginLeft:"auto"}}>{new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
-        </div>
-      )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"var(--color-text-dim)"}}>{items.length} assessment{items.length!==1?"s":""}</span>
-        <button style={{...ABTN,borderStyle:"solid",borderColor:"#f59e0b",color:"#f59e0b"}} onClick={openNew}>+ Log Pain Assessment</button>
-      </div>
-      {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #f59e0b",borderRadius:10,padding:14,marginBottom:12}}>
-          {/* Date / time / recorded by */}
-          <div className="three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
-            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
-            <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
-            <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
-          </div>
-          {/* Scale toggle */}
-          <div style={{marginBottom:12}}>
-            <label style={LBL}>Pain Scale</label>
-            <div style={{display:"flex",gap:6,marginBottom:10}}>
-              {["numeric","faces"].map(m=>(
-                <button key={m} onClick={()=>setScaleMode(m)} style={{padding:"5px 14px",borderRadius:6,border:"1px solid "+(scaleMode===m?"#f59e0b":"rgba(255,255,255,0.1)"),background:scaleMode===m?"rgba(245,158,11,0.15)":"transparent",color:scaleMode===m?"#f59e0b":"rgba(240,242,250,0.3)",fontSize:12,fontWeight:600,cursor:"pointer",textTransform:"capitalize"}}>{m==="numeric"?"Numeric (0-10)":"FACES Scale"}</button>
-              ))}
-            </div>
-            {scaleMode==="numeric"?(
-              <div>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--color-text-dim)",marginBottom:4}}><span>No pain (0)</span><span>Worst pain (10)</span></div>
-                <input type="range" min={0} max={10} step={1} value={entry.score??0} onChange={e=>setEntry(v=>({...v,score:Number(e.target.value)}))} style={{width:"100%",accentColor:painLevel(entry.score??0).color}}/>
-                <div style={{textAlign:"center",marginTop:6}}>
-                  <span style={{fontWeight:800,fontSize:22,color:painLevel(entry.score??0).color}}>{entry.score??0}</span>
-                  <span style={{fontSize:12,color:painLevel(entry.score??0).color,marginLeft:6}}>{painLevel(entry.score??0).label}</span>
-                </div>
-              </div>
-            ):(
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {FACES_SCORES.map(f=>(
-                  <button key={f.score} onClick={()=>setEntry(v=>({...v,score:f.score}))} style={{flex:"1 1 60px",padding:"8px 4px",borderRadius:8,border:"2px solid "+(entry.score===f.score?painLevel(f.score).color:"rgba(255,255,255,0.1)"),background:entry.score===f.score?painLevel(f.score).color+"20":"transparent",cursor:"pointer",textAlign:"center"}}>
-                    <div style={{fontSize:24}}>{f.emoji}</div>
-                    <div style={{fontSize:10,color:"var(--color-text-dim)",marginTop:2}}>{f.label}</div>
-                    <div style={{fontSize:11,fontWeight:700,color:painLevel(f.score).color}}>{f.score}/10</div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          {/* Location & character */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Location</label><input style={INP} value={entry.location} onChange={e=>setEntry(v=>({...v,location:e.target.value}))} placeholder="e.g. Lower back, right hip..."/></div>
-            <div><label style={LBL}>Duration / Pattern</label>
-              <select style={{...INP,cursor:"pointer"}} value={entry.duration} onChange={e=>setEntry(v=>({...v,duration:e.target.value}))}>
-                <option value="">Select...</option>
-                {PAIN_DURATIONS.map(d=><option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-          </div>
-          {/* Character chips */}
-          <div style={{marginBottom:10}}>
-            <label style={LBL}>Character</label>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              {PAIN_CHARACTERS.map(ch=>(
-                <button key={ch} onClick={()=>setEntry(v=>({...v,character:v.character===ch?"":ch}))} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.character===ch?"#f59e0b":"rgba(255,255,255,0.1)"),background:entry.character===ch?"rgba(245,158,11,0.15)":"transparent",color:entry.character===ch?"#f59e0b":"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>{ch}</button>
-              ))}
-            </div>
-          </div>
-          {/* Intervention & effectiveness */}
-          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Intervention / Treatment</label><input style={INP} value={entry.intervention} onChange={e=>setEntry(v=>({...v,intervention:e.target.value}))} placeholder="e.g. Paracetamol 500mg, repositioning..."/></div>
-            <div><label style={LBL}>Effectiveness</label>
-              <select style={{...INP,cursor:"pointer"}} value={entry.effectiveness} onChange={e=>setEntry(v=>({...v,effectiveness:e.target.value}))}>
-                <option value="">N/A</option>
-                {PAIN_EFFECTIVENESS.map(e=><option key={e} value={e}>{e}</option>)}
-              </select>
-            </div>
-          </div>
-          <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...INP,height:52,resize:"vertical"}} value={entry.notes} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Additional observations..."/></div>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
-            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#f59e0b",color:"#000",fontWeight:600}} onClick={save}>Save</button>
-          </div>
-        </div>
-      )}
-      {sorted.length===0&&!showForm&&<div style={{color:"var(--color-text-muted)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No pain assessments logged yet</div>}
-      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-        {sorted.map(row=>{
-          const sc=Number(row.score??0);
-          const lv=painLevel(sc);
-          return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}{row.time&&" "+row.time}</span>
-                  <span style={{fontSize:22,lineHeight:1}}>{sc>=7?"😣":sc>=4?"😐":"😊"}</span>
-                  <span style={{fontSize:12,fontWeight:800,color:lv.color}}>{sc}/10</span>
-                  <span style={{fontSize:11,fontWeight:700,padding:"1px 7px",borderRadius:20,background:lv.color+"20",color:lv.color}}>{lv.label}</span>
-                </div>
-                <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#f59e0b",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"var(--color-text-muted)",fontSize:12}}>x</button>
-                </div>
-              </div>
-              <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                {row.location&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>📍 {row.location}</span>}
-                {row.character&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>〰 {row.character}</span>}
-                {row.duration&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>⏱ {row.duration}</span>}
-              </div>
-              {row.intervention&&<div style={{fontSize:12,color:"var(--color-text-dim)",marginTop:4}}>Tx: {row.intervention}{row.effectiveness&&<span style={{marginLeft:6,fontSize:11,fontWeight:600,color:row.effectiveness==="Full"?"#10b981":row.effectiveness==="Partial"?"#f59e0b":"#ef4444"}}>({row.effectiveness} relief)</span>}</div>}
-              {row.recorded_by&&<div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:2}}>By: {row.recorded_by}</div>}
-              {row.notes&&<div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Braden Scale ────────────────────────────────────────────────────────────
-function BradenScale({items,onChange}){
-  const [showForm,setShowForm]=useState(false);
-  const [entry,setEntry]=useState(null);
-  const blank=()=>{
-    const e={id:uid(),date:tod(),recorded_by:"",turning_schedule:"",notes:""};
-    BRADEN_SUBSCALES.forEach(sub=>{e[sub.key]=sub.max;});
-    return e;
-  };
-  const openNew=()=>{setEntry(blank());setShowForm(true);};
-  const openEdit=row=>{setEntry({...row});setShowForm(true);};
-  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
-  const rm=id=>onChange(items.filter(i=>i.id!==id));
-  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
-  const summary=calcBradenSummary(items);
-  const liveScore=entry?bradenScore(entry):null;
-  const liveRisk=liveScore!=null?bradenRisk(liveScore):null;
-
-  // Score bar fill: score/23 but lower is worse, so invert for visual
-  const scoreBar=s=>Math.round((s/BRADEN_MAX)*100);
-
-  return(
-    <div>
-      {/* Latest summary */}
-      {summary&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
-            <span style={{fontWeight:800,fontSize:22,color:summary.risk.color}}>{summary.score}</span>
-            <div>
-              <div style={{fontWeight:700,fontSize:13,color:summary.risk.color}}>{summary.risk.label}</div>
-              <div style={{fontSize:11,color:"var(--color-text-dim)"}}>Score {summary.score}/{BRADEN_MAX} · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
-            </div>
-            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"rgba(240,242,250,0.3)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
-          </div>
-          {/* Score bar */}
-          <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",marginBottom:6}}>
-            <div style={{height:"100%",width:scoreBar(summary.score)+"%",background:summary.risk.color,borderRadius:3,transition:"width 0.3s"}}/>
-          </div>
-          <div style={{fontSize:11,color:"var(--color-text-muted)"}}>🔄 Recommended repositioning: <strong style={{color:"var(--color-text-secondary)"}}>{summary.latest.turning_schedule||summary.risk.turning}</strong></div>
-          {/* Subscale mini-badges */}
-          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
-            {BRADEN_SUBSCALES.map(sub=>{
-              const val=Number(summary.latest[sub.key]??sub.max);
-              const pct=val/sub.max;
-              const col=pct<=0.25?"#ef4444":pct<=0.5?"#f59e0b":pct<=0.75?"#06b6d4":"#10b981";
-              return<span key={sub.key} style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10,background:col+"18",color:col,border:"1px solid "+col+"35"}}>{sub.label.split(" ")[0]} {val}/{sub.max}</span>;
-            })}
-          </div>
-        </div>
-      )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"var(--color-text-dim)"}}>{items.length} assessment{items.length!==1?"s":""}</span>
-        <button style={{...ABTN,borderStyle:"solid",borderColor:"#8b5cf6",color:"#8b5cf6"}} onClick={openNew}>+ Log Braden Assessment</button>
-      </div>
-      {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #8b5cf6",borderRadius:10,padding:14,marginBottom:12}}>
-          {/* Live score header */}
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
-            <span style={{fontWeight:800,fontSize:26,color:liveRisk.color}}>{liveScore}</span>
-            <div>
-              <div style={{fontWeight:700,fontSize:13,color:liveRisk.color}}>{liveRisk.label}</div>
-              <div style={{fontSize:11,color:"var(--color-text-dim)"}}>of {BRADEN_MAX} · updates as you score</div>
-            </div>
-            <div style={{flex:1,height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
-              <div style={{height:"100%",width:scoreBar(liveScore)+"%",background:liveRisk.color,borderRadius:3,transition:"width 0.2s"}}/>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
-            <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
-          </div>
-          {/* Subscale scoring */}
-          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:12}}>
-            {BRADEN_SUBSCALES.map(sub=>{
-              const val=Number(entry[sub.key]??sub.max);
-              return(
-                <div key={sub.key}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                    <label style={{...LBL,marginBottom:0}}>{sub.label}</label>
-                    <span style={{fontSize:11,fontWeight:700,color:(val/sub.max)<=0.25?"#ef4444":(val/sub.max)<=0.5?"#f59e0b":(val/sub.max)<=0.75?"#06b6d4":"#10b981"}}>{val}/{sub.max}</span>
-                  </div>
-                  <div style={{display:"flex",gap:4}}>
-                    {sub.options.map((opt,idx)=>{
-                      const score=idx+1;
-                      const active=val===score;
-                      const col=score/sub.max<=0.25?"#ef4444":score/sub.max<=0.5?"#f59e0b":score/sub.max<=0.75?"#06b6d4":"#10b981";
-                      return(
-                        <button key={score} onClick={()=>setEntry(v=>({...v,[sub.key]:score}))}
-                          title={opt}
-                          style={{flex:1,padding:"6px 4px",borderRadius:6,border:"1px solid "+(active?col:"rgba(255,255,255,0.1)"),background:active?col+"25":"transparent",color:active?col:"var(--color-text-muted)",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center",lineHeight:1.2}}>
-                          <div style={{fontWeight:700,fontSize:13}}>{score}</div>
-                          <div style={{fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Turning Schedule</label><input style={INP} value={entry.turning_schedule} onChange={e=>setEntry(v=>({...v,turning_schedule:e.target.value}))} placeholder={liveRisk.turning}/></div>
-            <div><label style={LBL}>Notes</label><input style={INP} value={entry.notes} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Additional observations..."/></div>
-          </div>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
-            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#8b5cf6",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
-          </div>
-        </div>
-      )}
-      {sorted.length===0&&!showForm&&<div style={{color:"var(--color-text-muted)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No Braden assessments logged yet</div>}
-      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-        {sorted.map(row=>{
-          const sc=bradenScore(row);
-          const rk=bradenRisk(sc);
-          return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
-                  <span style={{fontWeight:800,fontSize:15,color:rk.color}}>{sc}</span>
-                  <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:rk.color+"20",color:rk.color}}>{rk.label}</span>
-                </div>
-                <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#8b5cf6",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"var(--color-text-muted)",fontSize:12}}>x</button>
-                </div>
-              </div>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:4}}>
-                {BRADEN_SUBSCALES.map(sub=>{
-                  const val=Number(row[sub.key]??sub.max);
-                  const col=val/sub.max<=0.25?"#ef4444":val/sub.max<=0.5?"#f59e0b":val/sub.max<=0.75?"#06b6d4":"#10b981";
-                  return<span key={sub.key} style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:10,background:col+"18",color:col}}>{sub.label.split(" ")[0]} {val}</span>;
-                })}
-              </div>
-              <div style={{fontSize:11,color:"var(--color-text-muted)"}}>🔄 {row.turning_schedule||rk.turning}{row.recorded_by&&" · By: "+row.recorded_by}</div>
-              {row.notes&&<div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Cognitive Screening (MMSE / MoCA) ───────────────────────────────────────
-function CognitiveScreening({items,onChange}){
-  const [showForm,setShowForm]=useState(false);
-  const [entry,setEntry]=useState(null);
-  const [showDomains,setShowDomains]=useState(false);
-  const blank=()=>({id:uid(),date:tod(),test_type:"MMSE",score:30,administered_by:"",notes:"",next_due:"",domains:{}});
-  const openNew=()=>{setEntry(blank());setShowForm(true);};
-  const openEdit=row=>{setEntry({...row,domains:row.domains||{}});setShowForm(true);};
-  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
-  const rm=id=>onChange(items.filter(i=>i.id!==id));
-  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
-  const summary=calcCognitiveSummary(items);
-  const liveLevel=entry?cognitiveLevel(entry.test_type||"MMSE",entry.score??30):null;
-
-  return(
-    <div>
-      {/* Summary card */}
-      {summary&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
-            <span style={{fontWeight:800,fontSize:22,color:summary.level.color}}>{summary.score}</span>
-            <div>
-              <div style={{fontWeight:700,fontSize:13,color:summary.level.color}}>{summary.level.label}</div>
-              <div style={{fontSize:11,color:"var(--color-text-dim)"}}>{summary.latest.test_type||"MMSE"} · Score {summary.score}/30 · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
-            </div>
-            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="declining"?"#ef4444":"rgba(240,242,250,0.3)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="declining"?"↓ Declining":"→ Stable"}</span>}
-          </div>
-          <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",marginBottom:6}}>
-            <div style={{height:"100%",width:Math.round((summary.score/30)*100)+"%",background:summary.level.color,borderRadius:3,transition:"width 0.3s"}}/>
-          </div>
-          {summary.dueReassess&&<div style={{fontSize:11,background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:6,padding:"4px 10px",color:"#f59e0b",marginTop:6}}>⚠️ Reassessment overdue — last screening was {summary.daysSince} days ago</div>}
-          {summary.latest.next_due&&<div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:4}}>📅 Next due: {new Date(summary.latest.next_due+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
-        </div>
-      )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"var(--color-text-dim)"}}>{items.length} screening{items.length!==1?"s":""}</span>
-        <button style={{...ABTN,borderStyle:"solid",borderColor:"#a78bfa",color:"#a78bfa"}} onClick={openNew}>+ Log Screening</button>
-      </div>
-      {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #a78bfa",borderRadius:10,padding:14,marginBottom:12}}>
-          {/* Live score header */}
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
-            <span style={{fontWeight:800,fontSize:26,color:liveLevel.color}}>{entry.score??30}</span>
-            <div>
-              <div style={{fontWeight:700,fontSize:13,color:liveLevel.color}}>{liveLevel.label}</div>
-              <div style={{fontSize:11,color:"var(--color-text-dim)"}}>{entry.test_type||"MMSE"} · out of 30</div>
-            </div>
-            <div style={{flex:1,height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
-              <div style={{height:"100%",width:Math.round((Number(entry.score??30)/30)*100)+"%",background:liveLevel.color,borderRadius:3,transition:"width 0.2s"}}/>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Test Type</label>
-              <select style={INP} value={entry.test_type||"MMSE"} onChange={e=>setEntry(v=>({...v,test_type:e.target.value}))}>
-                <option>MMSE</option><option>MoCA</option><option>Other</option>
-              </select>
-            </div>
-            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
-          </div>
-          {/* Score slider + number */}
-          <div style={{marginBottom:10}}>
-            <label style={LBL}>Total Score (0–30)</label>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <input type="range" min={0} max={30} value={entry.score??30} onChange={e=>setEntry(v=>({...v,score:Number(e.target.value)}))} style={{flex:1,accentColor:liveLevel.color}}/>
-              <input type="number" min={0} max={30} value={entry.score??30} onChange={e=>setEntry(v=>({...v,score:Math.min(30,Math.max(0,Number(e.target.value)))}))} style={{...INP,width:64,textAlign:"center"}}/>
-            </div>
-            {/* Cutoff guide */}
-            <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
-              {(entry.test_type==="MoCA"
-                ?[{s:26,l:"Normal",c:"#10b981"},{s:18,l:"Mild",c:"#f59e0b"},{s:10,l:"Moderate",c:"#ef4444"},{s:0,l:"Severe",c:"#dc2626"}]
-                :[{s:25,l:"Normal",c:"#10b981"},{s:20,l:"Mild",c:"#f59e0b"},{s:10,l:"Moderate",c:"#ef4444"},{s:0,l:"Severe",c:"#dc2626"}]
-              ).map(tier=>(
-                <span key={tier.s} style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:tier.c+"15",color:tier.c,border:"1px solid "+tier.c+"30"}}>≥{tier.s} {tier.l}</span>
-              ))}
-            </div>
-          </div>
-          {/* MMSE domain breakdown (optional) */}
-          {entry.test_type==="MMSE"&&(
-            <div style={{marginBottom:10}}>
-              <button type="button" onClick={()=>setShowDomains(v=>!v)} style={{background:"none",border:"none",color:"var(--color-text-secondary)",fontSize:12,cursor:"pointer",padding:0}}>
-                {showDomains?"▾":"▸"} Domain breakdown (optional)
-              </button>
-              {showDomains&&(
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:8}}>
-                  {MMSE_DOMAINS.map(dom=>(
-                    <div key={dom.key}>
-                      <label style={LBL}>{dom.label} (0–{dom.max})</label>
-                      <input type="number" min={0} max={dom.max} value={entry.domains?.[dom.key]??""} onChange={e=>setEntry(v=>({...v,domains:{...v.domains,[dom.key]:Math.min(dom.max,Math.max(0,Number(e.target.value)))}}))} style={INP} placeholder="–"/>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Administered By</label><input style={INP} value={entry.administered_by||""} onChange={e=>setEntry(v=>({...v,administered_by:e.target.value}))} placeholder="Staff name..."/></div>
-            <div><label style={LBL}>Next Reassessment Due</label><input type="date" style={INP} value={entry.next_due||""} onChange={e=>setEntry(v=>({...v,next_due:e.target.value}))}/></div>
-          </div>
-          <div style={{marginBottom:10}}>
-            <label style={LBL}>Notes / Observations</label>
-            <textarea style={{...INP,height:60,resize:"vertical"}} value={entry.notes||""} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Behaviour during screening, context, follow-up recommendations..."/>
-          </div>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
-            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#8b5cf6",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
-          </div>
-        </div>
-      )}
-      {sorted.length===0&&!showForm&&<div style={{color:"var(--color-text-muted)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No cognitive screenings logged yet</div>}
-      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-        {sorted.map(row=>{
-          const lv=cognitiveLevel(row.test_type||"MMSE",row.score);
-          return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+lv.color}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
-                  <span style={{fontSize:11,padding:"1px 8px",borderRadius:10,background:lv.color+"18",color:lv.color,fontWeight:700}}>{row.test_type||"MMSE"}</span>
-                </div>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:800,fontSize:17,color:lv.color}}>{row.score}<span style={{fontSize:11,fontWeight:400,color:"var(--color-text-muted)"}}>/30</span></span>
-                  <span style={{fontSize:11,color:lv.color,fontWeight:600}}>{lv.label}</span>
-                  <button onClick={()=>openEdit(row)} style={{...IBTN}}>✏️</button>
-                  <button onClick={()=>rm(row.id)} style={{...IBTN}}>🗑</button>
-                </div>
-              </div>
-              {row.administered_by&&<div style={{fontSize:11,color:"var(--color-text-muted)"}}>By: {row.administered_by}</div>}
-              {row.notes&&<div style={{fontSize:12,color:"var(--color-text-dim)",marginTop:3,fontStyle:"italic"}}>{row.notes}</div>}
-              {row.next_due&&<div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:2}}>📅 Next due: {new Date(row.next_due+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>}
-              {/* MMSE domain mini-badges */}
-              {row.test_type==="MMSE"&&row.domains&&Object.keys(row.domains).length>0&&(
-                <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:6}}>
-                  {MMSE_DOMAINS.filter(d=>row.domains[d.key]!==undefined).map(d=>{
-                    const v=Number(row.domains[d.key]);
-                    const pct=v/d.max;
-                    const col=pct<0.5?"#ef4444":pct<0.75?"#f59e0b":"#10b981";
-                    return<span key={d.key} style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:col+"18",color:col,border:"1px solid "+col+"35"}}>{d.label.split(" ")[0]} {v}/{d.max}</span>;
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Continence Monitoring ────────────────────────────────────────────────────
-function ContinenceLog({items,onChange}){
-  const [showForm,setShowForm]=useState(false);
-  const [entry,setEntry]=useState(null);
-  const blank=()=>({id:uid(),date:tod(),time:new Date().toTimeString().slice(0,5),type:"Urinary Urgency",product_used:"Pad",volume:"Medium",skin_condition:"Intact",notes:""});
-  const openNew=()=>{setEntry(blank());setShowForm(true);};
-  const openEdit=row=>{setEntry({...row});setShowForm(true);};
-  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)||(b.time||"").localeCompare(a.time||"")));setShowForm(false);setEntry(null);};
-  const rm=id=>onChange(items.filter(i=>i.id!==id));
-  const summary=calcContinenceSummary(items);
-  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date)||(b.time||"").localeCompare(a.time||""));
-
-  return(
-    <div>
-      {/* Summary strip */}
-      {summary&&summary.recentCount>0&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
-          <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"center"}}>
-            <div style={{textAlign:"center"}}>
-              <div style={{fontWeight:800,fontSize:22,color:summary.highFrequency?"#ef4444":"#06b6d4"}}>{summary.avgPerDay}</div>
-              <div style={{fontSize:10,color:"var(--color-text-dim)"}}>avg/day (7d)</div>
-            </div>
-            <div style={{textAlign:"center"}}>
-              <div style={{fontWeight:700,fontSize:16,color:"var(--color-text-secondary)"}}>{summary.recentCount}</div>
-              <div style={{fontSize:10,color:"var(--color-text-dim)"}}>episodes (7d)</div>
-            </div>
-            {summary.mostCommonType&&<div style={{flex:1}}>
-              <div style={{fontSize:11,color:"var(--color-text-dim)"}}>Most common</div>
-              <div style={{fontWeight:600,fontSize:12,color:"var(--color-text-secondary)"}}>{summary.mostCommonType}</div>
-            </div>}
-            {summary.skinIssue&&<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.3)"}}>⚠️ Skin breakdown</span>}
-            {summary.highFrequency&&!summary.skinIssue&&<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.3)"}}>High frequency</span>}
-          </div>
-        </div>
-      )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"var(--color-text-dim)"}}>{items.length} episode{items.length!==1?"s":""} logged</span>
-        <button style={{...ABTN,borderStyle:"solid",borderColor:"#06b6d4",color:"#06b6d4"}} onClick={openNew}>+ Log Episode</button>
-      </div>
-      {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
-            <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time||""} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Type</label>
-              <select style={INP} value={entry.type||""} onChange={e=>setEntry(v=>({...v,type:e.target.value}))}>
-                {CONTINENCE_TYPES.map(t=><option key={t}>{t}</option>)}
-              </select>
-            </div>
-            <div><label style={LBL}>Volume</label>
-              <select style={INP} value={entry.volume||""} onChange={e=>setEntry(v=>({...v,volume:e.target.value}))}>
-                {CONTINENCE_VOLUME.map(t=><option key={t}>{t}</option>)}
-              </select>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Product Used</label>
-              <select style={INP} value={entry.product_used||""} onChange={e=>setEntry(v=>({...v,product_used:e.target.value}))}>
-                {CONTINENCE_PRODUCTS.map(t=><option key={t}>{t}</option>)}
-              </select>
-            </div>
-            <div><label style={LBL}>Skin Condition</label>
-              <select style={INP} value={entry.skin_condition||"Intact"} onChange={e=>setEntry(v=>({...v,skin_condition:e.target.value}))}>
-                {CONTINENCE_SKIN.map(t=><option key={t}>{t}</option>)}
-              </select>
-            </div>
-          </div>
-          <div style={{marginBottom:10}}>
-            <label style={LBL}>Notes</label>
-            <textarea style={{...INP,height:56,resize:"vertical"}} value={entry.notes||""} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Triggering activity, odour, colour, care given..."/>
-          </div>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
-            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#06b6d4",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
-          </div>
-        </div>
-      )}
-      {sorted.length===0&&!showForm&&<div style={{color:"var(--color-text-muted)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No continence episodes logged yet</div>}
-      <div style={{display:"flex",flexDirection:"column",gap:7}}>
-        {sorted.map(row=>{
-          const skinCol=row.skin_condition==="Breakdown"?"#ef4444":row.skin_condition==="Maceration"?"#f59e0b":row.skin_condition==="Redness"?"#fb923c":"#10b981";
-          return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"9px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
-                  <span style={{fontWeight:700,fontSize:12,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}{row.time&&" "+row.time}</span>
-                  <span style={{fontSize:11,padding:"1px 8px",borderRadius:10,background:"rgba(6,182,212,0.12)",color:"#06b6d4",fontWeight:600}}>{row.type}</span>
-                  {row.volume&&<span style={{fontSize:11,color:"var(--color-text-dim)"}}>{row.volume}</span>}
-                </div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                  {row.product_used&&row.product_used!=="None"&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>🛒 {row.product_used}</span>}
-                  <span style={{fontSize:11,fontWeight:600,color:skinCol}}>Skin: {row.skin_condition||"Intact"}</span>
-                  {row.notes&&<span style={{fontSize:11,color:"var(--color-text-dim)",fontStyle:"italic",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.notes}</span>}
-                </div>
-              </div>
-              <div style={{display:"flex",gap:6,flexShrink:0}}>
-                <button onClick={()=>openEdit(row)} style={{...IBTN}}>✏️</button>
-                <button onClick={()=>rm(row.id)} style={{...IBTN}}>🗑</button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Nutritional Risk Screening (MUST) ────────────────────────────────────────
-function NutritionScreening({items,onChange}){
-  const [showForm,setShowForm]=useState(false);
-  const [entry,setEntry]=useState(null);
-  const blank=()=>({id:uid(),date:tod(),assessed_by:"",bmi_score:0,weight_loss_score:0,acute_illness:false,appetite:"Good",swallowing_difficulty:false,dietary_restrictions:"",supplement_use:"",notes:""});
-  const openNew=()=>{setEntry(blank());setShowForm(true);};
-  const openEdit=row=>{setEntry({...row});setShowForm(true);};
-  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
-  const rm=id=>onChange(items.filter(i=>i.id!==id));
-  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
-  const summary=calcNutritionSummary(items);
-  const liveScore=entry?mustScore(entry):null;
-  const liveRisk=liveScore!=null?mustRisk(liveScore):null;
-
-  const ScoreBtn=({field,val,label,desc,color})=>{
-    const active=entry&&Number(entry[field])===val;
-    return(
-      <button onClick={()=>setEntry(v=>({...v,[field]:val}))} title={desc}
-        style={{flex:1,padding:"7px 5px",borderRadius:7,border:"1px solid "+(active?color:"rgba(255,255,255,0.1)"),background:active?color+"22":"transparent",color:active?color:"var(--color-text-muted)",fontSize:11,fontWeight:active?700:400,cursor:"pointer",textAlign:"center"}}>
-        <div style={{fontWeight:700,fontSize:15}}>{val}</div>
-        <div style={{fontSize:9,lineHeight:1.2}}>{label}</div>
-      </button>
-    );
-  };
-
-  return(
-    <div>
-      {/* Summary card */}
-      {summary&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}}>
-            <span style={{fontWeight:800,fontSize:22,color:summary.risk.color}}>{summary.score}</span>
-            <div>
-              <div style={{fontWeight:700,fontSize:13,color:summary.risk.color}}>{summary.risk.label}</div>
-              <div style={{fontSize:11,color:"var(--color-text-dim)"}}>MUST Score · {new Date(summary.latest.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
-            </div>
-            {summary.trend&&<span style={{fontSize:12,fontWeight:600,marginLeft:"auto",color:summary.trend==="improving"?"#10b981":summary.trend==="worsening"?"#ef4444":"rgba(240,242,250,0.3)"}}>{summary.trend==="improving"?"↑ Improving":summary.trend==="worsening"?"↓ Worsening":"→ Stable"}</span>}
-          </div>
-          <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",marginBottom:8}}>
-            <div style={{height:"100%",width:Math.min(100,Math.round((summary.score/4)*100))+"%",background:summary.risk.color,borderRadius:3,transition:"width 0.3s"}}/>
-          </div>
-          <div style={{fontSize:11,color:"var(--color-text-muted)"}}>📋 Action: <strong style={{color:"var(--color-text-secondary)"}}>{summary.risk.action}</strong></div>
-          {(summary.latest.swallowing_difficulty||summary.latest.dietary_restrictions||summary.latest.supplement_use)&&(
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
-              {summary.latest.swallowing_difficulty&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:"rgba(239,68,68,0.1)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.25)"}}>⚠️ Swallowing difficulty</span>}
-              {summary.latest.dietary_restrictions&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:"rgba(245,158,11,0.1)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.25)"}}>🍽 {summary.latest.dietary_restrictions}</span>}
-              {summary.latest.supplement_use&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:"rgba(16,185,129,0.1)",color:"#10b981",border:"1px solid rgba(16,185,129,0.25)"}}>💊 {summary.latest.supplement_use}</span>}
-            </div>
-          )}
-        </div>
-      )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"var(--color-text-dim)"}}>{items.length} screening{items.length!==1?"s":""}</span>
-        <button style={{...ABTN,borderStyle:"solid",borderColor:"#10b981",color:"#10b981"}} onClick={openNew}>+ Log Screening</button>
-      </div>
-      {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
-          {/* Live score header */}
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8}}>
-            <span style={{fontWeight:800,fontSize:26,color:liveRisk.color}}>{liveScore}</span>
-            <div>
-              <div style={{fontWeight:700,fontSize:13,color:liveRisk.color}}>{liveRisk.label}</div>
-              <div style={{fontSize:11,color:"var(--color-text-dim)"}}>MUST Score · updates as you score</div>
-            </div>
-            <div style={{flex:1,height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
-              <div style={{height:"100%",width:Math.min(100,Math.round((liveScore/4)*100))+"%",background:liveRisk.color,borderRadius:3,transition:"width 0.2s"}}/>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
-            <div><label style={LBL}>Assessed By</label><input style={INP} value={entry.assessed_by||""} onChange={e=>setEntry(v=>({...v,assessed_by:e.target.value}))} placeholder="Staff name..."/></div>
-          </div>
-          {/* MUST subscales */}
-          <div style={{marginBottom:10}}>
-            <label style={LBL}>BMI Score</label>
-            <div style={{display:"flex",gap:4}}>
-              <ScoreBtn field="bmi_score" val={0} label=">20" desc="BMI > 20 kg/m²" color="#10b981"/>
-              <ScoreBtn field="bmi_score" val={1} label="18.5–20" desc="BMI 18.5–20 kg/m²" color="#f59e0b"/>
-              <ScoreBtn field="bmi_score" val={2} label="<18.5" desc="BMI < 18.5 kg/m²" color="#ef4444"/>
-            </div>
-          </div>
-          <div style={{marginBottom:10}}>
-            <label style={LBL}>Unplanned Weight Loss Score (last 3–6 months)</label>
-            <div style={{display:"flex",gap:4}}>
-              <ScoreBtn field="weight_loss_score" val={0} label="<5%" desc="Weight loss < 5%" color="#10b981"/>
-              <ScoreBtn field="weight_loss_score" val={1} label="5–10%" desc="Weight loss 5–10%" color="#f59e0b"/>
-              <ScoreBtn field="weight_loss_score" val={2} label=">10%" desc="Weight loss > 10%" color="#ef4444"/>
-            </div>
-          </div>
-          <div style={{marginBottom:10}}>
-            <label style={LBL}>Acute Illness Effect (+2 points if acutely ill / no nutritional intake ≥5 days)</label>
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <button onClick={()=>setEntry(v=>({...v,acute_illness:!v.acute_illness}))} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+(entry.acute_illness?"#ef4444":"rgba(255,255,255,0.1)"),background:entry.acute_illness?"rgba(239,68,68,0.15)":"transparent",color:entry.acute_illness?"#ef4444":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13}}>
-                {entry.acute_illness?"Yes — +2 applied":"No"}
-              </button>
-              <span style={{fontSize:11,color:"var(--color-text-dim)"}}>Tap to toggle</span>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Appetite</label>
-              <select style={INP} value={entry.appetite||"Good"} onChange={e=>setEntry(v=>({...v,appetite:e.target.value}))}>
-                {["Good","Fair","Poor","None"].map(a=><option key={a}>{a}</option>)}
-              </select>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
-              <label style={{...LBL,marginBottom:8}}>Swallowing Difficulty</label>
-              <button onClick={()=>setEntry(v=>({...v,swallowing_difficulty:!v.swallowing_difficulty}))} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(entry.swallowing_difficulty?"#ef4444":"rgba(255,255,255,0.1)"),background:entry.swallowing_difficulty?"rgba(239,68,68,0.12)":"transparent",color:entry.swallowing_difficulty?"#ef4444":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13}}>
-                {entry.swallowing_difficulty?"Yes — Dysphagia":"No"}
-              </button>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Dietary Restrictions</label><input style={INP} value={entry.dietary_restrictions||""} onChange={e=>setEntry(v=>({...v,dietary_restrictions:e.target.value}))} placeholder="e.g. Diabetic, low-sodium..."/></div>
-            <div><label style={LBL}>Supplements / ONS</label><input style={INP} value={entry.supplement_use||""} onChange={e=>setEntry(v=>({...v,supplement_use:e.target.value}))} placeholder="e.g. Ensure 2x daily..."/></div>
-          </div>
-          <div style={{marginBottom:10}}>
-            <label style={LBL}>Notes</label>
-            <textarea style={{...INP,height:56,resize:"vertical"}} value={entry.notes||""} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Food preferences, feeding assistance, observations..."/>
-          </div>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
-            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#10b981",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
-          </div>
-        </div>
-      )}
-      {sorted.length===0&&!showForm&&<div style={{color:"var(--color-text-muted)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No nutritional screenings logged yet</div>}
-      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-        {sorted.map(row=>{
-          const sc=mustScore(row);
-          const rk=mustRisk(sc);
-          return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+rk.color}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
-                  {row.assessed_by&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>By: {row.assessed_by}</span>}
-                </div>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:800,fontSize:17,color:rk.color}}>{sc}<span style={{fontSize:11,fontWeight:400,color:"var(--color-text-muted)"}}> MUST</span></span>
-                  <span style={{fontSize:11,color:rk.color,fontWeight:600}}>{rk.label}</span>
-                  <button onClick={()=>openEdit(row)} style={{...IBTN}}>✏️</button>
-                  <button onClick={()=>rm(row.id)} style={{...IBTN}}>🗑</button>
-                </div>
-              </div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                <span style={{fontSize:11,color:"var(--color-text-dim)"}}>BMI:{row.bmi_score} WL:{row.weight_loss_score} Acute:{row.acute_illness?"+2":"0"}</span>
-                {row.appetite&&row.appetite!=="Good"&&<span style={{fontSize:11,fontWeight:600,color:row.appetite==="None"?"#ef4444":row.appetite==="Poor"?"#f59e0b":"var(--color-text-secondary)"}}>Appetite: {row.appetite}</span>}
-                {row.swallowing_difficulty&&<span style={{fontSize:11,fontWeight:700,color:"#ef4444"}}>⚠️ Dysphagia</span>}
-                {row.dietary_restrictions&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>🍽 {row.dietary_restrictions}</span>}
-              </div>
-              {row.notes&&<div style={{fontSize:12,color:"var(--color-text-dim)",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Wound & Skin Assessment ─────────────────────────────────────────────────
-const WOUND_TYPES=["Pressure Ulcer","Skin Tear","Surgical","Laceration","Abrasion","Diabetic Ulcer","Venous Ulcer","Arterial Ulcer","Other"];
-const WOUND_STAGES=["Stage I","Stage II","Stage III","Stage IV","Unstageable","Deep Tissue","N/A"];
-const WOUND_EXUDATE_AMT=["None","Minimal","Moderate","Heavy"];
-const WOUND_EXUDATE_TYPE=["Serous","Serosanguineous","Sanguineous","Purulent"];
-const WOUND_BED=["Granulating","Epithelializing","Slough","Necrotic","Mixed"];
-const WOUND_PERIWOUND=["Intact","Erythema","Macerated","Indurated","Oedematous"];
-const WOUND_HEALING=["Improving","Stable","Deteriorating","Healed"];
-const WOUND_PAIN=["None","Mild","Moderate","Severe"];
-
-function WoundAssessment({items,onChange}){
-  const [showForm,setShowForm]=useState(false);
-  const [entry,setEntry]=useState(null);
-  const [filterSite,setFilterSite]=useState("All");
-  const blank=()=>({id:uid(),date:tod(),recorded_by:"",site:"",type:"Pressure Ulcer",stage:"N/A",length_cm:"",width_cm:"",depth_cm:"",exudate:"None",exudate_type:"",wound_bed:"Granulating",periwound:"Intact",odour:false,pain_at_site:"None",dressing_used:"",dressing_frequency:"",healing_status:"Stable",notes:""});
-  const openNew=()=>{setEntry(blank());setShowForm(true);};
-  const openEdit=row=>{setEntry({...row});setShowForm(true);};
-  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
-  const rm=id=>onChange(items.filter(i=>i.id!==id));
-  const summary=calcWoundSummary(items);
-  // Collect unique sites for filter tab
-  const allSites=["All",...new Set(items.map(i=>i.site||"Unknown").filter(Boolean))];
-  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
-  const filtered=filterSite==="All"?sorted:sorted.filter(i=>(i.site||"Unknown")===filterSite);
-
-  return(
-    <div>
-      {/* Active-wound summary chips */}
-      {summary&&summary.activeSites.length>0&&(
-        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
-          {summary.activeSites.map(w=>{
-            const hc=WOUND_HEALING_COLOR[w.healing_status]||"rgba(240,242,250,0.3)";
-            return(
-              <div key={w.site} style={{padding:"6px 12px",borderRadius:10,background:hc+"15",border:"1px solid "+hc+"40",display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontWeight:700,fontSize:12,color:hc}}>🩹 {w.site}</span>
-                {w.stage&&w.stage!=="N/A"&&<span style={{fontSize:11,color:"var(--color-text-secondary)"}}>{w.stage}</span>}
-                <span style={{fontSize:11,fontWeight:600,color:hc}}>{w.healing_status}</span>
-              </div>
-            );
-          })}
-          {summary.healedCount>0&&<div style={{padding:"6px 12px",borderRadius:10,background:"rgba(139,92,246,0.1)",border:"1px solid rgba(139,92,246,0.3)",fontSize:12,fontWeight:600,color:"#a78bfa"}}>✓ {summary.healedCount} healed</div>}
-        </div>
-      )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"var(--color-text-dim)"}}>{items.length} record{items.length!==1?"s":""}</span>
-        <button style={{...ABTN,borderStyle:"solid",borderColor:"#06b6d4",color:"#06b6d4"}} onClick={openNew}>+ Log Assessment</button>
-      </div>
-      {/* Site filter tabs */}
-      {allSites.length>2&&(
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-          {allSites.map(s=>(
-            <button key={s} onClick={()=>setFilterSite(s)} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+(filterSite===s?"#06b6d4":"rgba(255,255,255,0.1)"),background:filterSite===s?"rgba(6,182,212,0.15)":"transparent",color:filterSite===s?"#06b6d4":"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>{s}</button>
-          ))}
-        </div>
-      )}
-      {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #06b6d4",borderRadius:10,padding:14,marginBottom:12}}>
-          <div className="three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
-            <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
-            <div><label style={LBL}>Healing Status</label>
-              <select style={{...INP,cursor:"pointer",color:WOUND_HEALING_COLOR[entry.healing_status]||"#e2e8f0",borderColor:WOUND_HEALING_COLOR[entry.healing_status]||"rgba(255,255,255,0.1)"}} value={entry.healing_status} onChange={e=>setEntry(v=>({...v,healing_status:e.target.value}))}>
-                {WOUND_HEALING.map(h=><option key={h} value={h}>{h}</option>)}
-              </select>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Wound Site / Location</label><input style={INP} value={entry.site} onChange={e=>setEntry(v=>({...v,site:e.target.value}))} placeholder="e.g. Sacrum, Left heel..."/></div>
-            <div><label style={LBL}>Type</label>
-              <select style={{...INP,cursor:"pointer"}} value={entry.type} onChange={e=>setEntry(v=>({...v,type:e.target.value}))}>
-                {WOUND_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div><label style={LBL}>Stage</label>
-              <select style={{...INP,cursor:"pointer"}} value={entry.stage} onChange={e=>setEntry(v=>({...v,stage:e.target.value}))}>
-                {WOUND_STAGES.map(s=><option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
-          {/* Measurements */}
-          <div style={{marginBottom:10}}>
-            <label style={LBL}>Measurements (cm)</label>
-            <div className="three-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.length_cm} onChange={e=>setEntry(v=>({...v,length_cm:e.target.value}))} placeholder="Length"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"var(--color-text-muted)"}}>L</span></div>
-              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.width_cm} onChange={e=>setEntry(v=>({...v,width_cm:e.target.value}))} placeholder="Width"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"var(--color-text-muted)"}}>W</span></div>
-              <div style={{position:"relative"}}><input style={INP} type="number" step="0.1" min="0" value={entry.depth_cm} onChange={e=>setEntry(v=>({...v,depth_cm:e.target.value}))} placeholder="Depth"/><span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"var(--color-text-muted)"}}>D</span></div>
-            </div>
-          </div>
-          {/* Wound characteristics */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div>
-              <label style={LBL}>Wound Bed</label>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                {WOUND_BED.map(b=><button key={b} onClick={()=>setEntry(v=>({...v,wound_bed:b}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.wound_bed===b?"#06b6d4":"rgba(255,255,255,0.1)"),background:entry.wound_bed===b?"rgba(6,182,212,0.15)":"transparent",color:entry.wound_bed===b?"#06b6d4":"rgba(240,242,250,0.3)",fontSize:11,cursor:"pointer"}}>{b}</button>)}
-              </div>
-            </div>
-            <div>
-              <label style={LBL}>Periwound Skin</label>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                {WOUND_PERIWOUND.map(p=><button key={p} onClick={()=>setEntry(v=>({...v,periwound:p}))} style={{padding:"3px 9px",borderRadius:6,border:"1px solid "+(entry.periwound===p?"#06b6d4":"rgba(255,255,255,0.1)"),background:entry.periwound===p?"rgba(6,182,212,0.15)":"transparent",color:entry.periwound===p?"#06b6d4":"rgba(240,242,250,0.3)",fontSize:11,cursor:"pointer"}}>{p}</button>)}
-              </div>
-            </div>
-          </div>
-          <div className="four-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Exudate Amount</label>
-              <select style={{...INP,cursor:"pointer"}} value={entry.exudate} onChange={e=>setEntry(v=>({...v,exudate:e.target.value}))}>
-                {WOUND_EXUDATE_AMT.map(x=><option key={x} value={x}>{x}</option>)}
-              </select>
-            </div>
-            <div><label style={LBL}>Exudate Type</label>
-              <select style={{...INP,cursor:"pointer"}} value={entry.exudate_type} onChange={e=>setEntry(v=>({...v,exudate_type:e.target.value}))}>
-                <option value="">—</option>
-                {WOUND_EXUDATE_TYPE.map(x=><option key={x} value={x}>{x}</option>)}
-              </select>
-            </div>
-            <div><label style={LBL}>Pain at Site</label>
-              <select style={{...INP,cursor:"pointer"}} value={entry.pain_at_site} onChange={e=>setEntry(v=>({...v,pain_at_site:e.target.value}))}>
-                {WOUND_PAIN.map(p=><option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
-              <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--color-text-primary)",fontWeight:600,cursor:"pointer",paddingBottom:8}}>
-                <input type="checkbox" checked={!!entry.odour} onChange={e=>setEntry(v=>({...v,odour:e.target.checked}))} style={{accentColor:"#ef4444",width:14,height:14}}/>
-                Odour present
-              </label>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Dressing Used</label><input style={INP} value={entry.dressing_used} onChange={e=>setEntry(v=>({...v,dressing_used:e.target.value}))} placeholder="e.g. Foam dressing, alginate..."/></div>
-            <div><label style={LBL}>Change Frequency</label><input style={INP} value={entry.dressing_frequency} onChange={e=>setEntry(v=>({...v,dressing_frequency:e.target.value}))} placeholder="e.g. Daily, 3x/week..."/></div>
-          </div>
-          <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...INP,height:52,resize:"vertical"}} value={entry.notes} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Observations, wound appearance changes..."/></div>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
-            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#06b6d4",color:"#000",fontWeight:600}} onClick={save}>Save</button>
-          </div>
-        </div>
-      )}
-      {filtered.length===0&&!showForm&&<div style={{color:"var(--color-text-muted)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No wound assessments logged yet</div>}
-      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-        {filtered.map(row=>{
-          const hc=WOUND_HEALING_COLOR[row.healing_status]||"rgba(240,242,250,0.3)";
-          const area=(row.length_cm&&row.width_cm)?Math.round(parseFloat(row.length_cm)*parseFloat(row.width_cm)*10)/10:null;
-          return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+hc}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</span>
-                  {row.site&&<span style={{fontSize:12,fontWeight:700,color:"var(--color-text-secondary)"}}>📍 {row.site}</span>}
-                  <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:hc+"20",color:hc}}>{row.healing_status}</span>
-                  {row.stage&&row.stage!=="N/A"&&<span style={{fontSize:11,fontWeight:600,padding:"1px 7px",borderRadius:20,background:"rgba(100,116,139,0.15)",color:"var(--color-text-secondary)"}}>{row.stage}</span>}
-                </div>
-                <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#06b6d4",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"var(--color-text-muted)",fontSize:12}}>x</button>
-                </div>
-              </div>
-              <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:area||row.wound_bed||row.exudate?4:0}}>
-                <span style={{fontSize:12,color:"var(--color-text-dim)"}}>📋 {row.type}</span>
-                {area&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>📐 {row.length_cm}×{row.width_cm}{row.depth_cm?" (d:"+row.depth_cm+")":""} cm → {area} cm²</span>}
-              </div>
-              {(row.wound_bed||row.periwound||row.exudate)&&(
-                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:4}}>
-                  {row.wound_bed&&<span style={{fontSize:11,color:"var(--color-text-dim)"}}>Bed: <strong style={{color:"var(--color-text-secondary)"}}>{row.wound_bed}</strong></span>}
-                  {row.periwound&&<span style={{fontSize:11,color:"var(--color-text-dim)"}}>Periwound: <strong style={{color:"var(--color-text-secondary)"}}>{row.periwound}</strong></span>}
-                  {row.exudate&&row.exudate!=="None"&&<span style={{fontSize:11,color:"var(--color-text-dim)"}}>Exudate: <strong style={{color:"var(--color-text-secondary)"}}>{row.exudate}{row.exudate_type?" "+row.exudate_type:""}</strong></span>}
-                  {row.odour&&<span style={{fontSize:11,fontWeight:700,color:"#f87171"}}>⚠ Odour</span>}
-                  {row.pain_at_site&&row.pain_at_site!=="None"&&<span style={{fontSize:11,color:"#f59e0b"}}>Pain: {row.pain_at_site}</span>}
-                </div>
-              )}
-              {row.dressing_used&&<div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:2}}>Dressing: {row.dressing_used}{row.dressing_frequency?" · "+row.dressing_frequency:""}</div>}
-              {row.recorded_by&&<div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:2}}>By: {row.recorded_by}</div>}
-              {row.notes&&<div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── ADL Tracker ─────────────────────────────────────────────────────────────
-function ADLTracker({items,onChange}){
-  const [showForm,setShowForm]=useState(false);
-  const [entry,setEntry]=useState(null);
-  const blankEntry=()=>({id:uid(),date:tod(),recorded_by:"",items:{bathing:"Independent",dressing:"Independent",toileting:"Independent",eating:"Independent",mobility:"Independent",grooming:"Independent"},notes:""});
-  const openNew=()=>{setEntry(blankEntry());setShowForm(true);};
-  const openEdit=row=>{setEntry({...row,items:{...row.items}});setShowForm(true);};
-  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
-  const rm=id=>onChange(items.filter(i=>i.id!==id));
-  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
-  const summary=calcAdlSummary(items);
-
-  return(
-    <div>
-      {/* Summary bar */}
-      {summary&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-          <span style={{fontWeight:700,fontSize:13,color:summary.dep.color}}>{summary.dep.label} dependency</span>
-          <span style={{fontSize:12,color:"var(--color-text-dim)"}}>Score: {summary.score}/18</span>
-          {summary.trend&&(
-            <span style={{fontSize:12,fontWeight:600,color:summary.trend==="declining"?"#f87171":summary.trend==="improving"?"#10b981":"rgba(240,242,250,0.3)"}}>
-              {summary.trend==="declining"?"↓ Declining":summary.trend==="improving"?"↑ Improving":"→ Stable"}
-            </span>
-          )}
-          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginLeft:"auto"}}>
-            {ADL_ITEMS.map(k=>{
-              const lvl=summary.latest.items?.[k]||"Independent";
-              return<span key={k} style={{fontSize:11,fontWeight:700,padding:"1px 7px",borderRadius:12,background:ADL_LEVEL_COLOR[lvl]+"20",color:ADL_LEVEL_COLOR[lvl],border:"1px solid "+ADL_LEVEL_COLOR[lvl]+"40"}}>{ADL_LABELS[k].split(" ")[0]} {lvl}</span>;
-            })}
-          </div>
-        </div>
-      )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"var(--color-text-dim)"}}>{items.length} assessment{items.length!==1?"s":""}</span>
-        <button style={{...ABTN,borderStyle:"solid",borderColor:"#10b981",color:"#10b981"}} onClick={openNew}>+ Log Assessment</button>
-      </div>
-      {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #10b981",borderRadius:10,padding:14,marginBottom:12}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
-            <div><label style={LBL}>Recorded By</label><input style={INP} value={entry.recorded_by} onChange={e=>setEntry(v=>({...v,recorded_by:e.target.value}))} placeholder="Staff name..."/></div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            {ADL_ITEMS.map(k=>(
-              <div key={k}>
-                <label style={LBL}>{ADL_LABELS[k]}</label>
-                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                  {ADL_LEVELS.map(lvl=>(
-                    <button key={lvl} onClick={()=>setEntry(v=>({...v,items:{...v.items,[k]:lvl}}))}
-                      style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"rgba(255,255,255,0.1)"),background:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]+"25":"transparent",color:entry.items?.[k]===lvl?ADL_LEVEL_COLOR[lvl]:"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                      {lvl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...INP,height:52,resize:"vertical"}} value={entry.notes} onChange={e=>setEntry(v=>({...v,notes:e.target.value}))} placeholder="Observations..."/></div>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
-            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#10b981",color:"#fff",fontWeight:600}} onClick={save}>Save</button>
-          </div>
-        </div>
-      )}
-      {sorted.length===0&&!showForm&&<div style={{color:"var(--color-text-muted)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No ADL assessments logged yet</div>}
-      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-        {sorted.map(row=>{
-          const sc=adlScore(row.items);
-          const dep=adlDepLevel(sc);
-          return(
-            <div key={row.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+dep.color}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{new Date(row.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</span>
-                  <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:dep.color+"20",color:dep.color}}>{dep.label} ({sc}/18)</span>
-                </div>
-                <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>openEdit(row)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#10b981",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(row.id)} style={{background:"none",border:"none",color:"var(--color-text-muted)",fontSize:12}}>x</button>
-                </div>
-              </div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {ADL_ITEMS.map(k=>{
-                  const lvl=row.items?.[k]||"Independent";
-                  return<span key={k} style={{fontSize:11,padding:"1px 7px",borderRadius:12,background:ADL_LEVEL_COLOR[lvl]+"18",color:ADL_LEVEL_COLOR[lvl],border:"1px solid "+ADL_LEVEL_COLOR[lvl]+"35"}}>{ADL_LABELS[k].split(" ")[0]} <strong>{lvl}</strong></span>;
-                })}
-              </div>
-              {row.recorded_by&&<div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:4}}>Recorded by: {row.recorded_by}</div>}
-              {row.notes&&<div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:4,fontStyle:"italic"}}>{row.notes}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Incident Reports ─────────────────────────────────────────────────────────
-const INCIDENT_TYPES=["Fall","Near Fall","Behavioral Event","Medical Emergency","Medication Error","Skin / Wound","Property Damage","Other"];
-const INCIDENT_SEV_COLORS={Minor:"#f59e0b",Moderate:"#ef4444",Severe:"#dc2626"};
-function IncidentReports({items,onChange,currentUser}){
-  const [showForm,setShowForm]=useState(false);
-  const [entry,setEntry]=useState(null);
-  const blank=()=>({id:uid(),date:tod(),time:"",type:"Fall",severity:"Minor",description:"",witnesses:"",action_taken:"",reported_by:currentUser?.displayName||"",follow_up_required:false,follow_up_date:""});
-  const openNew=()=>{setEntry(blank());setShowForm(true);};
-  const openEdit=item=>{setEntry({...item});setShowForm(true);};
-  const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
-  const rm=id=>onChange(items.filter(i=>i.id!==id));
-  const sorted=[...items].sort((a,b)=>b.date.localeCompare(a.date));
-  return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:13,color:"var(--color-text-dim)"}}>{items.length} incident{items.length!==1?"s":""}</span>
-        <button style={{...ABTN,borderStyle:"solid",borderColor:"#ef4444",color:"#ef4444"}} onClick={openNew}>+ Log Incident</button>
-      </div>
-      {showForm&&entry&&(
-        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid #ef4444",borderRadius:10,padding:14,marginBottom:12}}>
-          <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div><label style={LBL}>Date</label><input type="date" style={INP} value={entry.date} onChange={e=>setEntry(v=>({...v,date:e.target.value}))}/></div>
-            <div><label style={LBL}>Time</label><input type="time" style={INP} value={entry.time} onChange={e=>setEntry(v=>({...v,time:e.target.value}))}/></div>
-            <div><label style={LBL}>Incident Type</label>
-              <select style={{...INP,cursor:"pointer"}} value={entry.type} onChange={e=>setEntry(v=>({...v,type:e.target.value}))}>
-                {INCIDENT_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div><label style={LBL}>Severity</label>
-              <select style={{...INP,cursor:"pointer",color:INCIDENT_SEV_COLORS[entry.severity]||"#e2e8f0",borderColor:INCIDENT_SEV_COLORS[entry.severity]||"rgba(255,255,255,0.1)"}} value={entry.severity} onChange={e=>setEntry(v=>({...v,severity:e.target.value}))}>
-                {["Minor","Moderate","Severe"].map(s=><option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:10}}>
-            <div><label style={LBL}>Description</label><textarea style={{...INP,height:72,resize:"vertical"}} value={entry.description} onChange={e=>setEntry(v=>({...v,description:e.target.value}))} placeholder="What happened..."/></div>
-            <div><label style={LBL}>Witnesses</label><input style={INP} value={entry.witnesses} onChange={e=>setEntry(v=>({...v,witnesses:e.target.value}))} placeholder="Names of witnesses..."/></div>
-            <div><label style={LBL}>Action Taken</label><textarea style={{...INP,height:56,resize:"vertical"}} value={entry.action_taken} onChange={e=>setEntry(v=>({...v,action_taken:e.target.value}))} placeholder="Immediate actions taken..."/></div>
-            <div><label style={LBL}>Reported By</label><input style={INP} value={entry.reported_by} onChange={e=>setEntry(v=>({...v,reported_by:e.target.value}))}/></div>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-            <input type="checkbox" checked={entry.follow_up_required} onChange={e=>setEntry(v=>({...v,follow_up_required:e.target.checked}))} style={{accentColor:"#6366f1",width:15,height:15}}/>
-            <label style={{fontSize:13,color:"var(--color-text-primary)",fontWeight:600}}>Follow-up required</label>
-            {entry.follow_up_required&&<input type="date" style={{...INP,flex:1}} value={entry.follow_up_date} onChange={e=>setEntry(v=>({...v,follow_up_date:e.target.value}))}/>}
-          </div>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-            <button style={{...ABTN,borderStyle:"solid"}} onClick={()=>{setShowForm(false);setEntry(null);}}>Cancel</button>
-            <button style={{padding:"7px 16px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontWeight:600}} onClick={save}>Save Incident</button>
-          </div>
-        </div>
-      )}
-      {sorted.length===0&&!showForm&&<div style={{color:"var(--color-text-muted)",fontSize:13,textAlign:"center",padding:"20px 0"}}>No incidents recorded</div>}
-      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-        {sorted.map(item=>{
-          const sc=INCIDENT_SEV_COLORS[item.severity]||"#f59e0b";
-          return(
-            <div key={item.id} style={{background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:9,padding:"12px 14px",borderLeft:"4px solid "+sc}}>
-              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
-                <div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
-                    <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{item.type}</span>
-                    <span style={{fontSize:11,fontWeight:800,padding:"2px 8px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40"}}>{item.severity}</span>
-                  </div>
-                  <span style={{fontSize:11,color:"var(--color-text-dim)"}}>{new Date(item.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{item.time&&" at "+item.time}</span>
-                </div>
-                <div style={{display:"flex",gap:6,flexShrink:0}}>
-                  <button onClick={()=>openEdit(item)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#6366f1",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:"var(--color-text-muted)",fontSize:12}}>x</button>
-                </div>
-              </div>
-              {item.description&&<div style={{fontSize:13,color:"var(--color-text-secondary)",lineHeight:1.5,marginBottom:6}}>{item.description}</div>}
-              <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                {item.action_taken&&<span style={{fontSize:11,color:"var(--color-text-dim)"}}>✓ {item.action_taken}</span>}
-                {item.reported_by&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>By: {item.reported_by}</span>}
-                {item.follow_up_required&&<span style={{fontSize:11,fontWeight:700,color:"#8b5cf6"}}>📋 Follow-up{item.follow_up_date?" "+item.follow_up_date:""}</span>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Intake Checklist ─────────────────────────────────────────────────────────
-function IntakeChecklist({items,onChange,currentUser}){
-  const full=DEFAULT_INTAKE_ITEMS.map(def=>{
-    const ex=items.find(i=>i.key===def.key);
-    return ex||{id:uid(),key:def.key,label:def.label,done:false,completed_by:"",completed_at:""};
-  });
-  const toggle=key=>{
-    const item=full.find(i=>i.key===key);
-    const newDone=!item.done;
-    onChange(full.map(i=>i.key===key?{...i,done:newDone,completed_by:newDone?(currentUser?.displayName||""):"",completed_at:newDone?tod():""}:i));
-  };
-  const doneCount=full.filter(i=>i.done).length;
-  const pct=Math.round(doneCount/full.length*100);
-  return(
-    <div>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
-        <div style={{flex:1,height:8,background:"rgba(255,255,255,0.03)",borderRadius:4,overflow:"hidden"}}>
-          <div style={{height:"100%",width:pct+"%",background:pct===100?"#10b981":"#6366f1",borderRadius:4,transition:"width 0.3s"}}/>
-        </div>
-        <span style={{fontSize:12,fontWeight:700,color:pct===100?"#10b981":"var(--color-text-secondary)",whiteSpace:"nowrap"}}>{doneCount}/{full.length}{pct===100?" ✓ Complete":""}</span>
-      </div>
-      <div style={{display:"flex",flexDirection:"column",gap:6}}>
-        {full.map(item=>(
-          <div key={item.key} onClick={()=>toggle(item.key)}
-            style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:9,border:"1px solid "+(item.done?"rgba(16,185,129,0.3)":"rgba(255,255,255,0.1)"),background:item.done?"rgba(16,185,129,0.08)":"transparent",cursor:"pointer"}}>
-            <div style={{width:20,height:20,borderRadius:5,border:"2px solid "+(item.done?"#10b981":"var(--color-text-muted)"),background:item.done?"#10b981":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12,color:"#fff",fontWeight:700}}>
-              {item.done?"✓":""}
-            </div>
-            <span style={{flex:1,fontSize:13,color:item.done?"#10b981":"rgba(240,242,250,0.8)",fontWeight:item.done?600:400}}>{item.label}</span>
-            {item.done&&item.completed_by&&<span style={{fontSize:10,color:"var(--color-text-muted)",whiteSpace:"nowrap"}}>{item.completed_by}{item.completed_at?" · "+item.completed_at:""}</span>}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
   const [d,setD]=useState(()=>JSON.parse(JSON.stringify(client)));
@@ -1923,7 +821,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
     <div style={{paddingBottom:40}}>
       <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
         <PhotoUp value={d.photo_url} onChange={v=>s("photo_url",v)} clientId={d.id} t={t}/>
-        <Sec icon="👤" title={t.personalInfo} defaultOpen={true}>
+        <Sec icon="ðŸ‘¤" title={t.personalInfo} defaultOpen={true}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             {[[t.fullName+" *","name","text"],[t.dob,"date_of_birth","date"],[t.phone,"phone","tel"],[t.address,"room_or_address","text"],[t.azv,"azv_number","text"],[t.emergency,"emergency_contact","text"],[t.emergPhone,"emergency_phone","tel"],[t.drCas,"dr_di_cas","text"]].map(([label,field,type])=>(
               <div key={field}><label style={LBL}>{label}</label><input type={type} style={INP} value={d[field]||""} onChange={e=>s(field,e.target.value)}/></div>
@@ -1939,25 +837,25 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
           </div>
         </Sec>
       </div>
-      <Sec icon="🩺" title={t.diagnoses} accent="#06b6d4"><DiagList items={d.diagnoses||[]} onChange={v=>s("diagnoses",v)} t={t}/></Sec>
-      <Sec icon="💊" title={t.medications} accent="#ef4444"><MedList items={d.medications||[]} onChange={v=>s("medications",v)} t={t}/></Sec>
-      <Sec icon="⚠️" title={t.allergies} accent="#f59e0b"><TagList items={d.allergies||[]} onChange={v=>s("allergies",v)} placeholder="e.g. Penicillin..." addLabel={t.add}/></Sec>
-      <Sec icon="📦" title={t.inventory} accent="#10b981" defaultOpen={false}><Inventory items={d.inventory||[]} onChange={v=>s("inventory",v)} t={t}/></Sec>
-      <Sec icon="📄" title={t.documents} accent="#06b6d4" defaultOpen={false}><DocTracker items={d.documents||[]} onChange={v=>s("documents",v)} t={t}/></Sec>
-      <Sec icon="📋" title={t.carePlan} accent="#8b5cf6" defaultOpen={false}><CarePlan items={d.care_plan||[]} onChange={v=>s("care_plan",v)} t={t}/></Sec>
-      <Sec icon="📊" title={t.vitals} accent="#6366f1" defaultOpen={false}><VitalsTracker vitals={d.vitals||[]} onChange={v=>s("vitals",v)} t={t}/></Sec>
-      <Sec icon="📝" title={t.notes} accent="#7c3aed"><NotesList items={d.session_notes||[]} onChange={v=>s("session_notes",v)} t={t}/></Sec>
-      <Sec icon="👨‍👩‍👧" title="Family Contacts" accent="#ec4899" defaultOpen={false}><FamilyContacts items={d.family_contacts||[]} onChange={v=>s("family_contacts",v)}/></Sec>
-      <Sec icon="📅" title="Appointments & Transport" accent="#06b6d4" defaultOpen={false}><AppointmentLog items={d.appointments||[]} onChange={v=>s("appointments",v)}/></Sec>
-      <Sec icon="⚠️" title="Incident Reports" accent="#ef4444" defaultOpen={false}><IncidentReports items={d.incidents||[]} onChange={v=>s("incidents",v)} currentUser={currentUser}/></Sec>
-      <Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
-      <Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
-      <Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
-      <Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>
-      <Sec icon="🛏" title="Braden Scale (Pressure Ulcer Risk)" accent="#8b5cf6" defaultOpen={false}><BradenScale items={d.braden_assessments||[]} onChange={v=>s("braden_assessments",v)}/></Sec>
-      <Sec icon="🧠" title="Cognitive Screening (MMSE / MoCA)" accent="#a78bfa" defaultOpen={false}><CognitiveScreening items={d.cognitive_assessments||[]} onChange={v=>s("cognitive_assessments",v)}/></Sec>
-      <Sec icon="💧" title="Continence Monitoring" accent="#06b6d4" defaultOpen={false}><ContinenceLog items={d.continence_logs||[]} onChange={v=>s("continence_logs",v)}/></Sec>
-      <Sec icon="🥗" title="Nutritional Risk Screening (MUST)" accent="#10b981" defaultOpen={false}><NutritionScreening items={d.nutrition_assessments||[]} onChange={v=>s("nutrition_assessments",v)}/></Sec>
+      <Sec icon="ðŸ©º" title={t.diagnoses} accent="#06b6d4"><DiagList items={d.diagnoses||[]} onChange={v=>s("diagnoses",v)} t={t}/></Sec>
+      <Sec icon="ðŸ’Š" title={t.medications} accent="#ef4444"><MedList items={d.medications||[]} onChange={v=>s("medications",v)} t={t}/></Sec>
+      <Sec icon="âš ï¸" title={t.allergies} accent="#f59e0b"><TagList items={d.allergies||[]} onChange={v=>s("allergies",v)} placeholder="e.g. Penicillin..." addLabel={t.add}/></Sec>
+      <Sec icon="ðŸ“¦" title={t.inventory} accent="#10b981" defaultOpen={false}><Inventory items={d.inventory||[]} onChange={v=>s("inventory",v)} t={t}/></Sec>
+      <Sec icon="ðŸ“„" title={t.documents} accent="#06b6d4" defaultOpen={false}><DocTracker items={d.documents||[]} onChange={v=>s("documents",v)} t={t}/></Sec>
+      <Sec icon="ðŸ“‹" title={t.carePlan} accent="#8b5cf6" defaultOpen={false}><CarePlan items={d.care_plan||[]} onChange={v=>s("care_plan",v)} t={t}/></Sec>
+      <Sec icon="ðŸ“Š" title={t.vitals} accent="#6366f1" defaultOpen={false}><VitalsTracker vitals={d.vitals||[]} onChange={v=>s("vitals",v)} t={t}/></Sec>
+      <Sec icon="ðŸ“" title={t.notes} accent="#7c3aed"><NotesList items={d.session_notes||[]} onChange={v=>s("session_notes",v)} t={t}/></Sec>
+      <Sec icon="ðŸ‘¨â€ðŸ‘©â€ðŸ‘§" title="Family Contacts" accent="#ec4899" defaultOpen={false}><FamilyContacts items={d.family_contacts||[]} onChange={v=>s("family_contacts",v)}/></Sec>
+      <Sec icon="ðŸ“…" title="Appointments & Transport" accent="#06b6d4" defaultOpen={false}><AppointmentLog items={d.appointments||[]} onChange={v=>s("appointments",v)}/></Sec>
+      <Sec icon="âš ï¸" title="Incident Reports" accent="#ef4444" defaultOpen={false}><IncidentReports items={d.incidents||[]} onChange={v=>s("incidents",v)} currentUser={currentUser}/></Sec>
+      <Sec icon="âœ…" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
+      <Sec icon="ðŸ§" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
+      <Sec icon="ðŸ©¹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
+      <Sec icon="ðŸ©º" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>
+      <Sec icon="ðŸ›" title="Braden Scale (Pressure Ulcer Risk)" accent="#8b5cf6" defaultOpen={false}><BradenScale items={d.braden_assessments||[]} onChange={v=>s("braden_assessments",v)}/></Sec>
+      <Sec icon="ðŸ§ " title="Cognitive Screening (MMSE / MoCA)" accent="#a78bfa" defaultOpen={false}><CognitiveScreening items={d.cognitive_assessments||[]} onChange={v=>s("cognitive_assessments",v)}/></Sec>
+      <Sec icon="ðŸ’§" title="Continence Monitoring" accent="#06b6d4" defaultOpen={false}><ContinenceLog items={d.continence_logs||[]} onChange={v=>s("continence_logs",v)}/></Sec>
+      <Sec icon="ðŸ¥—" title="Nutritional Risk Screening (MUST)" accent="#10b981" defaultOpen={false}><NutritionScreening items={d.nutrition_assessments||[]} onChange={v=>s("nutrition_assessments",v)}/></Sec>
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
         <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600}}>{t.cancel}</button>
         <button onClick={()=>valid&&!saving&&onSave(d)} disabled={!valid||saving}
@@ -2109,9 +1007,9 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
       <div className="np" style={{display:"flex",gap:8,justifyContent:"flex-end",marginBottom:16,flexWrap:"wrap"}}>
         {client.archived?(
           <>
-            <span style={{fontSize:12,fontWeight:700,padding:"8px 14px",borderRadius:8,background:"rgba(239,68,68,0.1)",color:"#f87171",border:"1px solid rgba(239,68,68,0.25)",alignSelf:"center"}}>📦 Archived</span>
-            {onRestore&&canEdit&&<button onClick={onRestore} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#10b981",color:"#fff",fontWeight:600,fontSize:13}}>♻️ Restore</button>}
-            {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #ef4444",background:"rgba(239,68,68,0.1)",color:"#ef4444",fontWeight:600,fontSize:13}}>🗑️ Delete Permanently</button>}
+            <span style={{fontSize:12,fontWeight:700,padding:"8px 14px",borderRadius:8,background:"rgba(239,68,68,0.1)",color:"#f87171",border:"1px solid rgba(239,68,68,0.25)",alignSelf:"center"}}>ðŸ“¦ Archived</span>
+            {onRestore&&canEdit&&<button onClick={onRestore} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#10b981",color:"#fff",fontWeight:600,fontSize:13}}>â™»ï¸ Restore</button>}
+            {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #ef4444",background:"rgba(239,68,68,0.1)",color:"#ef4444",fontWeight:600,fontSize:13}}>ðŸ—‘ï¸ Delete Permanently</button>}
           </>
         ):(
           <>
@@ -2119,7 +1017,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
             <button onClick={()=>setShowEmerg(true)} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontWeight:600,fontSize:13}}>Emergency Card</button>
             <button onClick={doPrint} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:13}}>Print</button>
             {canEdit&&<button onClick={onEdit} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontWeight:600,fontSize:13}}>{t.edit}</button>}
-            {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #f59e0b",background:"rgba(245,158,11,0.1)",color:"#f59e0b",fontWeight:600,fontSize:13}}>📦 Archive</button>}
+            {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #f59e0b",background:"rgba(245,158,11,0.1)",color:"#f59e0b",fontWeight:600,fontSize:13}}>ðŸ“¦ Archive</button>}
             {!canEdit&&<span style={{fontSize:12,color:"var(--color-text-muted)",alignSelf:"center",fontStyle:"italic"}}>View only</span>}
           </>
         )}
@@ -2140,9 +1038,9 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
                 <span style={{fontSize:12,fontWeight:700,padding:"3px 10px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40"}}>{client.status||t.active}</span>
                 <button onClick={()=>setShowFallFactors(f=>!f)} title={fallRisk.factors.join(", ")||"No risk factors"}
                   style={{fontSize:11,fontWeight:800,padding:"3px 10px",borderRadius:20,background:fallRisk.color+"20",color:fallRisk.color,border:"1px solid "+fallRisk.color+"40",cursor:"pointer"}}>
-                  🚶 Fall Risk: {fallRisk.level} ({fallRisk.score})
+                  ðŸš¶ Fall Risk: {fallRisk.level} ({fallRisk.score})
                 </button>
-                {(()=>{const ic=client.intake_checklist||[];const done=ic.filter(i=>i.done).length;const total=DEFAULT_INTAKE_ITEMS.length;const pct=total>0?Math.round(done/total*100):0;return<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:pct===100?"rgba(16,185,129,0.2)":"rgba(99,102,241,0.1)",color:pct===100?"#10b981":"#a5b4fc",border:"1px solid "+(pct===100?"rgba(16,185,129,0.3)":"rgba(99,102,241,0.2)")}}>✅ Intake {pct}%</span>;})()}
+                {(()=>{const ic=client.intake_checklist||[];const done=ic.filter(i=>i.done).length;const total=DEFAULT_INTAKE_ITEMS.length;const pct=total>0?Math.round(done/total*100):0;return<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:pct===100?"rgba(16,185,129,0.2)":"rgba(99,102,241,0.1)",color:pct===100?"#10b981":"#a5b4fc",border:"1px solid "+(pct===100?"rgba(16,185,129,0.3)":"rgba(99,102,241,0.2)")}}>âœ… Intake {pct}%</span>;})()}
               </div>
               {showFallFactors&&fallRisk.factors.length>0&&(
                 <div style={{background:fallRisk.color+"10",border:"1px solid "+fallRisk.color+"30",borderRadius:8,padding:"8px 12px",marginBottom:8,display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -2296,14 +1194,14 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
         {/* Family Contacts */}
         {(client.family_contacts||[]).length>0&&(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontWeight:700,color:"#ec4899",fontSize:13,marginBottom:12}}>👨‍👩‍👧 FAMILY CONTACTS</div>
+            <div style={{fontWeight:700,color:"#ec4899",fontSize:13,marginBottom:12}}>ðŸ‘¨â€ðŸ‘©â€ðŸ‘§ FAMILY CONTACTS</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {(client.family_contacts||[]).map(c=>(
                 <div key={c.id} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 12px",background:"rgba(255,255,255,0.03)",borderRadius:8}}>
                   <div style={{width:32,height:32,borderRadius:"50%",background:avatarColor(c.name||"?"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(c.name||"?")}</div>
                   <div style={{flex:1}}>
                     <div style={{fontWeight:600,fontSize:13,color:"var(--color-text-primary)"}}>{c.name}{c.is_primary&&<span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:20,background:"rgba(99,102,241,0.15)",color:"#a5b4fc",marginLeft:6}}>Primary</span>}</div>
-                    <div style={{fontSize:11,color:"var(--color-text-dim)"}}>{c.relationship}{c.phone?" · "+c.phone:""}{c.email?" · "+c.email:""}</div>
+                    <div style={{fontSize:11,color:"var(--color-text-dim)"}}>{c.relationship}{c.phone?" Â· "+c.phone:""}{c.email?" Â· "+c.email:""}</div>
                   </div>
                 </div>
               ))}
@@ -2313,57 +1211,57 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
         {/* Appointments */}
         {(client.appointments||[]).length>0&&(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>📅 APPOINTMENTS</div>
+            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>ðŸ“… APPOINTMENTS</div>
             <AppointmentLog items={client.appointments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("appointments",v):()=>{}}/>
           </div>
         )}
         {/* Incidents */}
         {(client.incidents||[]).length>0&&(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:12}}>⚠️ INCIDENT REPORTS</div>
+            <div style={{fontWeight:700,color:"#ef4444",fontSize:13,marginBottom:12}}>âš ï¸ INCIDENT REPORTS</div>
             <IncidentReports items={client.incidents||[]} onChange={onInlineUpdate?v=>onInlineUpdate("incidents",v):()=>{}} currentUser={currentUser}/>
           </div>
         )}
         {/* Intake Checklist */}
         {(()=>{const ic=client.intake_checklist||[];return(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>✅ INTAKE CHECKLIST</div>
+            <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>âœ… INTAKE CHECKLIST</div>
             <IntakeChecklist items={ic} onChange={onInlineUpdate?v=>onInlineUpdate("intake_checklist",v):()=>{}} currentUser={currentUser}/>
           </div>
         );})()}
         {/* ADL Tracking */}
         <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🧍 ADL TRACKING</div>
+          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>ðŸ§ ADL TRACKING</div>
           <ADLTracker items={client.adl_logs||[]} onChange={onInlineUpdate?v=>onInlineUpdate("adl_logs",v):()=>{}}/>
         </div>
         {/* Pain Assessment */}
         <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:12}}>🩹 PAIN ASSESSMENT</div>
+          <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:12}}>ðŸ©¹ PAIN ASSESSMENT</div>
           <PainAssessment items={client.pain_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("pain_assessments",v):()=>{}}/>
         </div>
         {/* Wound & Skin Assessment */}
         <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🩺 WOUND & SKIN ASSESSMENT</div>
+          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>ðŸ©º WOUND & SKIN ASSESSMENT</div>
           <WoundAssessment items={client.wound_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("wound_assessments",v):()=>{}}/>
         </div>
         {/* Braden Scale */}
         <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>🛏 BRADEN SCALE — PRESSURE ULCER RISK</div>
+          <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>ðŸ› BRADEN SCALE â€” PRESSURE ULCER RISK</div>
           <BradenScale items={client.braden_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("braden_assessments",v):()=>{}}/>
         </div>
         {/* Cognitive Screening */}
         <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#a78bfa",fontSize:13,marginBottom:12}}>🧠 COGNITIVE SCREENING — MMSE / MoCA</div>
+          <div style={{fontWeight:700,color:"#a78bfa",fontSize:13,marginBottom:12}}>ðŸ§  COGNITIVE SCREENING â€” MMSE / MoCA</div>
           <CognitiveScreening items={client.cognitive_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("cognitive_assessments",v):()=>{}}/>
         </div>
         {/* Continence Monitoring */}
         <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>💧 CONTINENCE MONITORING</div>
+          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>ðŸ’§ CONTINENCE MONITORING</div>
           <ContinenceLog items={client.continence_logs||[]} onChange={onInlineUpdate?v=>onInlineUpdate("continence_logs",v):()=>{}}/>
         </div>
         {/* Nutritional Risk Screening */}
         <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>🥗 NUTRITIONAL RISK SCREENING — MUST</div>
+          <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>ðŸ¥— NUTRITIONAL RISK SCREENING â€” MUST</div>
           <NutritionScreening items={client.nutrition_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("nutrition_assessments",v):()=>{}}/>
         </div>
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
@@ -2414,7 +1312,7 @@ function Login({onLogin,t}){
     if(err){setError(err.message);setLoading(false);return;}
     const {data:roles}=await supabase.from("user_roles").select("*").eq("user_id",data.user.id);
     const rd=roles?.[0];
-    // Log login history (keep last 10) — non-blocking
+    // Log login history (keep last 10) â€” non-blocking
     if(rd){
       try{
         const prev=rd.login_history||[];
@@ -2452,7 +1350,7 @@ function Login({onLogin,t}){
         {error&&<div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:16,color:"#ef4444",fontSize:13}}>{error}</div>}
         <form onSubmit={e=>{e.preventDefault();handle();}} style={{margin:0}}>
           <div style={{marginBottom:14}}><label style={LBL}>Email or Username</label><input type="text" style={INP} placeholder="your@email.com or username" value={email} onChange={e=>setEmail(e.target.value)} autoCapitalize="none" autoCorrect="off" autoComplete="username email" spellCheck="false"/></div>
-          <div style={{marginBottom:24}}><label style={LBL}>{t.password}</label><input type="password" style={INP} placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password"/></div>
+          <div style={{marginBottom:24}}><label style={LBL}>{t.password}</label><input type="password" style={INP} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password"/></div>
           <button type="submit" disabled={loading} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:loading?"rgba(255,255,255,0.08)":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:loading?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:15,boxShadow:loading?"none":"0 4px 14px rgba(99,102,241,0.35)"}}>
             {loading?t.signingIn:t.signIn}
           </button>
@@ -2532,7 +1430,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
     <div style={{maxWidth:800}}>
       {toast&&(
         <div style={{position:"fixed",top:24,right:24,zIndex:999,padding:"12px 20px",borderRadius:10,background:toast.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
-          {toast.type==="success"?"✓ ":"✗ "}{toast.msg}
+          {toast.type==="success"?"âœ“ ":"âœ— "}{toast.msg}
         </div>
       )}
       <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:24}}>
@@ -2555,7 +1453,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
         {tab==="info"&&(
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
             <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16}}>
-              <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>🖼 Company Logo</div>
+              <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>ðŸ–¼ Company Logo</div>
               <div style={{display:"flex",gap:16,alignItems:"center"}}>
                 <div style={{width:120,height:120,border:"2px dashed rgba(255,255,255,0.15)",borderRadius:12,background:"rgba(255,255,255,0.03)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
                   {logoPreview
@@ -2568,13 +1466,13 @@ function CompanyView({company,onUpdate,currentUser,t}){
                     style={{padding:"8px 16px",borderRadius:8,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontSize:13,fontWeight:600,marginBottom:8,display:"block"}}>
                     {uploading?"Uploading...":"Choose Logo"}
                   </button>
-                  <div style={{fontSize:11,color:"var(--color-text-muted)"}}>PNG or JPG · Max 5MB</div>
+                  <div style={{fontSize:11,color:"var(--color-text-muted)"}}>PNG or JPG Â· Max 5MB</div>
                   <div style={{fontSize:11,color:"var(--color-text-muted)"}}>Will appear in sidebar</div>
                 </div>
               </div>
             </div>
             <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16}}>
-              <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>🏢 Basic Information</div>
+              <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>ðŸ¢ Basic Information</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 {fld("Company Name *","name")}
                 {fld("Registration Number","registration_number")}
@@ -2591,7 +1489,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
               </div>
             </div>
             <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16}}>
-              <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>👤 Director / Contact</div>
+              <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>ðŸ‘¤ Director / Contact</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                 {fld("Director Name","director_name","text","e.g. Maria Johnson")}
                 {fld("Director Contact","director_contact","email","director@company.aw")}
@@ -2601,7 +1499,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
         )}
         {tab==="hours"&&(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16}}>
-            <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:16,textTransform:"uppercase",letterSpacing:"0.8px"}}>🕐 Hours of Operation</div>
+            <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:16,textTransform:"uppercase",letterSpacing:"0.8px"}}>ðŸ• Hours of Operation</div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {DAYS.map(day=>(
                 <div key={day} style={{display:"flex",alignItems:"center",gap:12}}>
@@ -2615,7 +1513,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
         )}
         {tab==="emergency"&&(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16}}>
-            <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>🚨 Emergency Contact</div>
+            <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>ðŸš¨ Emergency Contact</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               {fld("Emergency Contact Name","emergency_contact","text","e.g. Emergency Hotline")}
               {fld("Emergency Phone","emergency_phone","tel","+297-999-8888")}
@@ -2662,7 +1560,7 @@ function CompanyPicker({onSelect,currentUser,t}){
     <div style={{minHeight:"100vh",background:"var(--color-bg-base)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{maxWidth:600,width:"100%"}}>
         <div style={{textAlign:"center",marginBottom:32}}>
-          <div style={{fontSize:48,marginBottom:12}}>🏢</div>
+          <div style={{fontSize:48,marginBottom:12}}>ðŸ¢</div>
           <div style={{fontSize:24,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px",marginBottom:6}}>Select Company</div>
           <div style={{fontSize:13,color:"var(--color-text-dim)"}}>Choose which company to manage</div>
         </div>
@@ -2682,17 +1580,17 @@ function CompanyPicker({onSelect,currentUser,t}){
                       <img src={c.logo_url} alt={c.name} style={{height:48,maxWidth:120,objectFit:"contain",display:"block"}}/>
                     </div>
                   ):(
-                    <div style={{width:64,height:64,borderRadius:12,background:"rgba(99,102,241,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🏥</div>
+                    <div style={{width:64,height:64,borderRadius:12,background:"rgba(99,102,241,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>ðŸ¥</div>
                   )}
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:16,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",marginBottom:4}}>{c.name}</div>
                     {c.mission_statement&&<div style={{fontSize:12,color:"var(--color-text-dim)",fontStyle:"italic",marginBottom:6}}>"{c.mission_statement}"</div>}
                     <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
-                      {c.address&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>📍 {c.address}</span>}
+                      {c.address&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>ðŸ“ {c.address}</span>}
                       {roleForCompany&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:rc+"20",color:rc,border:"1px solid "+rc+"40",textTransform:"capitalize"}}>{roleForCompany.role.replace("_"," ")}</span>}
                     </div>
                   </div>
-                  <div style={{color:"#6366f1",fontSize:20,flexShrink:0}}>→</div>
+                  <div style={{color:"#6366f1",fontSize:20,flexShrink:0}}>â†’</div>
                 </button>
               );
             })}
@@ -2795,7 +1693,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
       if(applyMode==="now")await loadPermissions(activeCompanyId);
       setPendingChanges({});
       await loadPerms();
-      showToast("success",applyMode==="now"?"Permissions saved and applied immediately!":"Permissions saved — will apply on next login");
+      showToast("success",applyMode==="now"?"Permissions saved and applied immediately!":"Permissions saved â€” will apply on next login");
     }catch(err){
       showToast("error","Failed to save: "+err.message);
     }
@@ -2809,20 +1707,20 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
     <div style={{maxWidth:900}}>
       {toast&&(
         <div style={{position:"fixed",top:24,right:24,zIndex:999,padding:"12px 20px",borderRadius:10,background:toast.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
-          {toast.type==="success"?"✓ ":"✗ "}{toast.msg}
+          {toast.type==="success"?"âœ“ ":"âœ— "}{toast.msg}
         </div>
       )}
 
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
         <div>
-          <div style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px"}}>🔐 Permissions</div>
+          <div style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px"}}>ðŸ” Permissions</div>
           <div style={{fontSize:13,color:"var(--color-text-dim)",marginTop:4}}>Control what each role can do</div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
           {/* View toggle */}
           <div style={{display:"flex",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,overflow:"hidden"}}>
-            {[["grid","⊞ Grid"],["table","☰ Table"]].map(([id,label])=>(
+            {[["grid","âŠž Grid"],["table","â˜° Table"]].map(([id,label])=>(
               <button key={id} onClick={()=>setViewMode(id)}
                 style={{padding:"7px 14px",border:"none",background:viewMode===id?"#6366f1":"transparent",color:viewMode===id?"#fff":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:12}}>
                 {label}
@@ -2845,7 +1743,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
 
       {/* Tabs */}
       <div style={{display:"flex",gap:2,borderBottom:"1px solid var(--color-border)",marginBottom:20}}>
-        {[["global","🌐 Global Defaults"],["company","🏢 Company Override"]].map(([id,label])=>(
+        {[["global","ðŸŒ Global Defaults"],["company","ðŸ¢ Company Override"]].map(([id,label])=>(
           <button key={id} onClick={()=>setTab(id)}
             style={{padding:"9px 20px",border:"none",borderBottom:tab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:tab===id?"#6366f1":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
             {label}
@@ -2865,7 +1763,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
           {/* Pending changes banner */}
           {hasPending&&(
             <div style={{background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.3)",borderRadius:10,padding:"10px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:13,color:"#f59e0b",fontWeight:600}}>⚠️ {Object.keys(pendingChanges).length} unsaved change{Object.keys(pendingChanges).length!==1?"s":""}</span>
+              <span style={{fontSize:13,color:"#f59e0b",fontWeight:600}}>âš ï¸ {Object.keys(pendingChanges).length} unsaved change{Object.keys(pendingChanges).length!==1?"s":""}</span>
               <button onClick={()=>setPendingChanges({})} style={{border:"none",background:"transparent",color:"var(--color-text-dim)",fontSize:12,fontWeight:600}}>Discard</button>
             </div>
           )}
@@ -2967,7 +1865,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
 }
 
 
-// ─── Reports & Exports ────────────────────────────────────────────────────────
+// â”€â”€â”€ Reports & Exports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ReportsView({clients,company,currentUser,logAudit}){
   const now=new Date();
   const [report,setReport]=useState(null);
@@ -2983,7 +1881,7 @@ function ReportsView({clients,company,currentUser,logAudit}){
   const companyName=company?.name||"CareManager";
   const generatedOn=new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
   const inMonth=d=>d&&d.startsWith(`${year}-${String(month).padStart(2,"0")}`);
-  const fmtDate=d=>d?new Date(d+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"—";
+  const fmtDate=d=>d?new Date(d+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"â€”";
 
   const BASE_CSS=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;color:#1e293b;font-size:12px}h2{font-size:11px;font-weight:800;border-bottom:2px solid #6366f1;padding-bottom:3px;margin:18px 0 8px;color:#6366f1;text-transform:uppercase;letter-spacing:.8px}table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:11px}th{background:#f1f5f9;padding:5px 8px;text-align:left;border-bottom:2px solid #e2e8f0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}td{padding:5px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}.page{padding:28px;max-width:210mm;margin:0 auto}.header-bar{background:#1e293b;color:white;padding:18px 22px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-start}.header-title{font-family:Georgia,serif;font-size:18px;font-weight:700;margin-bottom:4px}.header-meta{font-size:10px;opacity:.65;line-height:1.6}.client-block{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:14px}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px}.info-row{font-size:11px;padding:2px 0;display:flex;gap:8px}.info-label{color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;white-space:nowrap;min-width:76px}.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;margin:2px;border:1px solid}.bg{background:#f0fdf4;color:#16a34a;border-color:#bbf7d0}.by{background:#fefce8;color:#ca8a04;border-color:#fde68a}.br{background:#fef2f2;color:#dc2626;border-color:#fecaca}.bb{background:#eff6ff;color:#2563eb;border-color:#bfdbfe}.note-block{border-left:3px solid #7c3aed;padding:6px 10px;margin-bottom:8px;background:#faf5ff;border-radius:0 4px 4px 0}.note-meta{font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:3px}.note-text{font-size:11px;color:#374151;line-height:1.5}.vital-flag{background:#fef2f2;color:#dc2626;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:700}.footer{text-align:center;font-size:9px;color:#94a3b8;border-top:1px solid #e2e8f0;margin-top:24px;padding-top:10px}.no-data{color:#94a3b8;font-style:italic;font-size:11px;padding:6px 0}@page{size:A4;margin:1.2cm}`;
 
@@ -2995,7 +1893,7 @@ function ReportsView({clients,company,currentUser,logAudit}){
     setTimeout(()=>URL.revokeObjectURL(url),12000);
   };
 
-  // ── Monthly Client Summary ───────────────────────────────────────────────────
+  // â”€â”€ Monthly Client Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const genMonthly=()=>{
     const client=activeClients.find(c=>c.id===clientId);
     if(!client)return;
@@ -3015,29 +1913,29 @@ function ReportsView({clients,company,currentUser,logAudit}){
     const braden=calcBradenSummary(client.braden_assessments);
     const cog=calcCognitiveSummary(client.cognitive_assessments);
     const nutr=calcNutritionSummary(client.nutrition_assessments);
-    const fmtSlot=t=>{const s=[];if(t?.morning)s.push("AM");if(t?.afternoon)s.push("PM");if(t?.evening)s.push("Eve");if(t?.night)s.push("Ngt");return s.length?s.join(" · "):"—";};
+    const fmtSlot=t=>{const s=[];if(t?.morning)s.push("AM");if(t?.afternoon)s.push("PM");if(t?.evening)s.push("Eve");if(t?.night)s.push("Ngt");return s.length?s.join(" Â· "):"â€”";};
 
-    let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Monthly Summary — ${he(client.name)}</title><style>${BASE_CSS}</style></head><body><div class="page">`;
+    let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Monthly Summary â€” ${he(client.name)}</title><style>${BASE_CSS}</style></head><body><div class="page">`;
 
     // Header
-    h+=`<div class="header-bar"><div><div class="header-title">Monthly Client Summary</div><div class="header-meta">${he(monthName)} ${he(year)} &nbsp;·&nbsp; ${he(companyName)}<br>Generated: ${he(generatedOn)} &nbsp;·&nbsp; By: ${he(currentUser.displayName||currentUser.email)}</div></div><div style="text-align:right"><div class="header-title" style="font-size:15px">${he(client.name)}</div><div class="header-meta">${he(client.status||"Active")} &nbsp;·&nbsp; ${age?"Age "+he(age):"DOB not set"}</div></div></div>`;
+    h+=`<div class="header-bar"><div><div class="header-title">Monthly Client Summary</div><div class="header-meta">${he(monthName)} ${he(year)} &nbsp;Â·&nbsp; ${he(companyName)}<br>Generated: ${he(generatedOn)} &nbsp;Â·&nbsp; By: ${he(currentUser.displayName||currentUser.email)}</div></div><div style="text-align:right"><div class="header-title" style="font-size:15px">${he(client.name)}</div><div class="header-meta">${he(client.status||"Active")} &nbsp;Â·&nbsp; ${age?"Age "+he(age):"DOB not set"}</div></div></div>`;
 
     // Identity block
-    h+=`<div class="client-block"><div class="info-grid"><div class="info-row"><span class="info-label">DOB</span>${client.date_of_birth?fmtDate(client.date_of_birth):"—"}</div><div class="info-row"><span class="info-label">AZV #</span>${he(client.azv_number||"—")}</div><div class="info-row"><span class="info-label">Room</span>${he(client.room_or_address||"—")}</div><div class="info-row"><span class="info-label">Phone</span>${he(client.phone||"—")}</div><div class="info-row"><span class="info-label">GP</span>${he(client.dr_di_cas||"—")}</div><div class="info-row"><span class="info-label">Specialist</span>${he(client.dr_specialista||"—")}</div><div class="info-row"><span class="info-label">Emergency</span>${he(client.emergency_contact||"—")} ${he(client.emergency_phone||"")}</div><div class="info-row"><span class="info-label">Status</span>${he(client.status||"Active")}</div></div></div>`;
+    h+=`<div class="client-block"><div class="info-grid"><div class="info-row"><span class="info-label">DOB</span>${client.date_of_birth?fmtDate(client.date_of_birth):"â€”"}</div><div class="info-row"><span class="info-label">AZV #</span>${he(client.azv_number||"â€”")}</div><div class="info-row"><span class="info-label">Room</span>${he(client.room_or_address||"â€”")}</div><div class="info-row"><span class="info-label">Phone</span>${he(client.phone||"â€”")}</div><div class="info-row"><span class="info-label">GP</span>${he(client.dr_di_cas||"â€”")}</div><div class="info-row"><span class="info-label">Specialist</span>${he(client.dr_specialista||"â€”")}</div><div class="info-row"><span class="info-label">Emergency</span>${he(client.emergency_contact||"â€”")} ${he(client.emergency_phone||"")}</div><div class="info-row"><span class="info-label">Status</span>${he(client.status||"Active")}</div></div></div>`;
 
     // Allergy alert
-    if(allergies.length>0)h+=`<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-weight:700;color:#dc2626;font-size:11px">⚠ ALLERGIES: ${allergies.map(a=>he(a.value)).join(" · ")}</div>`;
+    if(allergies.length>0)h+=`<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-weight:700;color:#dc2626;font-size:11px">âš  ALLERGIES: ${allergies.map(a=>he(a.value)).join(" Â· ")}</div>`;
 
     // Clinical snapshot
     const badges=[];
-    badges.push(`<span class="badge ${fr.level==="High"?"br":fr.level==="Medium"?"by":"bg"}">🚶 Fall Risk: ${fr.level} (${fr.score})</span>`);
-    if(adl)badges.push(`<span class="badge ${adl.dep.label==="High"?"br":adl.dep.label==="Moderate"?"by":"bg"}">🧍 ADL: ${adl.dep.label}</span>`);
-    if(pain)badges.push(`<span class="badge ${pain.latestScore>=7?"br":pain.latestScore>=4?"by":"bg"}">🩹 Pain: ${pain.latestScore}/10</span>`);
-    if(braden)badges.push(`<span class="badge ${braden.score<=12?"br":braden.score<=14?"by":"bg"}">🛏 Braden: ${braden.score}/${BRADEN_MAX}</span>`);
-    if(cog)badges.push(`<span class="badge ${cog.level.label.includes("Severe")?"br":cog.level.label.includes("Moderate")?"by":"bg"}">🧠 ${cog.latest.test_type||"MMSE"}: ${cog.score}/30</span>`);
-    if(nutr)badges.push(`<span class="badge ${nutr.score>=2?"br":nutr.score===1?"by":"bg"}">🥗 MUST: ${nutr.score} — ${nutr.risk.label}</span>`);
-    if(polypharmacy)badges.push(`<span class="badge by">💊 Polypharmacy (${medCount} meds)</span>`);
-    if(highRisk.length>0)badges.push(`<span class="badge br">⚠ ${highRisk.length} High-Risk Med${highRisk.length>1?"s":""}</span>`);
+    badges.push(`<span class="badge ${fr.level==="High"?"br":fr.level==="Medium"?"by":"bg"}">ðŸš¶ Fall Risk: ${fr.level} (${fr.score})</span>`);
+    if(adl)badges.push(`<span class="badge ${adl.dep.label==="High"?"br":adl.dep.label==="Moderate"?"by":"bg"}">ðŸ§ ADL: ${adl.dep.label}</span>`);
+    if(pain)badges.push(`<span class="badge ${pain.latestScore>=7?"br":pain.latestScore>=4?"by":"bg"}">ðŸ©¹ Pain: ${pain.latestScore}/10</span>`);
+    if(braden)badges.push(`<span class="badge ${braden.score<=12?"br":braden.score<=14?"by":"bg"}">ðŸ› Braden: ${braden.score}/${BRADEN_MAX}</span>`);
+    if(cog)badges.push(`<span class="badge ${cog.level.label.includes("Severe")?"br":cog.level.label.includes("Moderate")?"by":"bg"}">ðŸ§  ${cog.latest.test_type||"MMSE"}: ${cog.score}/30</span>`);
+    if(nutr)badges.push(`<span class="badge ${nutr.score>=2?"br":nutr.score===1?"by":"bg"}">ðŸ¥— MUST: ${nutr.score} â€” ${nutr.risk.label}</span>`);
+    if(polypharmacy)badges.push(`<span class="badge by">ðŸ’Š Polypharmacy (${medCount} meds)</span>`);
+    if(highRisk.length>0)badges.push(`<span class="badge br">âš  ${highRisk.length} High-Risk Med${highRisk.length>1?"s":""}</span>`);
     h+=`<h2>Clinical Snapshot</h2><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">${badges.join("")}</div>`;
 
     // Diagnoses
@@ -3046,43 +1944,43 @@ function ReportsView({clients,company,currentUser,logAudit}){
     // Medications
     if(meds.length>0){
       h+=`<h2>Current Medications</h2><table><thead><tr><th>Medication</th><th>Dosage</th><th>Frequency</th><th>Timing</th><th>High Risk</th></tr></thead><tbody>`;
-      meds.forEach(m=>{const isHR=highRisk.some(x=>x.id===m.id);h+=`<tr${isHR?" style='background:#fef2f2'":" "}><td><strong>${he(m.name)}</strong></td><td>${he(m.dosage||"—")}</td><td>${he(m.frequency||"—")}</td><td>${he(fmtSlot(m.timing))}</td><td>${isHR?"<strong style='color:#dc2626'>⚠ Yes</strong>":"—"}</td></tr>`;});
+      meds.forEach(m=>{const isHR=highRisk.some(x=>x.id===m.id);h+=`<tr${isHR?" style='background:#fef2f2'":" "}><td><strong>${he(m.name)}</strong></td><td>${he(m.dosage||"â€”")}</td><td>${he(m.frequency||"â€”")}</td><td>${he(fmtSlot(m.timing))}</td><td>${isHR?"<strong style='color:#dc2626'>âš  Yes</strong>":"â€”"}</td></tr>`;});
       h+=`</tbody></table>`;
     }
 
     // Session notes
-    h+=`<h2>Session Notes — ${he(monthName)} ${he(year)} (${notes.length})</h2>`;
+    h+=`<h2>Session Notes â€” ${he(monthName)} ${he(year)} (${notes.length})</h2>`;
     if(notes.length===0){h+=`<div class="no-data">No session notes recorded this month.</div>`;}
-    else{notes.forEach(n=>{h+=`<div class="note-block"><div class="note-meta">${fmtDate(n.date)}${n.role?" &nbsp;·&nbsp; "+he(n.role):""}${n.staff_name?" &nbsp;·&nbsp; "+he(n.staff_name):""}</div><div class="note-text">${he(n.text||"")}</div></div>`;});}
+    else{notes.forEach(n=>{h+=`<div class="note-block"><div class="note-meta">${fmtDate(n.date)}${n.role?" &nbsp;Â·&nbsp; "+he(n.role):""}${n.staff_name?" &nbsp;Â·&nbsp; "+he(n.staff_name):""}</div><div class="note-text">${he(n.text||"")}</div></div>`;});}
 
     // Vitals
-    h+=`<h2>Vitals — ${monthName} ${year} (${vitals.length})</h2>`;
+    h+=`<h2>Vitals â€” ${monthName} ${year} (${vitals.length})</h2>`;
     if(vitals.length===0){h+=`<div class="no-data">No vitals recorded this month.</div>`;}
     else{
-      h+=`<table><thead><tr><th>Date</th><th>BP (mmHg)</th><th>HR</th><th>Weight (kg)</th><th>Temp (°C)</th><th>O₂ (%)</th><th>Glucose</th><th>Notes</th></tr></thead><tbody>`;
+      h+=`<table><thead><tr><th>Date</th><th>BP (mmHg)</th><th>HR</th><th>Weight (kg)</th><th>Temp (Â°C)</th><th>Oâ‚‚ (%)</th><th>Glucose</th><th>Notes</th></tr></thead><tbody>`;
       vitals.forEach(v=>{
         const flags=checkAbnormalVitals(v);
         const bp=v.bp_systolic?`${he(v.bp_systolic)}/${he(v.bp_diastolic||"?")}`:"-";
-        const flagHtml=flags.length?` <span class="vital-flag">⚠ ${flags.map(f=>he(f.label)).join(", ")}</span>`:"";
-        h+=`<tr><td>${fmtDate(v.date)}</td><td>${bp}${flagHtml}</td><td>${he(v.heart_rate||"—")}</td><td>${he(v.weight||"—")}</td><td>${he(v.temperature||"—")}</td><td>${he(v.oxygen_sat||"—")}</td><td>${he(v.blood_sugar||"—")}</td><td style="font-size:10px;color:#64748b">${he(v.notes||"")}</td></tr>`;
+        const flagHtml=flags.length?` <span class="vital-flag">âš  ${flags.map(f=>he(f.label)).join(", ")}</span>`:"";
+        h+=`<tr><td>${fmtDate(v.date)}</td><td>${bp}${flagHtml}</td><td>${he(v.heart_rate||"â€”")}</td><td>${he(v.weight||"â€”")}</td><td>${he(v.temperature||"â€”")}</td><td>${he(v.oxygen_sat||"â€”")}</td><td>${he(v.blood_sugar||"â€”")}</td><td style="font-size:10px;color:#64748b">${he(v.notes||"")}</td></tr>`;
       });
       h+=`</tbody></table>`;
     }
 
     // Appointments
-    h+=`<h2>Appointments — ${monthName} ${year} (${appts.length})</h2>`;
+    h+=`<h2>Appointments â€” ${monthName} ${year} (${appts.length})</h2>`;
     if(appts.length===0){h+=`<div class="no-data">No appointments recorded this month.</div>`;}
     else{
       h+=`<table><thead><tr><th>Date</th><th>Type</th><th>Status</th><th>Transport</th><th>Notes</th></tr></thead><tbody>`;
-      appts.forEach(a=>{const sc=a.status==="No-Show"?"color:#dc2626;font-weight:700":a.status==="Completed"?"color:#16a34a":"";h+=`<tr><td>${fmtDate(a.date)}</td><td>${he(a.type||"—")}</td><td style="${sc}">${he(a.status||"—")}</td><td>${a.transport?"Yes":"—"}</td><td style="font-size:10px">${he(a.notes||"")}</td></tr>`;});
+      appts.forEach(a=>{const sc=a.status==="No-Show"?"color:#dc2626;font-weight:700":a.status==="Completed"?"color:#16a34a":"";h+=`<tr><td>${fmtDate(a.date)}</td><td>${he(a.type||"â€”")}</td><td style="${sc}">${he(a.status||"â€”")}</td><td>${a.transport?"Yes":"â€”"}</td><td style="font-size:10px">${he(a.notes||"")}</td></tr>`;});
       h+=`</tbody></table>`;
     }
 
     // Incidents
     if(incidents.length>0){
-      h+=`<h2 style="color:#dc2626;border-color:#dc2626">⚠ Incidents — ${monthName} ${year} (${incidents.length})</h2>`;
+      h+=`<h2 style="color:#dc2626;border-color:#dc2626">âš  Incidents â€” ${monthName} ${year} (${incidents.length})</h2>`;
       h+=`<table><thead><tr><th>Date</th><th>Type</th><th>Severity</th><th>Description</th><th>Action Taken</th></tr></thead><tbody>`;
-      incidents.forEach(i=>{const sc=i.severity==="Severe"?"color:#dc2626;font-weight:700":i.severity==="Moderate"?"color:#ca8a04;font-weight:700":"";h+=`<tr><td>${fmtDate(i.date)}</td><td>${he(i.type||"—")}</td><td style="${sc}">${he(i.severity||"—")}</td><td>${he(i.description||"—")}</td><td style="font-size:10px">${he(i.action||i.action_taken||"—")}</td></tr>`;});
+      incidents.forEach(i=>{const sc=i.severity==="Severe"?"color:#dc2626;font-weight:700":i.severity==="Moderate"?"color:#ca8a04;font-weight:700":"";h+=`<tr><td>${fmtDate(i.date)}</td><td>${he(i.type||"â€”")}</td><td style="${sc}">${he(i.severity||"â€”")}</td><td>${he(i.description||"â€”")}</td><td style="font-size:10px">${he(i.action||i.action_taken||"â€”")}</td></tr>`;});
       h+=`</tbody></table>`;
     }
 
@@ -3090,17 +1988,17 @@ function ReportsView({clients,company,currentUser,logAudit}){
     const goals=(client.care_plan||[]).filter(g=>g.goal||g.plan);
     if(goals.length>0){
       h+=`<h2>Care Plan</h2><table><thead><tr><th>Goal</th><th>Plan</th><th>Status</th><th>Last Reviewed</th></tr></thead><tbody>`;
-      goals.forEach(g=>{const sb=g.status==="Achieved"?`<span class="badge bg">Achieved</span>`:g.status==="On Hold"?`<span class="badge by">On Hold</span>`:g.status==="Discontinued"?`<span class="badge br">Discontinued</span>`:`<span class="badge bb">In Progress</span>`;h+=`<tr><td>${he(g.goal||"—")}</td><td style="font-size:10px">${he(g.plan||"—")}</td><td>${sb}</td><td style="font-size:10px">${g.reviewed?fmtDate(g.reviewed):"—"}</td></tr>`;});
+      goals.forEach(g=>{const sb=g.status==="Achieved"?`<span class="badge bg">Achieved</span>`:g.status==="On Hold"?`<span class="badge by">On Hold</span>`:g.status==="Discontinued"?`<span class="badge br">Discontinued</span>`:`<span class="badge bb">In Progress</span>`;h+=`<tr><td>${he(g.goal||"â€”")}</td><td style="font-size:10px">${he(g.plan||"â€”")}</td><td>${sb}</td><td style="font-size:10px">${g.reviewed?fmtDate(g.reviewed):"â€”"}</td></tr>`;});
       h+=`</tbody></table>`;
     }
 
-    h+=`<div class="footer">CONFIDENTIAL — CareManager &nbsp;·&nbsp; ${he(companyName)} &nbsp;·&nbsp; ${he(client.name)} — Monthly Summary ${he(monthName)} ${he(year)} &nbsp;·&nbsp; Generated ${he(generatedOn)}</div></div></body></html>`;
+    h+=`<div class="footer">CONFIDENTIAL â€” CareManager &nbsp;Â·&nbsp; ${he(companyName)} &nbsp;Â·&nbsp; ${he(client.name)} â€” Monthly Summary ${he(monthName)} ${he(year)} &nbsp;Â·&nbsp; Generated ${he(generatedOn)}</div></div></body></html>`;
     openPrint(h);
-    logAudit?.("Generated Monthly Summary PDF",client.name,{section:"Reports",details:`Monthly summary for ${client.name} — ${monthName} ${year}`});
+    logAudit?.("Generated Monthly Summary PDF",client.name,{section:"Reports",details:`Monthly summary for ${client.name} â€” ${monthName} ${year}`});
     setGenerating(false);
   };
 
-  // ── MAR ─────────────────────────────────────────────────────────────────────
+  // â”€â”€ MAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const genMAR=()=>{
     const client=activeClients.find(c=>c.id===clientId);
     if(!client)return;
@@ -3110,10 +2008,10 @@ function ReportsView({clients,company,currentUser,logAudit}){
     const days=Array.from({length:daysInMonth},(_,i)=>i+1);
     const SLOTS=[{key:"morning",label:"AM"},{key:"afternoon",label:"PM"},{key:"evening",label:"Eve"},{key:"night",label:"Ngt"}];
 
-    let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>MAR — ${client.name} — ${monthName} ${year}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:9px;color:#000;padding:10px}@page{size:A4 landscape;margin:.8cm}.ph{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e293b;padding-bottom:8px;margin-bottom:6px}.pt{font-size:15px;font-weight:700;font-family:Georgia,serif}.ci{font-size:9px;line-height:1.6;margin-top:2px}.ab{background:#fef2f2;border:2px solid #fca5a5;padding:3px 10px;font-weight:700;color:#dc2626;font-size:9px;margin-bottom:6px;border-radius:4px}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #94a3b8;padding:1px;text-align:center;font-size:8px;vertical-align:middle}.mth{text-align:left;padding:3px 5px;width:130px;font-size:9px;background:#1e293b;color:white}.sth{background:#1e293b;color:white;font-size:8px;font-weight:700;width:16px}.dth{background:#f1f5f9;font-size:7px;font-weight:700;width:18px}.mn{font-weight:700;font-size:9px}.md{font-size:7px;color:#64748b}.sc{font-size:8px;font-weight:700;color:#475569}.ac{background:#fff;height:13px}.lg{font-size:7.5px;color:#475569;margin-top:6px}.ft{text-align:center;font-size:8px;color:#94a3b8;border-top:1px solid #e2e8f0;margin-top:8px;padding-top:5px}</style></head><body>`;
+    let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>MAR â€” ${client.name} â€” ${monthName} ${year}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:9px;color:#000;padding:10px}@page{size:A4 landscape;margin:.8cm}.ph{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e293b;padding-bottom:8px;margin-bottom:6px}.pt{font-size:15px;font-weight:700;font-family:Georgia,serif}.ci{font-size:9px;line-height:1.6;margin-top:2px}.ab{background:#fef2f2;border:2px solid #fca5a5;padding:3px 10px;font-weight:700;color:#dc2626;font-size:9px;margin-bottom:6px;border-radius:4px}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #94a3b8;padding:1px;text-align:center;font-size:8px;vertical-align:middle}.mth{text-align:left;padding:3px 5px;width:130px;font-size:9px;background:#1e293b;color:white}.sth{background:#1e293b;color:white;font-size:8px;font-weight:700;width:16px}.dth{background:#f1f5f9;font-size:7px;font-weight:700;width:18px}.mn{font-weight:700;font-size:9px}.md{font-size:7px;color:#64748b}.sc{font-size:8px;font-weight:700;color:#475569}.ac{background:#fff;height:13px}.lg{font-size:7.5px;color:#475569;margin-top:6px}.ft{text-align:center;font-size:8px;color:#94a3b8;border-top:1px solid #e2e8f0;margin-top:8px;padding-top:5px}</style></head><body>`;
 
-    h+=`<div class="ph"><div><div class="pt">Medication Administration Record (MAR)</div><div class="ci"><strong>Client:</strong> ${he(client.name)} &nbsp;·&nbsp; <strong>DOB:</strong> ${he(client.date_of_birth||"—")} &nbsp;·&nbsp; <strong>Room:</strong> ${he(client.room_or_address||"—")} &nbsp;·&nbsp; <strong>AZV #:</strong> ${he(client.azv_number||"—")}</div><div class="ci"><strong>Period:</strong> ${he(monthName)} ${he(year)} (${daysInMonth} days) &nbsp;·&nbsp; <strong>Facility:</strong> ${he(companyName)}</div></div><div style="text-align:right;font-size:8px;color:#475569"><div>Generated: ${he(generatedOn)}</div><div>By: ${he(currentUser.displayName||currentUser.email)}</div></div></div>`;
-    if(allergies.length>0)h+=`<div class="ab">⚠ ALLERGIES: ${allergies.map(a=>he(a.value)).join(" · ")}</div>`;
+    h+=`<div class="ph"><div><div class="pt">Medication Administration Record (MAR)</div><div class="ci"><strong>Client:</strong> ${he(client.name)} &nbsp;Â·&nbsp; <strong>DOB:</strong> ${he(client.date_of_birth||"â€”")} &nbsp;Â·&nbsp; <strong>Room:</strong> ${he(client.room_or_address||"â€”")} &nbsp;Â·&nbsp; <strong>AZV #:</strong> ${he(client.azv_number||"â€”")}</div><div class="ci"><strong>Period:</strong> ${he(monthName)} ${he(year)} (${daysInMonth} days) &nbsp;Â·&nbsp; <strong>Facility:</strong> ${he(companyName)}</div></div><div style="text-align:right;font-size:8px;color:#475569"><div>Generated: ${he(generatedOn)}</div><div>By: ${he(currentUser.displayName||currentUser.email)}</div></div></div>`;
+    if(allergies.length>0)h+=`<div class="ab">âš  ALLERGIES: ${allergies.map(a=>he(a.value)).join(" Â· ")}</div>`;
 
     if(meds.length===0){h+=`<p style="color:#94a3b8;text-align:center;padding:20px;font-style:italic">No medications on record.</p>`;}
     else{
@@ -3141,24 +2039,24 @@ function ReportsView({clients,company,currentUser,logAudit}){
       h+=`<tr><td style="text-align:left;padding:4px 6px;font-weight:700;font-size:8px;height:28px">NURSE SIGNATURE / INITIALS</td><td colspan="${1+daysInMonth}" style="border:none"></td></tr>`;
       h+=`</tbody></table>`;
     }
-    h+=`<div class="lg">Legend: AM = Morning · PM = Afternoon · Eve = Evening · Ngt = Night · PRN = As Needed &nbsp;|&nbsp; Initial each cell after administration. Circle if withheld — document reason separately.</div>`;
-    h+=`<div class="ft">CONFIDENTIAL — ${he(companyName)} &nbsp;·&nbsp; ${he(client.name)} — MAR ${he(monthName)} ${he(year)}</div></body></html>`;
+    h+=`<div class="lg">Legend: AM = Morning Â· PM = Afternoon Â· Eve = Evening Â· Ngt = Night Â· PRN = As Needed &nbsp;|&nbsp; Initial each cell after administration. Circle if withheld â€” document reason separately.</div>`;
+    h+=`<div class="ft">CONFIDENTIAL â€” ${he(companyName)} &nbsp;Â·&nbsp; ${he(client.name)} â€” MAR ${he(monthName)} ${he(year)}</div></body></html>`;
     openPrint(h);
-    logAudit?.("Generated MAR PDF",client.name,{section:"Reports",details:`MAR for ${client.name} — ${monthName} ${year}`});
+    logAudit?.("Generated MAR PDF",client.name,{section:"Reports",details:`MAR for ${client.name} â€” ${monthName} ${year}`});
     setGenerating(false);
   };
 
-  // ── Census Report ────────────────────────────────────────────────────────────
+  // â”€â”€ Census Report â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const genCensus=()=>{
     setGenerating(true);
-    // Defer heavy computation so the "Generating PDF…" button state renders before the
+    // Defer heavy computation so the "Generating PDFâ€¦" button state renders before the
     // main thread is blocked by iterating all clients and building the HTML string.
     setTimeout(()=>{
     const all=clients.filter(c=>!c.archived);
     const byStatus={Active:0,Inactive:0,Discharged:0};
     all.forEach(c=>{const s=c.status||"Active";byStatus[s]=(byStatus[s]||0)+1;});
 
-    const ageBands=[{l:"Under 65",mn:0,mx:64,n:0},{l:"65–74",mn:65,mx:74,n:0},{l:"75–84",mn:75,mx:84,n:0},{l:"85+",mn:85,mx:999,n:0},{l:"Unknown",mn:-1,mx:-1,n:0}];
+    const ageBands=[{l:"Under 65",mn:0,mx:64,n:0},{l:"65â€“74",mn:65,mx:74,n:0},{l:"75â€“84",mn:75,mx:84,n:0},{l:"85+",mn:85,mx:999,n:0},{l:"Unknown",mn:-1,mx:-1,n:0}];
     all.forEach(c=>{const a=calcAge(c.date_of_birth);if(a===null){ageBands[4].n++;return;}const b=ageBands.find(x=>x.mn>=0&&a>=x.mn&&a<=x.mx);if(b)b.n++;});
 
     const frCount={Low:0,Medium:0,High:0};
@@ -3188,8 +2086,8 @@ function ReportsView({clients,company,currentUser,logAudit}){
 
     const CSS2=BASE_CSS+`.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.stat-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center}.stat-num{font-size:32px;font-weight:800;font-family:Georgia,serif}.stat-lbl{font-size:11px;color:#64748b;margin-top:2px}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}.sb{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:12px}.sl{font-size:10px;font-weight:800;text-transform:uppercase;color:#6366f1;letter-spacing:.5px;margin-bottom:8px}.fr{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #f0f0f0;font-size:11px}.fn{font-weight:800;font-size:13px}.cf{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center}.cfc{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px 6px}`;
 
-    let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Census Report — ${monthName} ${year}</title><style>${CSS2}</style></head><body><div class="page">`;
-    h+=`<div class="header-bar"><div><div class="header-title">Census Report</div><div class="header-meta">${he(companyName)} &nbsp;·&nbsp; ${he(monthName)} ${he(year)}<br>Generated: ${he(generatedOn)} &nbsp;·&nbsp; By: ${he(currentUser.displayName||currentUser.email)}</div></div><div style="text-align:right"><div style="font-size:32px;font-weight:800;color:white">${all.length}</div><div class="header-meta">clients on file</div></div></div>`;
+    let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Census Report â€” ${monthName} ${year}</title><style>${CSS2}</style></head><body><div class="page">`;
+    h+=`<div class="header-bar"><div><div class="header-title">Census Report</div><div class="header-meta">${he(companyName)} &nbsp;Â·&nbsp; ${he(monthName)} ${he(year)}<br>Generated: ${he(generatedOn)} &nbsp;Â·&nbsp; By: ${he(currentUser.displayName||currentUser.email)}</div></div><div style="text-align:right"><div style="font-size:32px;font-weight:800;color:white">${all.length}</div><div class="header-meta">clients on file</div></div></div>`;
 
     // Status strip
     h+=`<div class="stat-grid"><div class="stat-card"><div class="stat-num" style="color:#16a34a">${byStatus.Active||0}</div><div class="stat-lbl">Active</div></div><div class="stat-card"><div class="stat-num" style="color:#ca8a04">${byStatus.Inactive||0}</div><div class="stat-lbl">Inactive</div></div><div class="stat-card"><div class="stat-num" style="color:#7c3aed">${byStatus.Discharged||0}</div><div class="stat-lbl">Discharged</div></div></div>`;
@@ -3214,27 +2112,27 @@ function ReportsView({clients,company,currentUser,logAudit}){
     h+=`</div></div>`;
 
     // Clinical flags
-    h+=`<div class="sb"><div class="sl">Clinical Flags — All Clients</div><div class="cf">`;
-    [{icon:"🛏",lbl:"Braden ≤14",n:highBraden,col:"#7c3aed"},{icon:"🩺",lbl:"Active Wounds",n:activeWounds,col:"#ef4444"},{icon:"🩹",lbl:"Severe Pain ≥7",n:highPain,col:"#f59e0b"},{icon:"🥗",lbl:"MUST High",n:highNutr,col:"#10b981"},{icon:"🧠",lbl:"Mod/Sev Cog.",n:modCog,col:"#06b6d4"}].forEach(f=>{h+=`<div class="cfc"><div style="font-size:16px">${f.icon}</div><div style="font-size:20px;font-weight:800;color:${f.col}">${f.n}</div><div style="font-size:9px;color:#64748b;margin-top:2px">${f.lbl}</div></div>`;});
+    h+=`<div class="sb"><div class="sl">Clinical Flags â€” All Clients</div><div class="cf">`;
+    [{icon:"ðŸ›",lbl:"Braden â‰¤14",n:highBraden,col:"#7c3aed"},{icon:"ðŸ©º",lbl:"Active Wounds",n:activeWounds,col:"#ef4444"},{icon:"ðŸ©¹",lbl:"Severe Pain â‰¥7",n:highPain,col:"#f59e0b"},{icon:"ðŸ¥—",lbl:"MUST High",n:highNutr,col:"#10b981"},{icon:"ðŸ§ ",lbl:"Mod/Sev Cog.",n:modCog,col:"#06b6d4"}].forEach(f=>{h+=`<div class="cfc"><div style="font-size:16px">${f.icon}</div><div style="font-size:20px;font-weight:800;color:${f.col}">${f.n}</div><div style="font-size:9px;color:#64748b;margin-top:2px">${f.lbl}</div></div>`;});
     h+=`</div></div>`;
 
     // Medication safety + Notes activity
     h+=`<div class="two"><div class="sb"><div class="sl">Medication Safety</div><div class="fr"><span>Polypharmacy (5+ meds)</span><span class="fn" style="color:#ca8a04">${polyClients.length}</span></div><div class="fr"><span>Rate</span><span class="fn">${all.length>0?Math.round((polyClients.length/all.length)*100):0}%</span></div></div>`;
-    h+=`<div class="sb"><div class="sl">Notes Activity — ${monthName} ${year}</div><div class="fr"><span>Total notes written</span><span class="fn">${totalNotes}</span></div><div class="fr"><span>Clients with notes</span><span class="fn">${clientsWithNotes}</span></div>`;
+    h+=`<div class="sb"><div class="sl">Notes Activity â€” ${monthName} ${year}</div><div class="fr"><span>Total notes written</span><span class="fn">${totalNotes}</span></div><div class="fr"><span>Clients with notes</span><span class="fn">${clientsWithNotes}</span></div>`;
     if(topStaff.length>0){h+=`<div style="margin-top:6px;font-size:9px;color:#64748b;font-weight:700">Top staff:</div>`;topStaff.forEach(([st,n])=>{h+=`<div class="fr"><span>${st}</span><span style="font-size:11px;font-weight:700">${n}</span></div>`;});}
     h+=`</div></div>`;
 
-    h+=`<div class="footer">CONFIDENTIAL — CareManager &nbsp;·&nbsp; ${he(companyName)} &nbsp;·&nbsp; Census Report ${he(monthName)} ${he(year)} &nbsp;·&nbsp; Generated ${he(generatedOn)}</div></div></body></html>`;
+    h+=`<div class="footer">CONFIDENTIAL â€” CareManager &nbsp;Â·&nbsp; ${he(companyName)} &nbsp;Â·&nbsp; Census Report ${he(monthName)} ${he(year)} &nbsp;Â·&nbsp; Generated ${he(generatedOn)}</div></div></body></html>`;
     openPrint(h);
-    logAudit?.("Generated Census PDF","",{section:"Reports",details:`Census report — ${monthName} ${year} — ${all.length} clients`});
+    logAudit?.("Generated Census PDF","",{section:"Reports",details:`Census report â€” ${monthName} ${year} â€” ${all.length} clients`});
     setGenerating(false);
-    },0); // end setTimeout — allows "Generating PDF…" state to paint before CPU work begins
+    },0); // end setTimeout â€” allows "Generating PDFâ€¦" state to paint before CPU work begins
   };
 
   const REPORTS=[
-    {id:"monthly",icon:"📋",title:"Monthly Client Summary",desc:"Complete clinical summary for one client — notes, vitals, meds, appointments, incidents, care plan, and clinical scores.",col:"#6366f1"},
-    {id:"mar",    icon:"💊",title:"Medication Administration Record",desc:"Pre-printed blank MAR for bedside use — one row per medication per timing slot, 31-day grid, landscape A4.",col:"#ef4444"},
-    {id:"census", icon:"📊",title:"Census Report",desc:"Company-wide snapshot — client counts, age/fall risk distribution, top diagnoses, clinical flags, medication safety.",col:"#10b981"},
+    {id:"monthly",icon:"ðŸ“‹",title:"Monthly Client Summary",desc:"Complete clinical summary for one client â€” notes, vitals, meds, appointments, incidents, care plan, and clinical scores.",col:"#6366f1"},
+    {id:"mar",    icon:"ðŸ’Š",title:"Medication Administration Record",desc:"Pre-printed blank MAR for bedside use â€” one row per medication per timing slot, 31-day grid, landscape A4.",col:"#ef4444"},
+    {id:"census", icon:"ðŸ“Š",title:"Census Report",desc:"Company-wide snapshot â€” client counts, age/fall risk distribution, top diagnoses, clinical flags, medication safety.",col:"#10b981"},
   ];
   const needsClient=report==="monthly"||report==="mar";
   const canGenerate=!!report&&(report==="census"||(needsClient&&clientId))&&!generating;
@@ -3280,7 +2178,7 @@ function ReportsView({clients,company,currentUser,logAudit}){
               <div>
                 <label style={LBL}>Client *</label>
                 <select style={INP} value={clientId} onChange={e=>setClientId(e.target.value)}>
-                  <option value="">— Select client —</option>
+                  <option value="">â€” Select client â€”</option>
                   {activeClients.sort((a,b)=>a.name.localeCompare(b.name)).map(c=>(
                     <option key={c.id} value={c.id}>{c.name}{c.room_or_address?" ("+c.room_or_address+")":""}</option>
                   ))}
@@ -3291,17 +2189,17 @@ function ReportsView({clients,company,currentUser,logAudit}){
 
           {/* Info banner */}
           <div style={{background:activeCol+"12",border:"1px solid "+activeCol+"30",borderRadius:8,padding:"10px 14px",marginBottom:18,fontSize:12,color:"#cdd5e0"}}>
-            {report==="monthly"&&<>📋 Covers all data from <strong>{MONTHS[month-1]} {year}</strong>: session notes, vitals, appointments, incidents — plus current medications, diagnoses, care plan, and all clinical scores.</>}
-            {report==="mar"&&<>💊 Blank MAR for <strong>{MONTHS[month-1]} {year}</strong> ({daysInMonth} days). Prints landscape A4. Staff initial each cell after administering; circle if dose withheld.</>}
-            {report==="census"&&<>📊 Snapshot of all <strong>{clients.filter(c=>!c.archived).length} clients</strong> on file. Note activity is counted for <strong>{MONTHS[month-1]} {year}</strong>.</>}
+            {report==="monthly"&&<>ðŸ“‹ Covers all data from <strong>{MONTHS[month-1]} {year}</strong>: session notes, vitals, appointments, incidents â€” plus current medications, diagnoses, care plan, and all clinical scores.</>}
+            {report==="mar"&&<>ðŸ’Š Blank MAR for <strong>{MONTHS[month-1]} {year}</strong> ({daysInMonth} days). Prints landscape A4. Staff initial each cell after administering; circle if dose withheld.</>}
+            {report==="census"&&<>ðŸ“Š Snapshot of all <strong>{clients.filter(c=>!c.archived).length} clients</strong> on file. Note activity is counted for <strong>{MONTHS[month-1]} {year}</strong>.</>}
           </div>
 
           <div style={{display:"flex",alignItems:"center",gap:14}}>
             <button onClick={report==="monthly"?genMonthly:report==="mar"?genMAR:genCensus} disabled={!canGenerate}
               style={{padding:"12px 28px",borderRadius:10,border:"none",background:canGenerate?activeCol:"rgba(255,255,255,0.1)",color:canGenerate?"#fff":"rgba(240,242,250,0.3)",fontWeight:700,fontSize:14,cursor:canGenerate?"pointer":"not-allowed",transition:"background .2s"}}>
-              {generating?"Generating PDF…":report==="monthly"?"📋 Generate Summary PDF":report==="mar"?"💊 Print MAR":"📊 Generate Census PDF"}
+              {generating?"Generating PDFâ€¦":report==="monthly"?"ðŸ“‹ Generate Summary PDF":report==="mar"?"ðŸ’Š Print MAR":"ðŸ“Š Generate Census PDF"}
             </button>
-            {needsClient&&!clientId&&<span style={{fontSize:12,color:"var(--color-text-dim)"}}>← Select a client to continue</span>}
+            {needsClient&&!clientId&&<span style={{fontSize:12,color:"var(--color-text-dim)"}}>â† Select a client to continue</span>}
           </div>
         </div>
       )}
@@ -3370,7 +2268,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
     if(!pwForm.newPw||!pwForm.confirm){setMsg({type:"error",text:"Fill in all fields"});return;}
     if(pwForm.newPw!==pwForm.confirm){setMsg({type:"error",text:"Passwords don't match"});return;}
     if(pwForm.newPw.length<10){setMsg({type:"error",text:"Password must be at least 10 characters"});return;}
-    if(scorePassword(pwForm.newPw)<2){setMsg({type:"error",text:"Password is too weak — add uppercase letters, numbers, or symbols"});return;}
+    if(scorePassword(pwForm.newPw)<2){setMsg({type:"error",text:"Password is too weak â€” add uppercase letters, numbers, or symbols"});return;}
     setSaving(true);setMsg(null);
     const {error}=await supabase.auth.updateUser({password:pwForm.newPw});
     if(error){setMsg({type:"error",text:error.message});}
@@ -3384,10 +2282,10 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
   };
 
   const TABS=[
-    {id:"profile",label:"👤 Profile"},
-    {id:"password",label:"🔑 Password"},
-    {id:"history",label:"📋 Login History"},
-    {id:"sessions",label:"📱 Sessions"},
+    {id:"profile",label:"ðŸ‘¤ Profile"},
+    {id:"password",label:"ðŸ”‘ Password"},
+    {id:"history",label:"ðŸ“‹ Login History"},
+    {id:"sessions",label:"ðŸ“± Sessions"},
   ];
 
   const INP3={background:"rgba(255,255,255,0.03)",border:"1px solid var(--color-border)",borderRadius:8,padding:"10px 14px",color:"var(--color-text-primary)",fontSize:14,width:"100%"};
@@ -3397,7 +2295,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
     <div style={{maxWidth:640,margin:"0 auto",padding:"24px 16px"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24}}>
         <div style={{fontSize:20,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.4px"}}>My Profile</div>
-        <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,padding:"6px 14px",color:"var(--color-text-secondary)",fontSize:13,fontWeight:600}}>← Back</button>
+        <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,padding:"6px 14px",color:"var(--color-text-secondary)",fontSize:13,fontWeight:600}}>â† Back</button>
       </div>
 
       {msg&&<div style={{padding:"10px 14px",borderRadius:8,marginBottom:16,background:msg.type==="error"?"rgba(239,68,68,0.1)":"rgba(34,197,94,0.1)",border:`1px solid ${msg.type==="error"?"#ef4444":"#22c55e"}`,color:msg.type==="error"?"#ef4444":"#22c55e",fontSize:13}}>{msg.text}</div>}
@@ -3425,10 +2323,10 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
             </div>
             <div>
               <label style={{background:"#6366f1",border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"inline-block"}}>
-                {uploading?"Uploading...":"📷 Change Photo"}
+                {uploading?"Uploading...":"ðŸ“· Change Photo"}
                 <input type="file" accept="image/*" onChange={uploadAvatar} style={{display:"none"}} disabled={uploading}/>
               </label>
-              <div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:4}}>Max 2MB · JPG, PNG, GIF</div>
+              <div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:4}}>Max 2MB Â· JPG, PNG, GIF</div>
             </div>
           </div>
           {/* Form */}
@@ -3438,7 +2336,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
               <input style={INP3} value={form.displayName} onChange={e=>setForm(f=>({...f,displayName:e.target.value}))} placeholder="Your full name"/>
             </div>
             <div>
-              <label style={LB}>Username <span style={{color:"var(--color-text-muted)"}}>(optional — used for login)</span></label>
+              <label style={LB}>Username <span style={{color:"var(--color-text-muted)"}}>(optional â€” used for login)</span></label>
               <input style={INP3} value={form.username} onChange={e=>setForm(f=>({...f,username:e.target.value}))} placeholder="e.g. maria_j"/>
             </div>
             <div>
@@ -3469,7 +2367,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
               <label style={LB}>Confirm New Password</label>
               <input type="password" style={INP3} value={pwForm.confirm} onChange={e=>setPwForm(f=>({...f,confirm:e.target.value}))} placeholder="Repeat new password"/>
               {pwForm.confirm&&pwForm.newPw&&pwForm.confirm!==pwForm.newPw&&(
-                <div style={{fontSize:11,color:"#ef4444",marginTop:5}}>⚠ Passwords do not match</div>
+                <div style={{fontSize:11,color:"#ef4444",marginTop:5}}>âš  Passwords do not match</div>
               )}
             </div>
             <button onClick={changePassword} disabled={saving||scorePassword(pwForm.newPw)<2||pwForm.newPw!==pwForm.confirm}
@@ -3489,7 +2387,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
               {loginHistory.map((h,i)=>(
                 <div key={i} style={{background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"12px 14px",border:"1px solid rgba(255,255,255,0.08)"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                    <span style={{color:"#22c55e",fontSize:13,fontWeight:600}}>✓ Login</span>
+                    <span style={{color:"#22c55e",fontSize:13,fontWeight:600}}>âœ“ Login</span>
                     <span style={{color:"var(--color-text-muted)",fontSize:12}}>{new Date(h.at).toLocaleString()}</span>
                   </div>
                   <div style={{fontSize:12,color:"var(--color-text-dim)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h.device}</div>
@@ -3506,14 +2404,14 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
           <div style={{background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"14px",border:"1px solid #22c55e",marginBottom:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
-                <div style={{color:"#22c55e",fontWeight:600,fontSize:13}}>● Current Session</div>
+                <div style={{color:"#22c55e",fontWeight:600,fontSize:13}}>â— Current Session</div>
                 <div style={{color:"var(--color-text-dim)",fontSize:12,marginTop:2}}>{navigator.userAgent.slice(0,60)}...</div>
               </div>
               <span style={{background:"rgba(34,197,94,0.1)",border:"1px solid #22c55e",borderRadius:6,padding:"2px 8px",color:"#22c55e",fontSize:11,fontWeight:600}}>Active</span>
             </div>
           </div>
           <button onClick={signOutAll} style={{width:"100%",background:"rgba(239,68,68,0.1)",border:"1px solid #ef4444",borderRadius:8,padding:"10px",color:"#ef4444",fontWeight:700,fontSize:14,cursor:"pointer"}}>
-            🚪 Sign Out All Devices
+            ðŸšª Sign Out All Devices
           </button>
           <div style={{fontSize:11,color:"var(--color-text-muted)",textAlign:"center",marginTop:8}}>This will sign you out everywhere immediately</div>
         </div>
@@ -3579,11 +2477,11 @@ function ForcePasswordChange({currentUser,onDone}){
               placeholder="Repeat new password"
               style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid "+(confirm&&pw&&confirm!==pw?"#ef4444":"rgba(255,255,255,0.1)"),background:"rgba(255,255,255,0.03)",color:"var(--color-text-primary)",fontSize:14}}
               onKeyDown={e=>e.key==="Enter"&&handle()}/>
-            {confirm&&pw&&confirm!==pw&&<div style={{fontSize:11,color:"#ef4444",marginTop:5}}>⚠ Passwords do not match</div>}
+            {confirm&&pw&&confirm!==pw&&<div style={{fontSize:11,color:"#ef4444",marginTop:5}}>âš  Passwords do not match</div>}
           </div>
           <button onClick={handle} disabled={!canSubmit}
             style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:canSubmit?"linear-gradient(135deg,#6366f1,#8b5cf6)":"rgba(255,255,255,0.08)",color:canSubmit?"#fff":"rgba(240,242,250,0.3)",fontWeight:700,fontSize:15,cursor:canSubmit?"pointer":"not-allowed",boxShadow:canSubmit?"0 4px 14px rgba(99,102,241,0.35)":"none",transition:"background 0.2s"}}>
-            {saving?"Setting password…":"Set Password & Continue →"}
+            {saving?"Setting passwordâ€¦":"Set Password & Continue â†’"}
           </button>
           <div style={{textAlign:"center",marginTop:14}}>
             <button onClick={async()=>{await supabase.auth.signOut();window.location.reload();}}
@@ -3635,7 +2533,7 @@ function SessionTimeoutModal({countdown,onStayLoggedIn,onLogoutNow}){
   );
 }
 
-// ── URL hash routing helpers ───────────────────────────────────────────────
+// â”€â”€ URL hash routing helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Hash scheme: #dashboard | #clients | #clients/{id} | #clients/{id}/edit
 //              #add | #audit | #reports | #company | #profile
 //              #users | #permissions | #incidents | #medications
@@ -3690,7 +2588,7 @@ export default function App(){
   const [emailPrefs,setEmailPrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-email-prefs")||"{}") ;}catch{return {};}});
   const [appMsg,setAppMsg]=useState(null); // {type:"success"|"error", text:string}
   const showAppMsg=(type,text)=>{setAppMsg({type,text});setTimeout(()=>setAppMsg(null),3200);};
-  // ── Session timeout ──────────────────────────────────────────────────────────
+  // â”€â”€ Session timeout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [idleWarning,setIdleWarning]=useState(false);
   const [idleCountdown,setIdleCountdown]=useState(IDLE_WARN_SECS);
   const lastActivityRef=useRef(Date.now());
@@ -3728,13 +2626,13 @@ export default function App(){
     return()=>window.removeEventListener("keydown",handler);
   },[currentUser]);
 
-  // ── Inactivity / session timeout ─────────────────────────────────────────────
+  // â”€â”€ Inactivity / session timeout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(()=>{
     if(!currentUser)return;
     const resetActivity=()=>{lastActivityRef.current=Date.now();};
     const EVENTS=["mousemove","mousedown","keydown","touchstart","scroll"];
     EVENTS.forEach(ev=>window.addEventListener(ev,resetActivity,{passive:true}));
-    // Poll every 20s — lightweight check
+    // Poll every 20s â€” lightweight check
     const poll=setInterval(()=>{
       const idle=Date.now()-lastActivityRef.current;
       if(idle>=IDLE_TIMEOUT_MS&&!idleWarning){setIdleWarning(true);setIdleCountdown(IDLE_WARN_SECS);}
@@ -3789,7 +2687,7 @@ export default function App(){
     setLoading(true);
     const cid=selectedCompany||currentUser?.company_id;
     const isSuperAdmin=currentUser?.role==="superadmin";
-    // Omit heavy clinical JSONB fields from the list load — they are lazy-fetched in detail view
+    // Omit heavy clinical JSONB fields from the list load â€” they are lazy-fetched in detail view
     const LIST_COLS="id,name,date_of_birth,status,photo_url,company_id,archived,diagnoses,medications,allergies,documents,appointments,incidents,intake_checklist,vitals,care_plan,inventory,family_contacts";
     const q=supabase.from("clients").select(LIST_COLS).order("name");
     const {data,error:err}=(isSuperAdmin&&searchAllCompanies)?await q:(cid?await q.eq("company_id",cid):await q);
@@ -3822,7 +2720,7 @@ export default function App(){
 
   useEffect(()=>{if(currentUser){loadClients();loadCompany();loadPermissions(activeCompanyId);}},[currentUser,selectedCompany,searchAllCompanies,loadClients,loadCompany]);
 
-  // ── Supabase Realtime — auto-refresh clients when DB changes ──────────────
+  // â”€â”€ Supabase Realtime â€” auto-refresh clients when DB changes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(()=>{
     if(!currentUser)return;
     const channel=supabase.channel("realtime-clients")
@@ -3840,17 +2738,17 @@ export default function App(){
     }
   },[view,selected?.id,selected?._detailLoaded,loadClientDetail]);
 
-  // ── URL hash routing ───────────────────────────────────────────────────────
+  // â”€â”€ URL hash routing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const initialHashApplied=useRef(false);
 
-  // Write: view+selected → hash (push a history entry on every navigation)
+  // Write: view+selected â†’ hash (push a history entry on every navigation)
   useEffect(()=>{
     if(!currentUser)return;
     const hash=viewToHash(view,selected?.id);
     if(window.location.hash!==hash)history.pushState(null,'',hash);
   },[view,selected?.id,currentUser]);
 
-  // Read: popstate (back/forward button) → view+selected
+  // Read: popstate (back/forward button) â†’ view+selected
   // Also applies the initial URL hash once, after login + clients have loaded
   useEffect(()=>{
     if(!currentUser||loading)return;
@@ -3859,7 +2757,7 @@ export default function App(){
       setView(v);
       if(clientId){
         const c=clients.find(x=>x.id===clientId);
-        setSelected(c||{id:clientId}); // partial obj — lazy-loader fills it in
+        setSelected(c||{id:clientId}); // partial obj â€” lazy-loader fills it in
       }else{
         setSelected(null);
       }
@@ -3903,7 +2801,7 @@ export default function App(){
     const row={...toDb(data),company_id:activeCompanyId||null};
     const {error:err}=exists?await supabase.from("clients").update(row).eq("id",data.id):await supabase.from("clients").insert(row);
     if(err){setError(err.message);setSaving(false);return;}
-    await logAudit(exists?"Edited client":"Added new client",data.name,{clientId:data.id,section:"Client Profile",details:exists?`Updated client record`:`New client added — DOB: ${data.date_of_birth||"—"}, Status: ${data.status||"Active"}`});
+    await logAudit(exists?"Edited client":"Added new client",data.name,{clientId:data.id,section:"Client Profile",details:exists?`Updated client record`:`New client added â€” DOB: ${data.date_of_birth||"â€”"}, Status: ${data.status||"Active"}`});
     await loadClients();
     setSelected(data);setView("detail");setSaving(false);trackRecent(data);
   };
@@ -3942,7 +2840,7 @@ export default function App(){
     await logAudit("Bulk archived clients","",{section:"Client Profile",details:`${succeeded} client${succeeded!==1?"s":""} archived${failed.length>0?` (${failed.length} failed)`:""}`});
     await loadClients();
     setBulkSelected(new Set());setBulkMode(false);setBulkArchiveConfirm(false);
-    if(failed.length)setError(`${failed.length} client${failed.length!==1?"s":""} failed to archive — rest were archived successfully.`);
+    if(failed.length)setError(`${failed.length} client${failed.length!==1?"s":""} failed to archive â€” rest were archived successfully.`);
   };
 
   const bulkExportCSV=()=>{
@@ -3954,7 +2852,7 @@ export default function App(){
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");a.href=url;a.download="clients-selected.csv";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-    logAudit("Exported client CSV (bulk)","",{section:"Clients",details:`Bulk CSV export — ${sel.length} client${sel.length!==1?"s":""} selected`});
+    logAudit("Exported client CSV (bulk)","",{section:"Clients",details:`Bulk CSV export â€” ${sel.length} client${sel.length!==1?"s":""} selected`});
   };
 
   const hardDeleteClient=async()=>{
@@ -3987,7 +2885,7 @@ export default function App(){
     a.href=url;a.download=`clients-${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(a);a.click();
     document.body.removeChild(a);URL.revokeObjectURL(url);
-    logAudit("Exported client CSV","",{section:"Clients",details:`CSV export — ${filtered.length} client${filtered.length!==1?"s":""} (filter: ${statusFilter})`});
+    logAudit("Exported client CSV","",{section:"Clients",details:`CSV export â€” ${filtered.length} client${filtered.length!==1?"s":""} (filter: ${statusFilter})`});
   };
 
   const exportPDF=()=>{
@@ -3996,17 +2894,17 @@ export default function App(){
       <tr>
         <td>${he(c.name)}</td>
         <td>${he(c.status||"Active")}</td>
-        <td>${he(c.date_of_birth||"—")}</td>
-        <td>${he(calcAge(c.date_of_birth)??("—"))}</td>
-        <td>${he(c.room_or_address||"—")}</td>
-        <td>${(c.diagnoses||[]).filter(d=>d.value).map(d=>he(d.value)).join(", ")||"—"}</td>
+        <td>${he(c.date_of_birth||"â€”")}</td>
+        <td>${he(calcAge(c.date_of_birth)??("â€”"))}</td>
+        <td>${he(c.room_or_address||"â€”")}</td>
+        <td>${(c.diagnoses||[]).filter(d=>d.value).map(d=>he(d.value)).join(", ")||"â€”"}</td>
         <td>${(c.medications||[]).filter(m=>m.name).length}</td>
-        ${searchAllCompanies?`<td>${he(companiesMap[c.company_id]||"—")}</td>`:""}
+        ${searchAllCompanies?`<td>${he(companiesMap[c.company_id]||"â€”")}</td>`:""}
       </tr>`).join("");
     const win=window.open("","_blank");
     if(!win)return;
     win.document.write(`<!DOCTYPE html><html><head>
-      <title>Client List — ${companyLabel}</title>
+      <title>Client List â€” ${companyLabel}</title>
       <style>
         body{font-family:Arial,sans-serif;color:#000;font-size:12px;padding:24px;}
         h1{font-size:20px;margin-bottom:4px;}
@@ -4018,7 +2916,7 @@ export default function App(){
         @page{margin:1.5cm;size:A4 landscape;}
       </style>
     </head><body>
-      <h1>Client List — ${companyLabel}</h1>
+      <h1>Client List â€” ${companyLabel}</h1>
       <div class="meta">Exported ${new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})} &bull; ${filtered.length} clients &bull; Filter: ${he(statusFilter)}</div>
       <table><thead><tr>
         <th>Name</th><th>Status</th><th>DOB</th><th>Age</th><th>Room/Address</th><th>Diagnoses</th><th>Meds</th>
@@ -4027,7 +2925,7 @@ export default function App(){
     </body></html>`);
     win.document.close();
     setTimeout(()=>win.print(),400);
-    logAudit("Exported client PDF","",{section:"Clients",details:`PDF export — ${filtered.length} client${filtered.length!==1?"s":""} (filter: ${statusFilter})`});
+    logAudit("Exported client PDF","",{section:"Clients",details:`PDF export â€” ${filtered.length} client${filtered.length!==1?"s":""} (filter: ${statusFilter})`});
   };
 
   const handleLogout=async()=>{
@@ -4052,7 +2950,7 @@ export default function App(){
     :[]
   ,[clients,search,searchMode]);
 
-  // ── Sidebar badge counts — memoized so they don't recompute on every keystroke ──
+  // â”€â”€ Sidebar badge counts â€” memoized so they don't recompute on every keystroke â”€â”€
   const activeClientCount=useMemo(()=>clients.filter(c=>!c.archived).length,[clients]);
   const recentIncidentCount=useMemo(()=>{
     const ago=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
@@ -4065,7 +2963,7 @@ export default function App(){
   if(!authChecked)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--color-bg-card)",color:"#6366f1",fontSize:18,fontFamily:"serif"}}>Loading...</div>;
   if(!currentUser)return lang?<Login onLogin={setCurrentUser} t={t}/>:<LangPicker onSelect={selectLang}/>;
   if(!lang)return <LangPicker onSelect={selectLang}/>;
-  // Force password change — must complete before accessing any part of the app
+  // Force password change â€” must complete before accessing any part of the app
   if(currentUser.force_password_change){
     return <ForcePasswordChange currentUser={currentUser} onDone={authUser=>{
       setCurrentUser(u=>({...u,...authUser,force_password_change:false}));
@@ -4081,15 +2979,15 @@ export default function App(){
   return(
     <div style={{minHeight:"100vh",background:"var(--color-bg-base)",fontFamily:"'DM Sans',system-ui,sans-serif"}}>
       <style dangerouslySetInnerHTML={{__html:GCSS}}/>
-      {/* ── Session timeout warning overlay ── */}
+      {/* â”€â”€ Session timeout warning overlay â”€â”€ */}
       {idleWarning&&<SessionTimeoutModal countdown={idleCountdown} onStayLoggedIn={stayLoggedIn} onLogoutNow={handleLogout}/>}
       {appMsg&&(
         <div style={{position:"fixed",top:20,right:24,zIndex:1200,padding:"11px 18px",borderRadius:10,background:appMsg.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:13,fontWeight:600,boxShadow:"0 4px 24px rgba(0,0,0,0.5)",animation:"slideIn 0.2s ease",display:"flex",alignItems:"center",gap:8}}>
-          <span style={{fontSize:14}}>{appMsg.type==="success"?"✓":"✗"}</span>{appMsg.text}
+          <span style={{fontSize:14}}>{appMsg.type==="success"?"âœ“":"âœ—"}</span>{appMsg.text}
         </div>
       )}
       <div className="mob-hdr">
-        <button onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>☰</button>
+        <button onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>â˜°</button>
         <span style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>CareManager</span>
         {can(currentUser.role,"add")&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" style={{background:"linear-gradient(135deg,#4f6ef7,#6366f1)",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
       </div>
@@ -4097,7 +2995,7 @@ export default function App(){
       <div style={{display:"flex",minHeight:"100vh"}}>
         <div className={"sidebar"+(sidebarOpen?" open":"")} style={{width:224,background:"var(--color-bg-surface)",borderRight:"1px solid var(--color-border)",display:"flex",flexDirection:"column",flexShrink:0}}>
 
-          {/* ── Brand ── */}
+          {/* â”€â”€ Brand â”€â”€ */}
           <div style={{padding:"16px 14px 12px",borderBottom:"1px solid var(--color-border)"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
               <div style={{width:34,height:34,borderRadius:10,background:"linear-gradient(145deg,#4f6ef7,#7c3aed)",boxShadow:"0 0 0 1px rgba(99,102,241,0.3),0 8px 20px rgba(99,102,241,0.25)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -4115,7 +3013,7 @@ export default function App(){
             </div>}
           </div>
 
-          {/* ── Company logo (optional) ── */}
+          {/* â”€â”€ Company logo (optional) â”€â”€ */}
           {company?.logo_url&&(
             <div style={{padding:"10px 14px",borderBottom:"1px solid var(--color-border)",display:"flex",justifyContent:"center"}}>
               <div style={{background:"#fff",borderRadius:8,padding:"6px 10px",display:"inline-block"}}>
@@ -4124,17 +3022,17 @@ export default function App(){
             </div>
           )}
 
-          {/* ── Switch Company ── */}
+          {/* â”€â”€ Switch Company â”€â”€ */}
           {(currentUser?.allRoles||[]).length>1&&(
             <div style={{padding:"8px 14px",borderBottom:"1px solid var(--color-border)"}}>
               <button onClick={()=>{setSelectedCompany(null);setCompany(null);setClients([]);setSelected(null);setView("dashboard");}}
                 style={{width:"100%",padding:"6px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.03)",color:"var(--color-text-secondary)",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"left"}}>
-                ↔ Switch Company
+                â†” Switch Company
               </button>
             </div>
           )}
 
-          {/* ── Nav ── */}
+          {/* â”€â”€ Nav â”€â”€ */}
           <div style={{padding:"8px 8px 4px",flex:"0 0 auto"}}>
             {/* MAIN group */}
             <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"8px 0 4px"}}>Main</div>
@@ -4211,7 +3109,7 @@ export default function App(){
                 {navBtn("audit",t.auditTrail,'<circle cx="7.5" cy="7.5" r="6"/><polyline points="7.5,4.5 7.5,7.5 9.5,9.5"/>',can(currentUser.role,"audit"))}
               </>);
             })()}
-            {/* ADMIN group — only if at least one admin view accessible */}
+            {/* ADMIN group â€” only if at least one admin view accessible */}
             {(can(currentUser.role,"company")||can(currentUser.role,"permissions"))&&(
               <>
                 <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Admin</div>
@@ -4238,7 +3136,7 @@ export default function App(){
           </div>
 
 
-          {/* ── Footer: user + icon buttons ── */}
+          {/* â”€â”€ Footer: user + icon buttons â”€â”€ */}
           <div className="sidebar-footer" style={{borderTop:"1px solid var(--color-border)",padding:"10px 12px",display:"flex",alignItems:"center",gap:8}}>
             <div onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}}
               style={{width:30,height:30,borderRadius:8,background:currentUser.avatar_url?"transparent":"linear-gradient(135deg,#6366f1,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,cursor:"pointer",overflow:"hidden"}}>
@@ -4267,7 +3165,7 @@ export default function App(){
             </div>
           </div>
 
-          {/* ── Lang + keyboard hint ── */}
+          {/* â”€â”€ Lang + keyboard hint â”€â”€ */}
           <div style={{padding:"6px 10px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid rgba(255,255,255,0.04)"}}>
             <div style={{display:"flex",gap:3}}>
               {LANG_OPTIONS.map(l=>(
@@ -4277,11 +3175,11 @@ export default function App(){
                 </button>
               ))}
             </div>
-            <button onClick={()=>setShowShortcuts(true)} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" style={{background:"transparent",border:"none",borderRadius:5,padding:"3px 6px",fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:600,color:"rgba(240,242,250,0.18)",cursor:"pointer"}}>⌨</button>
+            <button onClick={()=>setShowShortcuts(true)} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" style={{background:"transparent",border:"none",borderRadius:5,padding:"3px 6px",fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:600,color:"rgba(240,242,250,0.18)",cursor:"pointer"}}>âŒ¨</button>
           </div>
         </div>
         <div className="main-pad" style={{flex:1,minWidth:0,overflowY:"auto",background:"var(--color-bg-base)",display:"flex",flexDirection:"column"}}>
-          {/* ── Top bar ── */}
+          {/* â”€â”€ Top bar â”€â”€ */}
           {(()=>{
             const hour=new Date().getHours();
             const greeting=hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
@@ -4292,10 +3190,10 @@ export default function App(){
               <div className="main-topbar" style={{background:"var(--color-bg-surface)",borderBottom:"1px solid var(--color-border)",padding:"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,position:"sticky",top:0,zIndex:50}}>
                 <div>
                   <div style={{fontSize:17,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>{greeting}, {firstName}.</div>
-                  <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)",marginTop:3}}>{dateStr} · {activeCount} ACTIVE CLIENTS{company?.name?" · "+company.name.toUpperCase():""}</div>
+                  <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)",marginTop:3}}>{dateStr} Â· {activeCount} ACTIVE CLIENTS{company?.name?" Â· "+company.name.toUpperCase():""}</div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <input id="cm-search" aria-label="Search clients" style={{height:34,width:160,padding:"0 12px",background:"rgba(255,255,255,0.04)",border:"1px solid var(--color-border)",borderRadius:8,fontSize:12,color:"var(--color-text-secondary)",fontFamily:"'DM Sans',sans-serif",outline:"none"}} placeholder={t.search||"Search…"} value={search} onChange={e=>{setSearch(e.target.value);if(view!=="clients"&&e.target.value){setView("clients");setSelected(null);}}} onFocus={()=>{if(view!=="clients"){setView("clients");setSelected(null);}}}/>
+                  <input id="cm-search" aria-label="Search clients" style={{height:34,width:160,padding:"0 12px",background:"rgba(255,255,255,0.04)",border:"1px solid var(--color-border)",borderRadius:8,fontSize:12,color:"var(--color-text-secondary)",fontFamily:"'DM Sans',sans-serif",outline:"none"}} placeholder={t.search||"Searchâ€¦"} value={search} onChange={e=>{setSearch(e.target.value);if(view!=="clients"&&e.target.value){setView("clients");setSelected(null);}}} onFocus={()=>{if(view!=="clients"){setView("clients");setSelected(null);}}}/>
                   {can(currentUser.role,"add")&&(
                     <button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client"
                       style={{height:34,padding:"0 16px",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:12,borderRadius:9,boxShadow:"0 4px 16px rgba(99,102,241,0.3)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
@@ -4365,7 +3263,7 @@ export default function App(){
             <>
               {recentClients.length>0&&(
                 <div style={{marginBottom:24}}>
-                  <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",letterSpacing:0.5,textTransform:"uppercase",marginBottom:8}}>⏱ Recently Viewed</div>
+                  <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",letterSpacing:0.5,textTransform:"uppercase",marginBottom:8}}>â± Recently Viewed</div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                     {recentClients.map(rc=>{
                       const full=clients.find(c=>c.id===rc.id);
@@ -4382,13 +3280,13 @@ export default function App(){
                   </div>
                 </div>
               )}
-              {/* ── 3fr/2fr grid: Recent Clients + Active Alerts ── */}
+              {/* â”€â”€ 3fr/2fr grid: Recent Clients + Active Alerts â”€â”€ */}
               <div className="g2" style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:12,marginBottom:20}}>
                 {/* Recent clients card */}
                 <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16,boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                     <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"0.9px",color:"var(--color-text-muted)"}}>Recently Viewed</div>
-                    <button onClick={()=>{setView("clients");setSelected(null);}} style={{background:"none",border:"none",fontSize:11,fontWeight:500,color:"#6366f1",cursor:"pointer",padding:0}}>View all →</button>
+                    <button onClick={()=>{setView("clients");setSelected(null);}} style={{background:"none",border:"none",fontSize:11,fontWeight:500,color:"#6366f1",cursor:"pointer",padding:0}}>View all â†’</button>
                   </div>
                   {recentClients.length===0?<div style={{color:"var(--color-text-muted)",fontSize:12,padding:"12px 0"}}>No recently viewed clients</div>:recentClients.map(rc=>{
                     const full=clients.find(c=>c.id===rc.id);
@@ -4406,7 +3304,7 @@ export default function App(){
                         </div>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:13,fontWeight:600,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rc.name}</div>
-                          <div style={{fontSize:11,color:"var(--color-text-muted)",fontFamily:"'DM Mono',monospace"}}>{age!==null?age+"y":""}{full?.room_or_address?(age!==null?" · ":"")+full.room_or_address:""}{topDiag?(age!==null||full?.room_or_address?" · ":"")+topDiag.value:""}</div>
+                          <div style={{fontSize:11,color:"var(--color-text-muted)",fontFamily:"'DM Mono',monospace"}}>{age!==null?age+"y":""}{full?.room_or_address?(age!==null?" Â· ":"")+full.room_or_address:""}{topDiag?(age!==null||full?.room_or_address?" Â· ":"")+topDiag.value:""}</div>
                         </div>
                         {fr&&fr.level!=="Low"&&<span style={{fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:4,background:fr.color+"18",color:fr.color,flexShrink:0,fontFamily:"'DM Mono',monospace"}}>{fr.level==="High"?"HFR":"MFR"}</span>}
                       </button>
@@ -4424,7 +3322,7 @@ export default function App(){
                       <div key={n.id} onClick={()=>{if(client){setSelected(client);setView("detail");trackRecent(client);}}} style={{display:"flex",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:4,cursor:client?"pointer":"default",transition:"background 120ms ease",borderLeft:"2px solid "+typeColor,background:typeBg}}>
                         <div style={{width:7,height:7,borderRadius:"50%",background:typeColor,marginTop:5,flexShrink:0}}/>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"var(--color-text-secondary)"}}><span style={{fontWeight:600,color:"var(--color-text-primary)"}}>{n.clientName}</span> — {n.message}</div>
+                          <div style={{fontSize:12,color:"var(--color-text-secondary)"}}><span style={{fontWeight:600,color:"var(--color-text-primary)"}}>{n.clientName}</span> â€” {n.message}</div>
                           <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginTop:2}}>{n.date||""}</div>
                         </div>
                       </div>
@@ -4445,12 +3343,12 @@ export default function App(){
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
                   <div>
                     <div style={{fontSize:20,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.4px"}}>Incidents</div>
-                    <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginTop:2}}>{allInc.length} total · {recent.length} in last 7 days</div>
+                    <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginTop:2}}>{allInc.length} total Â· {recent.length} in last 7 days</div>
                   </div>
                 </div>
                 {allInc.length===0?(
                   <div style={{textAlign:"center",padding:"60px 20px",color:"var(--color-text-muted)"}}>
-                    <div style={{fontSize:36,marginBottom:12}}>✓</div>
+                    <div style={{fontSize:36,marginBottom:12}}>âœ“</div>
                     <div style={{fontSize:16,fontWeight:600,color:"var(--color-text-secondary)"}}>No incidents recorded</div>
                   </div>
                 ):(
@@ -4467,7 +3365,7 @@ export default function App(){
                               <span style={{fontSize:11,fontWeight:600,padding:"1px 8px",borderRadius:20,background:sc+"18",color:sc,border:"1px solid "+sc+"30"}}>{inc.severity||"Unknown"}</span>
                               <span style={{fontSize:11,color:"var(--color-text-dim)"}}>{inc.type||"Incident"}</span>
                             </div>
-                            {inc.description&&<div style={{fontSize:12,color:"var(--color-text-secondary)",lineHeight:1.5,marginBottom:4}}>{inc.description.slice(0,200)}{inc.description.length>200?"…":""}</div>}
+                            {inc.description&&<div style={{fontSize:12,color:"var(--color-text-secondary)",lineHeight:1.5,marginBottom:4}}>{inc.description.slice(0,200)}{inc.description.length>200?"â€¦":""}</div>}
                             {inc.action_taken&&<div style={{fontSize:11,color:"var(--color-text-muted)"}}>Action: {inc.action_taken.slice(0,120)}</div>}
                           </div>
                           <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",flexShrink:0,textAlign:"right"}}>
@@ -4492,13 +3390,13 @@ export default function App(){
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
                   <div>
                     <div style={{fontSize:20,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.4px"}}>Medications</div>
-                    <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginTop:2}}>{totalMeds} total · {highRiskCount} high-risk · {flaggedClients.length} flagged clients</div>
+                    <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginTop:2}}>{totalMeds} total Â· {highRiskCount} high-risk Â· {flaggedClients.length} flagged clients</div>
                   </div>
                 </div>
                 {/* Flagged clients */}
                 {flaggedClients.length>0&&(
                   <div style={{marginBottom:20}}>
-                    <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"0.9px",color:"var(--color-text-muted)",marginBottom:10}}>⚠ Flagged Clients</div>
+                    <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"0.9px",color:"var(--color-text-muted)",marginBottom:10}}>âš  Flagged Clients</div>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:10}}>
                       {flaggedClients.map(c=>{
                         const {highRisk,polypharmacy,medCount}=c._flags;
@@ -4507,7 +3405,7 @@ export default function App(){
                             style={{padding:"12px 14px",background:"var(--color-bg-card)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:12,cursor:"pointer"}}>
                             <div style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)",marginBottom:6}}>{c.name}</div>
                             <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                              {polypharmacy&&<span style={{fontSize:11,background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:20,padding:"1px 8px",color:"#f59e0b",fontWeight:600}}>{medCount} meds · Polypharmacy</span>}
+                              {polypharmacy&&<span style={{fontSize:11,background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:20,padding:"1px 8px",color:"#f59e0b",fontWeight:600}}>{medCount} meds Â· Polypharmacy</span>}
                               {highRisk.map(m=><span key={m.name} style={{fontSize:11,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:20,padding:"1px 8px",color:"#ef4444",fontWeight:600}}>{m.name}</span>)}
                             </div>
                           </div>
@@ -4524,8 +3422,8 @@ export default function App(){
                       className="client-row" style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderBottom:i<allMeds.length-1?"1px solid var(--color-border)":"none",cursor:"pointer"}}>
                       <div style={{width:8,height:8,borderRadius:"50%",background:m.isHighRisk?"#ef4444":"#34d399",flexShrink:0}}/>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:13,fontWeight:600,color:"var(--color-text-primary)"}}>{m.name}{m.dosage&&<span style={{fontSize:11,color:"var(--color-text-dim)",fontWeight:400}}> · {m.dosage}</span>}</div>
-                        <div style={{fontSize:11,color:"var(--color-text-muted)"}}>{m.clientName}{m.frequency&&" · "+m.frequency}</div>
+                        <div style={{fontSize:13,fontWeight:600,color:"var(--color-text-primary)"}}>{m.name}{m.dosage&&<span style={{fontSize:11,color:"var(--color-text-dim)",fontWeight:400}}> Â· {m.dosage}</span>}</div>
+                        <div style={{fontSize:11,color:"var(--color-text-muted)"}}>{m.clientName}{m.frequency&&" Â· "+m.frequency}</div>
                       </div>
                       {m.isHighRisk&&<span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:4,background:"rgba(239,68,68,0.12)",color:"#f87171",border:"1px solid rgba(239,68,68,0.2)",flexShrink:0}}>HIGH RISK</span>}
                     </div>
@@ -4535,7 +3433,7 @@ export default function App(){
             );
           })()}
           {view==="clients"&&(()=>{
-            // ── filtered list for clients page ──────────────────────────────────
+            // â”€â”€ filtered list for clients page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             const avatarColors=["rgba(99,102,241,0.25)","rgba(14,165,233,0.25)","rgba(34,197,94,0.25)","rgba(245,158,11,0.25)"];
             const avatarTextColors=["#a5b4fc","#7dd3fc","#6ee7b7","#fbbf24"];
             const pageFiltered=clients.filter(c=>{
@@ -4547,7 +3445,7 @@ export default function App(){
               if(clientFilter==="hfr")return fr.level==="High";
               if(clientFilter==="mfr")return fr.level==="Moderate";
               if(clientFilter==="lfr")return fr.level==="Low";
-              // "all" — match status filter
+              // "all" â€” match status filter
               const mst=statusFilter==="All"||(c.status||"Active")===statusFilter;
               return mst;
             });
@@ -4561,7 +3459,7 @@ export default function App(){
             const now=Date.now();
             return(
               <div>
-                {/* ── Page header ── */}
+                {/* â”€â”€ Page header â”€â”€ */}
                 <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,flexWrap:"wrap"}}>
                   <div style={{flex:1,minWidth:200}}>
                     <div style={{fontSize:20,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.4px"}}>Clients</div>
@@ -4569,11 +3467,11 @@ export default function App(){
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                     {/* Search */}
-                    <input id="cm-search" aria-label="Search clients" style={{...INP,width:220,height:36,padding:"0 12px",fontSize:13}} placeholder="Search clients…" value={search} onChange={e=>setSearch(e.target.value)}/>
+                    <input id="cm-search" aria-label="Search clients" style={{...INP,width:220,height:36,padding:"0 12px",fontSize:13}} placeholder="Search clientsâ€¦" value={search} onChange={e=>setSearch(e.target.value)}/>
                     {/* Bulk toggle */}
                     <button onClick={()=>{setBulkMode(b=>!b);setBulkSelected(new Set());}}
                       style={{height:36,padding:"0 14px",borderRadius:8,border:"1px solid "+(bulkMode?"rgba(99,102,241,0.4)":"rgba(255,255,255,0.1)"),background:bulkMode?"rgba(99,102,241,0.12)":"transparent",color:bulkMode?"#a5b4fc":"var(--color-text-secondary)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                      {bulkMode?"✕ Cancel":"☑ Select"}
+                      {bulkMode?"âœ• Cancel":"â˜‘ Select"}
                     </button>
                     {/* New Client */}
                     {can(currentUser.role,"add")&&(
@@ -4587,7 +3485,7 @@ export default function App(){
                     <button onClick={exportPDF} style={{height:36,padding:"0 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-dim)",fontSize:12,fontWeight:600,cursor:"pointer"}}>PDF</button>
                   </div>
                 </div>
-                {/* ── Filter pills ── */}
+                {/* â”€â”€ Filter pills â”€â”€ */}
                 <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>
                   {filterPills.map(p=>{
                     const act=clientFilter===p.key;
@@ -4614,7 +3512,7 @@ export default function App(){
                     </div>
                   )}
                 </div>
-                {/* ── Skeleton loading ── */}
+                {/* â”€â”€ Skeleton loading â”€â”€ */}
                 {loading&&(
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
                     {Array.from({length:6}).map((_,i)=>(
@@ -4632,10 +3530,10 @@ export default function App(){
                     ))}
                   </div>
                 )}
-                {/* ── Empty state ── */}
+                {/* â”€â”€ Empty state â”€â”€ */}
                 {!loading&&pageFiltered.length===0&&(
                   <div style={{textAlign:"center",padding:"60px 20px",color:"rgba(240,242,250,0.3)"}}>
-                    <div style={{fontSize:40,marginBottom:12}}>🔍</div>
+                    <div style={{fontSize:40,marginBottom:12}}>ðŸ”</div>
                     <div style={{fontSize:16,fontWeight:600,color:"var(--color-text-secondary)",marginBottom:6}}>{search?"No clients match your search":"No clients here"}</div>
                     <div style={{fontSize:13}}>{search?"Try a different search term":"Add your first client to get started"}</div>
                     {can(currentUser.role,"add")&&!search&&(
@@ -4645,7 +3543,7 @@ export default function App(){
                     )}
                   </div>
                 )}
-                {/* ── Card grid ── */}
+                {/* â”€â”€ Card grid â”€â”€ */}
                 {!loading&&pageFiltered.length>0&&(
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
                     {pageFiltered.map(c=>{
@@ -4677,7 +3575,7 @@ export default function App(){
                           {bulkMode&&(
                             <div role="checkbox" aria-checked={isChecked} aria-label={"Select "+c.name} style={{position:"absolute",top:4,right:4,width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center"}}>
                               <div style={{width:24,height:24,borderRadius:6,border:"2px solid "+(isChecked?"#6366f1":"rgba(255,255,255,0.2)"),background:isChecked?"#6366f1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#fff",fontWeight:700}}>
-                                {isChecked&&"✓"}
+                                {isChecked&&"âœ“"}
                               </div>
                             </div>
                           )}
@@ -4693,7 +3591,7 @@ export default function App(){
                                 {fr.level!=="Low"&&<span style={{fontSize:9,fontWeight:800,padding:"1px 5px",borderRadius:4,background:frColors[fr.level]+"18",color:frColors[fr.level]}}>{fr.level==="High"?"HFR":"MFR"}</span>}
                               </div>
                               <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.3)",marginTop:2}}>
-                                {age!==null&&age+"y"}{c.room_or_address?(age!==null?" · ":"")+c.room_or_address:""}
+                                {age!==null&&age+"y"}{c.room_or_address?(age!==null?" Â· ":"")+c.room_or_address:""}
                               </div>
                             </div>
                           </div>
@@ -4708,8 +3606,8 @@ export default function App(){
                           )}
                           {/* Stats mini-row */}
                           <div style={{display:"flex",gap:10,alignItems:"center",fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace"}}>
-                            <span title="Medications">💊 {meds}</span>
-                            <span title="Incidents last 30d">⚠️ {recentInc}</span>
+                            <span title="Medications">ðŸ’Š {meds}</span>
+                            <span title="Incidents last 30d">âš ï¸ {recentInc}</span>
                             {pct!==null&&(
                               <div style={{flex:1,display:"flex",alignItems:"center",gap:5}}>
                                 <div style={{flex:1,height:4,borderRadius:2,background:"rgba(255,255,255,0.06)",overflow:"hidden"}}>
@@ -4724,7 +3622,7 @@ export default function App(){
                     })}
                   </div>
                 )}
-                {/* ── Bulk action bar (fixed bottom) ── */}
+                {/* â”€â”€ Bulk action bar (fixed bottom) â”€â”€ */}
                 {bulkMode&&bulkSelected.size>0&&(
                   <div style={{position:"fixed",bottom:"max(24px, env(safe-area-inset-bottom))",left:"50%",transform:"translateX(-50%)",background:"#1a1d36",border:"1px solid rgba(99,102,241,0.35)",borderRadius:14,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,zIndex:300,boxShadow:"0 8px 32px rgba(0,0,0,0.6)"}}>
                     <span style={{fontSize:13,fontWeight:700,color:"#a5b4fc",fontFamily:"'DM Mono',monospace"}}>{bulkSelected.size} selected</span>
@@ -4749,14 +3647,14 @@ export default function App(){
             if(!editClient.diagnoses)return null; // partial object guard
             return(
             <div>
-              <div style={{fontSize:17,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",marginBottom:20}}>Edit — {editClient.name}</div>
+              <div style={{fontSize:17,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",marginBottom:20}}>Edit â€” {editClient.name}</div>
               <ClientForm client={editClient} onSave={saveClient} onCancel={()=>setView("detail")} saving={saving} t={t} currentUser={currentUser}/>
             </div>
             );
           })()}
           {view==="detail"&&selected&&(()=>{
             const fresh=clients.find(c=>c.id===selected.id);
-            if(!fresh)return null; // client not loaded yet — wait for clients state
+            if(!fresh)return null; // client not loaded yet â€” wait for clients state
             return(
               <>
                 <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser}/>
@@ -4765,9 +3663,9 @@ export default function App(){
                     <div style={{background:"var(--color-bg-card)",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid rgba(255,255,255,0.08)"}}>
                       {fresh.archived?(
                         <>
-                          <div style={{fontSize:16,marginBottom:10,color:"var(--color-text-primary)",fontWeight:700,letterSpacing:"-0.2px"}}>🗑️ Permanently Delete</div>
+                          <div style={{fontSize:16,marginBottom:10,color:"var(--color-text-primary)",fontWeight:700,letterSpacing:"-0.2px"}}>ðŸ—‘ï¸ Permanently Delete</div>
                           <div style={{color:"var(--color-text-dim)",marginBottom:6}}>This will <strong style={{color:"#ef4444"}}>permanently delete</strong> <strong style={{color:"var(--color-text-primary)"}}>{fresh.name}</strong>. This cannot be undone.</div>
-                          <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#f87171",marginBottom:20}}>⚠️ All clinical data, notes, and documents will be lost forever.</div>
+                          <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#f87171",marginBottom:20}}>âš ï¸ All clinical data, notes, and documents will be lost forever.</div>
                           <div style={{display:"flex",gap:10}}>
                             <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"10px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600}}>{t.cancel}</button>
                             <button onClick={hardDeleteClient} style={{flex:1,padding:"10px",borderRadius:9,border:"none",background:"#ef4444",color:"#fff",fontWeight:700}}>Delete Forever</button>
@@ -4775,12 +3673,12 @@ export default function App(){
                         </>
                       ):(
                         <>
-                          <div style={{fontSize:16,marginBottom:10,color:"var(--color-text-primary)",fontWeight:700,letterSpacing:"-0.2px"}}>📦 Archive Client</div>
+                          <div style={{fontSize:16,marginBottom:10,color:"var(--color-text-primary)",fontWeight:700,letterSpacing:"-0.2px"}}>ðŸ“¦ Archive Client</div>
                           <div style={{color:"var(--color-text-dim)",marginBottom:6}}>Archive <strong style={{color:"var(--color-text-primary)"}}>{fresh.name}</strong>? They will be hidden from the active list but all data is preserved.</div>
-                          <div style={{background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#a5b4fc",marginBottom:20}}>✓ You can restore this client at any time from the Archived filter.</div>
+                          <div style={{background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#a5b4fc",marginBottom:20}}>âœ“ You can restore this client at any time from the Archived filter.</div>
                           <div style={{display:"flex",gap:10}}>
                             <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"10px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600}}>{t.cancel}</button>
-                            <button onClick={archiveClient} style={{flex:1,padding:"10px",borderRadius:9,border:"none",background:"#f59e0b",color:"#fff",fontWeight:700}}>📦 Archive</button>
+                            <button onClick={archiveClient} style={{flex:1,padding:"10px",borderRadius:9,border:"none",background:"#f59e0b",color:"#fff",fontWeight:700}}>ðŸ“¦ Archive</button>
                           </div>
                         </>
                       )}
@@ -4794,22 +3692,22 @@ export default function App(){
         </div>
       </div>
 
-      {/* ═══ BULK ARCHIVE CONFIRM ═══ */}
+      {/* â•â•â• BULK ARCHIVE CONFIRM â•â•â• */}
       {bulkArchiveConfirm&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:32,maxWidth:400,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
-            <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>📦</div>
+            <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>ðŸ“¦</div>
             <div style={{fontSize:16,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",textAlign:"center",marginBottom:10}}>Archive {bulkSelected.size} Client{bulkSelected.size!==1?"s":""}?</div>
             <div style={{fontSize:13,color:"var(--color-text-secondary)",textAlign:"center",lineHeight:1.7,marginBottom:28}}>They will be hidden from the active list. All data is preserved and can be restored from the Archived filter.</div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
               <button onClick={()=>setBulkArchiveConfirm(false)} style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:14}}>Cancel</button>
-              <button onClick={bulkArchive} style={{padding:"10px 28px",borderRadius:9,border:"none",background:"#f59e0b",color:"#fff",fontWeight:700,fontSize:14}}>📦 Archive All</button>
+              <button onClick={bulkArchive} style={{padding:"10px 28px",borderRadius:9,border:"none",background:"#f59e0b",color:"#fff",fontWeight:700,fontSize:14}}>ðŸ“¦ Archive All</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ═══ NOTIFICATION PANEL ═══ */}
+      {/* â•â•â• NOTIFICATION PANEL â•â•â• */}
       {notifOpen&&(()=>{
         const notifs=notifications;
         const markAllRead=()=>{
@@ -4823,20 +3721,20 @@ export default function App(){
           <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:"min(360px,100vw)",height:"100vh",background:"var(--color-bg-card)",borderLeft:"1px solid rgba(255,255,255,0.1)",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
             <div style={{padding:"18px 20px",borderBottom:"1px solid var(--color-border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
-                <div style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.2px"}}>🔔 Notifications</div>
-                <div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:2}}>{notifs.filter(n=>!readNotifIds.has(n.id)).length} unread · {notifs.length} total</div>
+                <div style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.2px"}}>ðŸ”” Notifications</div>
+                <div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:2}}>{notifs.filter(n=>!readNotifIds.has(n.id)).length} unread Â· {notifs.length} total</div>
               </div>
               <div style={{display:"flex",gap:8}}>
                 {notifs.some(n=>!readNotifIds.has(n.id))&&(
                   <button onClick={markAllRead} style={{padding:"5px 10px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-dim)",fontSize:11,fontWeight:600}}>Mark all read</button>
                 )}
-                <button onClick={()=>setNotifOpen(false)} style={{padding:"5px 10px",borderRadius:7,border:"none",background:"rgba(255,255,255,0.03)",color:"var(--color-text-dim)",fontSize:16,fontWeight:700}}>×</button>
+                <button onClick={()=>setNotifOpen(false)} style={{padding:"5px 10px",borderRadius:7,border:"none",background:"rgba(255,255,255,0.03)",color:"var(--color-text-dim)",fontSize:16,fontWeight:700}}>Ã—</button>
               </div>
             </div>
             <div style={{flex:1,overflowY:"auto"}}>
               {notifs.length===0?(
                 <div style={{padding:40,textAlign:"center",color:"var(--color-text-muted)"}}>
-                  <div style={{fontSize:32,marginBottom:8}}>✅</div>
+                  <div style={{fontSize:32,marginBottom:8}}>âœ…</div>
                   <div style={{fontSize:14,fontWeight:600,color:"var(--color-text-dim)"}}>All clear!</div>
                   <div style={{fontSize:12,marginTop:4}}>No expiring documents, upcoming appointments, or incidents in the last 7 days.</div>
                 </div>
@@ -4853,7 +3751,7 @@ export default function App(){
                         <span style={{fontSize:12,fontWeight:700,color:isRead?"rgba(240,242,250,0.3)":"var(--color-text-primary)"}}>{n.title}</span>
                       </div>
                       <div style={{fontSize:12,color:"var(--color-text-dim)",lineHeight:1.5}}>{n.body}</div>
-                      {n.clientName&&<div style={{fontSize:10,color:"#6366f1",fontWeight:600,marginTop:4}}>→ {n.clientName}</div>}
+                      {n.clientName&&<div style={{fontSize:10,color:"#6366f1",fontWeight:600,marginTop:4}}>â†’ {n.clientName}</div>}
                     </div>
                   </div>
                 );
@@ -4861,7 +3759,7 @@ export default function App(){
             </div>
             {/* Email alert preferences */}
             <div style={{borderTop:"1px solid var(--color-border)",padding:"14px 20px"}}>
-              <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",letterSpacing:0.5,marginBottom:10}}>📧 EMAIL ALERT PREFERENCES</div>
+              <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",letterSpacing:0.5,marginBottom:10}}>ðŸ“§ EMAIL ALERT PREFERENCES</div>
               {EPREF_LABELS.map(([key,label])=>(
                 <label key={key} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7,cursor:"pointer"}}>
                   <input type="checkbox" checked={!!emailPrefs[key]} onChange={e=>{const p={...emailPrefs,[key]:e.target.checked};setEmailPrefs(p);localStorage.setItem("cm-email-prefs",JSON.stringify(p));}} style={{accentColor:"#6366f1",width:14,height:14}}/>
@@ -4875,11 +3773,11 @@ export default function App(){
       })()}
       {notifOpen&&<div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:299}}/>}
 
-      {/* ═══ KEYBOARD SHORTCUTS MODAL ═══ */}
+      {/* â•â•â• KEYBOARD SHORTCUTS MODAL â•â•â• */}
       {showShortcuts&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:32,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
-            <div style={{fontSize:16,fontWeight:700,color:"var(--color-text-primary)",marginBottom:4,letterSpacing:"-0.2px"}}>⌨️ Keyboard Shortcuts</div>
+            <div style={{fontSize:16,fontWeight:700,color:"var(--color-text-primary)",marginBottom:4,letterSpacing:"-0.2px"}}>âŒ¨ï¸ Keyboard Shortcuts</div>
             <div style={{fontSize:12,color:"var(--color-text-muted)",marginBottom:20}}>Works when no input is focused</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[["d","Dashboard"],["n","New client"],["k","Focus search"],["b","Notifications"],["?","This help"],["Esc","Close panels"]].map(([key,desc])=>(
