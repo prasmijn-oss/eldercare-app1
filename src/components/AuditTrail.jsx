@@ -90,7 +90,7 @@ function AuditTrail({t,companyId,currentUser}){
       </div>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
         <div style={{color:"var(--color-text-dim)",fontSize:13}}>{filtered.length} {t.records}</div>
-        {hasFilter&&<button onClick={clearFilters} style={{padding:"3px 10px",borderRadius:6,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"#f59e0b",fontSize:11,fontWeight:700}}>✕ Clear filters</button>}
+        {hasFilter&&<button onClick={clearFilters} style={{padding:"3px 10px",borderRadius:6,border:"1px solid var(--color-border)",background:"transparent",color:"#f59e0b",fontSize:11,fontWeight:700}}>✕ Clear filters</button>}
       </div>
 
       {/* Filters — row 1: staff / action / section / company */}
@@ -139,7 +139,7 @@ function AuditTrail({t,companyId,currentUser}){
         </div>
       )}
 
-      <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,overflow:"hidden"}}>
+      <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,overflow:"hidden"}}>
         {loading
           ?<div style={{padding:"40px",textAlign:"center",color:"var(--color-text-muted)"}}>{t.loadingAudit}</div>
           :filtered.length===0
@@ -147,9 +147,9 @@ function AuditTrail({t,companyId,currentUser}){
             :<div style={{overflow:"auto",maxHeight:"65vh",WebkitOverflowScrolling:"touch"}}>
               <table style={{borderCollapse:"collapse",minWidth:820,width:"100%"}}>
                 <thead style={{position:"sticky",top:0,zIndex:2}}>
-                  <tr style={{background:"#161927",borderBottom:"1px solid var(--color-border)"}}>
+                  <tr style={{background:"var(--color-bg-surface)",borderBottom:"1px solid var(--color-border)"}}>
                     {["Date & Time","Staff","Action & Details","Client","Company"].map(h=>(
-                      <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"#6366f1",letterSpacing:0.5,whiteSpace:"nowrap"}}>{h}</th>
+                      <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"var(--color-accent)",letterSpacing:0.5,whiteSpace:"nowrap"}}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -159,7 +159,7 @@ function AuditTrail({t,companyId,currentUser}){
                     const hasDevice=!!l.device;
                     return(
                       <Fragment key={l.id}>
-                        <tr style={{borderBottom:isExpanded?"none":"1px solid #1e293b",background:i%2===0?"transparent":"rgba(255,255,255,0.02)",cursor:hasDevice?"pointer":"default"}}
+                        <tr style={{borderBottom:isExpanded?"none":"1px solid var(--color-border)",background:i%2===0?"transparent":"var(--color-bg-hover)",cursor:hasDevice?"pointer":"default"}}
                           onClick={()=>hasDevice&&setExpandedRow(isExpanded?null:l.id)}>
                           <td style={{padding:"10px 16px",fontSize:12,color:"var(--color-text-dim)",whiteSpace:"nowrap",verticalAlign:"top"}}>
                             {new Date(l.performed_at).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}
@@ -172,7 +172,7 @@ function AuditTrail({t,companyId,currentUser}){
                             <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:l.details?4:0}}>
                               <span style={{background:"rgba(99,102,241,0.12)",color:"#a5b4fc",borderRadius:6,padding:"2px 8px",fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>{l.action||"—"}</span>
                               {l.section&&<span style={{background:"rgba(0,0,0,0.25)",color:secColor(l.section),border:"1px solid "+secColor(l.section)+"44",borderRadius:5,padding:"1px 7px",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>{l.section}</span>}
-                              {hasDevice&&<span style={{fontSize:10,color:"rgba(255,255,255,0.1)",marginLeft:"auto"}}>▾</span>}
+                              {hasDevice&&<span style={{fontSize:10,color:"var(--color-text-muted)",marginLeft:"auto"}}>▾</span>}
                             </div>
                             {l.details&&<div style={{fontSize:12,color:"var(--color-text-dim)",lineHeight:1.5,marginTop:2}}>{l.details}</div>}
                           </td>
@@ -180,10 +180,10 @@ function AuditTrail({t,companyId,currentUser}){
                           <td style={{padding:"10px 16px",fontSize:12,color:"var(--color-text-muted)",verticalAlign:"top",whiteSpace:"nowrap"}}>{coName(l.company_id)}</td>
                         </tr>
                         {isExpanded&&hasDevice&&(
-                          <tr style={{borderBottom:"1px solid #1e293b",background:"rgba(99,102,241,0.04)"}}>
+                          <tr style={{borderBottom:"1px solid var(--color-border)",background:"rgba(99,102,241,0.04)"}}>
                             <td colSpan={5} style={{padding:"6px 16px 10px 48px"}}>
                               <div style={{fontSize:11,color:"var(--color-text-muted)",display:"flex",alignItems:"flex-start",gap:8}}>
-                                <span style={{color:"rgba(255,255,255,0.1)",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>🖥 Device:</span>
+                                <span style={{color:"var(--color-text-muted)",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>🖥 Device:</span>
                                 <span style={{wordBreak:"break-all",lineHeight:1.6}}>{l.device}</span>
                               </div>
                             </td>
