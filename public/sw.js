@@ -1,5 +1,5 @@
-const CACHE = 'caremanager-v2';
-const PRECACHE = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'caremanager-v3';
+const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
 
 // Hosts to bypass entirely (always fetch from network)
 const BYPASS = ['supabase.co', 'esm.sh', 'fonts.googleapis.com', 'fonts.gstatic.com'];

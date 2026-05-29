@@ -210,7 +210,7 @@ function DiagList({items,onChange,t}){
       {items.map(item=>(
         <div key={item.id} style={{display:"flex",gap:8,alignItems:"center"}}>
           <SearchDrop value={item.value} onChange={v=>upd(item.id,v)} options={DIAGNOSES} placeholder={t.searchDiag}/>
-          {items.length>1&&<button style={IBTN} onClick={()=>rm(item.id)}>x</button>}
+          {items.length>1&&<button style={IBTN} aria-label="Remove" onClick={()=>rm(item.id)}>x</button>}
         </div>
       ))}
       <button style={ABTN} onClick={add}>{t.addDiagnosis}</button>
@@ -274,7 +274,7 @@ function TagList({items,onChange,placeholder,addLabel}){
       {items.map(item=>(
         <div key={item.id} style={{display:"flex",gap:8,alignItems:"center"}}>
           <input style={INP} placeholder={placeholder} value={item.value} onChange={e=>upd(item.id,e.target.value)}/>
-          {items.length>1&&<button style={IBTN} onClick={()=>rm(item.id)}>x</button>}
+          {items.length>1&&<button style={IBTN} aria-label="Remove" onClick={()=>rm(item.id)}>x</button>}
         </div>
       ))}
       <button style={ABTN} onClick={add}>{addLabel}</button>
@@ -356,7 +356,7 @@ function NotesList({items,onChange,t}){
               </select>
             </div>
             <div><label style={LBL}>{t.staffName}</label><input style={INP} placeholder={t.staffName} value={item.staff_name||""} onChange={e=>upd(item.id,"staff_name",e.target.value)}/></div>
-            {items.length>1&&<div style={{paddingTop:18}}><button style={IBTN} onClick={()=>rm(item.id)}>x</button></div>}
+            {items.length>1&&<div style={{paddingTop:18}}><button style={IBTN} aria-label="Remove" onClick={()=>rm(item.id)}>x</button></div>}
           </div>
           <textarea style={{...INP,height:80,resize:"vertical"}} placeholder={t.notePlaceholder} value={item.text} onChange={e=>upd(item.id,"text",e.target.value)}/>
         </div>
@@ -552,7 +552,7 @@ function CarePlan({items,onChange,t}){
               </div>
               <div><label style={LBL}>{t.created}</label><input type="date" style={INP} value={item.created} onChange={e=>upd(item.id,"created",e.target.value)}/></div>
               <div><label style={LBL}>{t.reviewed}</label><input type="date" style={INP} value={item.reviewed||""} onChange={e=>upd(item.id,"reviewed",e.target.value)}/></div>
-              <div style={{paddingBottom:1}}><button style={IBTN} onClick={()=>rm(item.id)}>x</button></div>
+              <div style={{paddingBottom:1}}><button style={IBTN} aria-label="Remove" onClick={()=>rm(item.id)}>x</button></div>
             </div>
           </div>
         );
@@ -581,7 +581,7 @@ function DocTracker({items,onChange,t}){
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"center",flexShrink:0}}>
               {badge&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:badge.bg,color:badge.color,whiteSpace:"nowrap"}}>{badge.label}{days!==null&&" "+(days<0?Math.abs(days)+"d ago":days+"d")}</span>}
-              <button style={IBTN} onClick={()=>rm(item.id)}>x</button>
+              <button style={IBTN} aria-label="Remove" onClick={()=>rm(item.id)}>x</button>
             </div>
           </div>
         );
@@ -3157,18 +3157,18 @@ export default function App(){
             </div>
             <div style={{display:"flex",gap:4}}>
               {(()=>{const unread=notifications.filter(n=>!readNotifIds.has(n.id)).length;return(
-                <button onClick={()=>setNotifOpen(o=>!o)} aria-label="Notifications" style={{position:"relative",width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+                <button onClick={()=>setNotifOpen(o=>!o)} aria-label="Notifications" style={{position:"relative",width:36,height:36,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
                   <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M7.5 1.5a4 4 0 014 4v3l1 1.5H2.5L3.5 8.5v-3a4 4 0 014-4z"/><line x1="6" y1="12" x2="9" y2="12"/></svg>
-                  {unread>0&&<span style={{position:"absolute",top:3,right:3,width:5,height:5,borderRadius:"50%",background:"#ef4444",border:"1.5px solid #0c0f1f"}}/>}
+                  {unread>0&&<span style={{position:"absolute",top:5,right:5,width:5,height:5,borderRadius:"50%",background:"#ef4444",border:"1.5px solid #0c0f1f"}}/>}
                 </button>
               );})()}
-              <button onClick={()=>setDarkMode(d=>!d)} aria-label="Toggle theme" style={{width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+              <button onClick={()=>setDarkMode(d=>!d)} aria-label="Toggle theme" style={{width:36,height:36,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
                 {darkMode
                   ?<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><circle cx="7" cy="7" r="2.5"/><line x1="7" y1="1" x2="7" y2="2.5"/><line x1="7" y1="11.5" x2="7" y2="13"/><line x1="1" y1="7" x2="2.5" y2="7"/><line x1="11.5" y1="7" x2="13" y2="7"/><line x1="2.9" y1="2.9" x2="3.9" y2="3.9"/><line x1="10.1" y1="10.1" x2="11.1" y2="11.1"/><line x1="11.1" y1="2.9" x2="10.1" y2="3.9"/><line x1="3.9" y1="10.1" x2="2.9" y2="11.1"/></svg>
                   :<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M12 8.5A5.5 5.5 0 015.5 2a5.5 5.5 0 000 11A5.5 5.5 0 0012 8.5z"/></svg>
                 }
               </button>
-              <button onClick={handleLogout} aria-label="Sign out" title={t.signOut} style={{width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+              <button onClick={handleLogout} aria-label="Sign out" title={t.signOut} style={{width:36,height:36,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
                 <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M9 1H12a1 1 0 011 1v10a1 1 0 01-1 1H9"/><polyline points="6,10 9,7 6,4"/><line x1="9" y1="7" x2="1" y2="7"/></svg>
               </button>
             </div>
@@ -3499,7 +3499,7 @@ export default function App(){
                   {filterPills.map(p=>{
                     const act=clientFilter===p.key;
                     return(
-                      <button key={p.key} onClick={()=>setClientFilter(p.key)}
+                      <button key={p.key} onClick={()=>setClientFilter(p.key)} className="filter-pill"
                         style={{padding:"5px 14px",borderRadius:20,border:act?"1px solid "+p.color+"60":"1px solid rgba(255,255,255,0.08)",background:act?p.color+"18":"rgba(255,255,255,0.03)",color:act?p.color:"rgba(240,242,250,0.4)",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all 120ms"}}>
                         {p.label}
                       </button>
@@ -3512,7 +3512,7 @@ export default function App(){
                         const cols={Active:"#34d399",Inactive:"#fbbf24",Discharged:"#818cf8",All:"#6366f1"};
                         const act=statusFilter===s;
                         return(
-                          <button key={s} onClick={()=>setStatusFilter(s)}
+                          <button key={s} onClick={()=>setStatusFilter(s)} className="filter-pill"
                             style={{padding:"4px 10px",borderRadius:20,border:act?"1px solid "+cols[s]+"60":"1px solid rgba(255,255,255,0.06)",background:act?cols[s]+"15":"transparent",color:act?cols[s]:"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>
                             {s}
                           </button>
