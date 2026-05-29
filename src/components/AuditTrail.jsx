@@ -4,6 +4,8 @@ import { supabase } from "../lib/supabase.js";
 import { can, he, uid, tod } from "../lib/utils.js";
 import { INP, LBL, ABTN, IBTN } from "../lib/constants.js";
 
+const AUDIT_PAGE=100;
+
 function AuditTrail({t,companyId,currentUser}){
   const [logs,setLogs]=useState([]);
   const [companies,setCompanies]=useState([]);
