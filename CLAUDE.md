@@ -3,7 +3,7 @@
 ## Project Overview
 Full-stack eldercare client management app built with React 19 + Vite.  
 Backend: Supabase (auth, Postgres, storage).  
-Entire frontend lives in **`src/App.jsx`** (single-file architecture, ~7,395 lines).
+Frontend is split across `src/App.jsx` (~7,300 lines) and extracted components in `src/components/`.
 
 ## Tech Stack
 - React 19, Vite 8
@@ -52,7 +52,10 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - **GCSS**: string array of CSS rules joined with `\n`, injected via `<style dangerouslySetInnerHTML={{__html:GCSS}}/>` in the App return. Primary global CSS mechanism alongside `src/index.css`. CSS vars work inside GCSS strings.
 - **CSS token colors** (always use these, never raw hex for the base palette): `var(--color-bg-base)` (#07091c dark), `var(--color-bg-surface)` (#0c0f1f), `var(--color-bg-card)` (#111427), `var(--color-text-primary)` (#f0f2fa), `var(--color-text-secondary)` (0.5 opacity), `var(--color-text-dim)` (0.35 opacity), `var(--color-text-muted)` (0.25 opacity), `var(--color-border)` (rgba(255,255,255,0.07) dark)
 - **Keyboard shortcuts**: global `keydown` listener in App; inactive when input/textarea/select is focused
-- **PWA**: `public/manifest.json` + `public/sw.js` (cache-first for static assets); registered in `index.html`
+- **PWA**: `public/manifest.json` + `public/sw.js` (stale-while-revalidate for same-origin assets, bypass for Supabase/esm.sh/fonts); SW is `caremanager-v3`; icon PNGs pre-cached
+- **Extracted components**: `src/components/Dashboard.jsx` (TiltCard, FlipCard, Dashboard), `src/components/ClinicalComponents.jsx` (ADLTracker, PainAssessment, WoundAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, IncidentReports, IntakeChecklist), `src/components/UserManagement.jsx` (UserManagement, PasswordStrengthMeter), `src/components/AuditTrail.jsx` (AuditTrail)
+- **PermissionsContext**: `src/lib/PermissionsContext.jsx` — `PermissionsContext` + `usePermissions()` hook; `perms` state lives in App and is passed via Provider; consumed by any component needing reactive permission checks. `refreshPerms()` reloads from DB.
+- **Constants**: `src/lib/constants.js` — `IBTN`, `ABTN`, `INP`, `LBL`, `GCSS`, `ADL_LABELS`, `ADL_ITEMS`, `COLORS`, `BRADEN_MAX`, etc. **All shared style objects and global CSS live here.**
 - **React import**: only named hooks imported — `import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react"`. Never use `React.Fragment` or `React.*` — use `Fragment` or `<>` shorthand
 - **Bulk selection**: React `Set` state, toggled on sidebar client click when `bulkMode` is true
 - **User profile**: accessed by clicking the avatar or display name in the sidebar footer → sets `view="profile"`
@@ -144,6 +147,18 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - [x] Responsive grids (.inv-grid, .notes-filter, .three-col, .four-col)
 - [x] Duplicate sticky bars on mobile fixed (.main-topbar hidden, mob-hdr shown)
 
+### Mobile (Tier 2 fixes)
+- [x] `touch-action: manipulation` on all `button` + `a` elements (GCSS) — eliminates 300ms tap delay
+- [x] `@media (prefers-reduced-motion: reduce)` in GCSS — disables all transitions/animations for users who need it
+- [x] TiltCard/FlipCard touch equivalents — `touchmove` tilt + `touchend` reset in Dashboard.jsx; guarded by `prefersReducedMotion`
+- [x] SearchDrop `touchstart` dismiss — close dropdown on outside touch
+- [x] Nav items `min-height: 44px` (GCSS `.nav-item`)
+- [x] Sidebar footer icon buttons 28px → 36px (Notifications, Toggle theme, Sign out)
+- [x] Filter pills min touch target — `.filter-pill` class (36px min-height on mobile); applied to risk + status filter pills in Clients view
+- [x] `env(safe-area-inset-*)` on mob-hdr (top) and sidebar-footer (bottom)
+- [x] aria-labels on all IBTN remove buttons (`aria-label="Remove"`)
+- [x] SW extended caching — icon-192.png, icon-512.png, apple-touch-icon.png added to PRECACHE; bumped to `caremanager-v3`
+
 ### Performance
 - [x] `useMemo` for sidebar badge counts (incident, medication, active client counts)
 - [x] `useMemo` for `filteredUsers` in UserManagement (dedup + search + tab filter)
@@ -156,6 +171,16 @@ git checkout main && git merge staging && git push origin main && git checkout s
 
 ### PWA
 - [x] Icon PNGs generated — `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png` (indigo rounded-rect with white "CM" bitmap text)
+
+### Architecture / Code Quality
+- [x] LOADED_PERMS → React context (`PermissionsContext`, `usePermissions`, `refreshPerms`) — no prop-drilling for permissions
+- [x] Clinical components extracted → `src/components/ClinicalComponents.jsx` (9 components)
+- [x] Dashboard components extracted → `src/components/Dashboard.jsx` (TiltCard, FlipCard, Dashboard)
+- [x] UserManagement extracted → `src/components/UserManagement.jsx`
+- [x] AuditTrail extracted → `src/components/AuditTrail.jsx`
+- [x] `ADL_LABELS` centralized in `src/lib/constants.js`
+- [x] UTF-8 mojibake fixed in App.jsx (all emoji/Unicode restored after double-encoding corruption)
+- [x] AuditTrail stuck-on-loading bug fixed (`AUDIT_PAGE` constant was missing in extracted file)
 
 ### Admin
 - [x] Audit trail
