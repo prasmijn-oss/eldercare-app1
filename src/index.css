@@ -60,21 +60,28 @@
   --transition-base: 180ms ease;
 }
 
-/* === SEMANTIC TOKENS — light mode override === */
+/* === SEMANTIC TOKENS — light mode override (white + green) === */
 html.cm-light {
   filter: none !important;
-  --color-bg-base:       #f4f5f7;
-  --color-bg-surface:    #ffffff;
-  --color-bg-card:       #ffffff;
-  --color-bg-hover:      rgba(0,0,0,0.04);
-  --color-bg-active:     rgba(99,102,241,0.08);
-  --color-border:        rgba(0,0,0,0.08);
-  --color-border-strong: rgba(0,0,0,0.14);
-  --color-border-accent: rgba(99,102,241,0.3);
-  --color-text-primary:  #0f1117;
-  --color-text-secondary:rgba(15,17,23,0.55);
-  --color-text-dim:      rgba(15,17,23,0.45);
-  --color-text-muted:    rgba(15,17,23,0.35);
+  /* Backgrounds */
+  --color-bg-base:        #f9fafb;
+  --color-bg-surface:     #ffffff;
+  --color-bg-card:        #ffffff;
+  --color-bg-hover:       rgba(22,163,74,0.06);
+  --color-bg-active:      #dcfce7;
+  /* Borders */
+  --color-border:         #e5e7eb;
+  --color-border-strong:  #d1d5db;
+  --color-border-accent:  #bbf7d0;
+  /* Text */
+  --color-text-primary:   #0a0a0a;
+  --color-text-secondary: #374151;
+  --color-text-dim:       #6b7280;
+  --color-text-muted:     #9ca3af;
+  /* Accent — green replaces indigo in light mode */
+  --color-accent:         #16a34a;
+  --color-accent-light:   #22c55e;
+  --color-success:        #16a34a;
 }
 html.cm-light img, html.cm-light video { filter: none !important; }
 

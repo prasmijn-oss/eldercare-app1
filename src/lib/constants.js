@@ -194,6 +194,48 @@ export const GCSS = [
   ".client-card { transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }",
   ".client-card:hover { transform: translateY(-2px) !important; border-color: rgba(255,255,255,0.12) !important; box-shadow: 0 12px 32px rgba(0,0,0,0.4) !important; }",
   ".tab-btn { transition: color 120ms ease, border-color 120ms ease; border: none; background: none; cursor: pointer; }",
+
+  /* ── Light mode green overrides (html.cm-light) ── */
+  /* Sidebar surface + borders */
+  "html.cm-light .sidebar { background: #f0fdf4 !important; border-right-color: #bbf7d0 !important; }",
+  "html.cm-light .sidebar-footer { border-top-color: #bbf7d0 !important; }",
+  "html.cm-light .nav-divider { background: #bbf7d0 !important; }",
+  /* Topbar green bottom border */
+  "html.cm-light .main-topbar { border-bottom-color: #bbf7d0 !important; box-shadow: 0 1px 4px rgba(22,163,74,0.06) !important; }",
+  "html.cm-light .mob-hdr { border-bottom-color: #bbf7d0 !important; }",
+  /* Nav group labels — visible on white */
+  "html.cm-light .nav-group-label { color: #9ca3af !important; }",
+  /* All nav items — dark text on white */
+  "html.cm-light .nav-item { color: #374151 !important; background: transparent !important; border-color: transparent !important; }",
+  "html.cm-light .nav-item:hover { color: #16a34a !important; background: #dcfce7 !important; }",
+  /* Active nav item — green */
+  "html.cm-light .nav-active { color: #16a34a !important; background: #dcfce7 !important; border-color: #bbf7d0 !important; font-weight: 600 !important; }",
+  "html.cm-light .nav-active > span { background: #16a34a !important; }",
+  /* Sidebar footer text */
+  "html.cm-light .sidebar-footer-name { color: #374151 !important; }",
+  "html.cm-light .sidebar-footer-role { color: #9ca3af !important; }",
+  /* Sidebar footer icon buttons */
+  "html.cm-light .icon-btn-sidebar { border-color: #e5e7eb !important; background: rgba(0,0,0,0.02) !important; color: #6b7280 !important; }",
+  "html.cm-light .icon-btn-sidebar svg { stroke: #6b7280 !important; }",
+  "html.cm-light .icon-btn-sidebar:hover { background: #dcfce7 !important; border-color: #bbf7d0 !important; color: #16a34a !important; }",
+  /* Sidebar avatar — green gradient */
+  "html.cm-light .sidebar-avatar { background: linear-gradient(135deg,#16a34a,#15803d) !important; box-shadow: 0 2px 6px rgba(22,163,74,0.25) !important; }",
+  /* Lang row active */
+  "html.cm-light .lang-btn-active { background: #dcfce7 !important; color: #16a34a !important; }",
+  "html.cm-light .lang-btn-inactive { color: #9ca3af !important; }",
+  /* New Client button — green gradient */
+  "html.cm-light .btn-new-client { background: linear-gradient(135deg,#16a34a,#15803d) !important; box-shadow: 0 2px 8px rgba(22,163,74,0.3) !important; }",
+  /* Topbar search input */
+  "html.cm-light #cm-search { background: #f9fafb !important; border-color: #e5e7eb !important; color: #374151 !important; }",
+  /* Topbar date/meta text */
+  "html.cm-light .topbar-meta { color: #9ca3af !important; }",
+  /* Skeleton shimmer for light mode */
+  "html.cm-light .skeleton { background: linear-gradient(90deg,#f3f4f6 25%,#e5e7eb 50%,#f3f4f6 75%) !important; background-size: 800px 100% !important; }",
+  /* client-card hover for light mode */
+  "html.cm-light .client-card:hover { border-color: #bbf7d0 !important; box-shadow: 0 8px 24px rgba(22,163,74,0.10) !important; }",
+  "html.cm-light .card-hover:hover { border-color: #d1d5db !important; box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important; }",
+  /* Notification unread dot border matches light bg */
+  "html.cm-light .notif-unread-dot { border-color: #f9fafb !important; }",
 ].join("\n");
 
 // ── Translations ───────────────────────────────────────────────────────────

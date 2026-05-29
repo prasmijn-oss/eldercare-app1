@@ -2998,7 +2998,7 @@ export default function App(){
       <div className="mob-hdr">
         <button onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>☰</button>
         <span style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>CareManager</span>
-        {can(currentUser.role,"add",perms)&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" style={{background:"linear-gradient(135deg,#4f6ef7,#6366f1)",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
+        {can(currentUser.role,"add",perms)&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" className="btn-new-client" style={{background:"linear-gradient(135deg,#4f6ef7,#6366f1)",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
       </div>
       <div className={"overlay"+(sidebarOpen?" show":"")} onClick={()=>setSidebarOpen(false)}/>
       <div style={{display:"flex",minHeight:"100vh"}}>
@@ -3044,13 +3044,13 @@ export default function App(){
           {/* ── Nav ── */}
           <div style={{padding:"8px 8px 4px",flex:"0 0 auto"}}>
             {/* MAIN group */}
-            <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"8px 0 4px"}}>Main</div>
+            <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"8px 0 4px"}}>Main</div>
             {(()=>{
               const navBtn=(v,label,icon)=>{
                 const active=view===v&&!selected;
                 return(
                   <button key={v} onClick={()=>{setView(v);setSelected(null);setSidebarOpen(false);}}
-                    className="nav-item"
+                    className={active?"nav-item nav-active":"nav-item"}
                     style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:active?"rgba(99,102,241,0.12)":"transparent",color:active?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
                     {active&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">{icon}</svg>
@@ -3062,7 +3062,7 @@ export default function App(){
               const clientsActive=view==="clients"||view==="detail"||view==="edit";
               const clientsBtn=(
                 <button onClick={()=>{setView("clients");setSelected(null);setSidebarOpen(false);}}
-                  className="nav-item"
+                  className={clientsActive?"nav-item nav-active":"nav-item"}
                   style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:clientsActive?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:clientsActive?"rgba(99,102,241,0.12)":"transparent",color:clientsActive?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
                   {clientsActive&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><circle cx="5" cy="5" r="3"/><path d="M1 13c0-2.8 2-5 4-5h2c2 0 4 2.2 4 5"/><circle cx="11.5" cy="5" r="2"/><path d="M13.5 13c0-2.2-1.3-4-3-4.5"/></svg>
@@ -3074,7 +3074,7 @@ export default function App(){
               const incActive=view==="incidents";
               const incBtn=(
                 <button onClick={()=>{setView("incidents");setSelected(null);setSidebarOpen(false);}}
-                  className="nav-item"
+                  className={incActive?"nav-item nav-active":"nav-item"}
                   style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:incActive?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:incActive?"rgba(99,102,241,0.12)":"transparent",color:incActive?"#a5b4fc":"var(--color-text-secondary)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
                   {incActive&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><path d="M7.5 2L2 12h11L7.5 2z"/><line x1="7.5" y1="6" x2="7.5" y2="9"/><circle cx="7.5" cy="10.5" r="0.5" fill="currentColor"/></svg>
@@ -3086,7 +3086,7 @@ export default function App(){
               const medActive=view==="medications";
               const medBtn=(
                 <button onClick={()=>{setView("medications");setSelected(null);setSidebarOpen(false);}}
-                  className="nav-item"
+                  className={medActive?"nav-item nav-active":"nav-item"}
                   style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:medActive?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:medActive?"rgba(99,102,241,0.12)":"transparent",color:medActive?"#a5b4fc":"var(--color-text-secondary)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
                   {medActive&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="2" y="6" width="11" height="7" rx="1.5"/><path d="M5 6V4a2.5 2.5 0 015 0v2"/><line x1="7.5" y1="8.5" x2="7.5" y2="11"/><line x1="6" y1="9.75" x2="9" y2="9.75"/></svg>
@@ -3097,14 +3097,14 @@ export default function App(){
               return <>{dashBtn}{clientsBtn}{incBtn}{medBtn}</>;
             })()}
             {/* MANAGEMENT group */}
-            <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Management</div>
+            <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Management</div>
             {(()=>{
               const navBtn=(v,label,pathD,guard=true)=>{
                 if(!guard)return null;
                 const active=view===v;
                 return(
                   <button key={v} onClick={()=>{setView(v);setSelected(null);setSidebarOpen(false);}}
-                    className="nav-item"
+                    className={active?"nav-item nav-active":"nav-item"}
                     style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:active?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:active?"rgba(99,102,241,0.12)":"transparent",color:active?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
                     {active&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true" dangerouslySetInnerHTML={{__html:pathD}}/>
@@ -3121,10 +3121,10 @@ export default function App(){
             {/* ADMIN group — only if at least one admin view accessible */}
             {(can(currentUser.role,"company",perms)||can(currentUser.role,"permissions",perms))&&(
               <>
-                <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Admin</div>
+                <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"rgba(240,242,250,0.22)",padding:"0 8px",margin:"10px 0 4px"}}>Admin</div>
                 {can(currentUser.role,"company",perms)&&(
                   <button onClick={()=>{setView("company");setSelected(null);setSidebarOpen(false);}}
-                    className="nav-item"
+                    className={view==="company"?"nav-item nav-active":"nav-item"}
                     style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:view==="company"?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:view==="company"?"rgba(99,102,241,0.12)":"transparent",color:view==="company"?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
                     {view==="company"&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="2" y="5" width="11" height="9" rx="1"/><polyline points="5,5 5,2.5 10,2.5 10,5"/><line x1="7.5" y1="8" x2="7.5" y2="11"/><line x1="6" y1="9.5" x2="9" y2="9.5"/></svg>
@@ -3133,7 +3133,7 @@ export default function App(){
                 )}
                 {can(currentUser.role,"permissions",perms)&&(
                   <button onClick={()=>{setView("permissions");setSelected(null);setSidebarOpen(false);}}
-                    className="nav-item"
+                    className={view==="permissions"?"nav-item nav-active":"nav-item"}
                     style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:9,border:view==="permissions"?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",background:view==="permissions"?"rgba(99,102,241,0.12)":"transparent",color:view==="permissions"?"#a5b4fc":"rgba(240,242,250,0.4)",fontWeight:500,fontSize:13,textAlign:"left",marginBottom:1,cursor:"pointer",transition:"background 120ms ease,color 120ms ease",position:"relative"}}>
                     {view==="permissions"&&<span style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:"55%",background:"#6366f1",borderRadius:"0 3px 3px 0"}}/>}
                     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="4" y="6" width="7" height="7" rx="1"/><path d="M5.5 6V4.5a2 2 0 014 0V6"/></svg>
@@ -3147,28 +3147,28 @@ export default function App(){
 
           {/* ── Footer: user + icon buttons ── */}
           <div className="sidebar-footer" style={{borderTop:"1px solid var(--color-border)",padding:"10px 12px",display:"flex",alignItems:"center",gap:8}}>
-            <div onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}}
+            <div className="sidebar-avatar" onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}}
               style={{width:32,height:32,borderRadius:8,background:currentUser.avatar_url?"transparent":"linear-gradient(135deg,#6366f1,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,cursor:"pointer",overflow:"hidden"}}>
               {currentUser.avatar_url?<img src={currentUser.avatar_url} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:initials(currentUser.displayName||"?")}
             </div>
             <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>{setView("profile");setSelected(null);setSidebarOpen(false);}}>
-              <div style={{fontSize:11,fontWeight:600,color:"rgba(240,242,250,0.65)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser.displayName}</div>
-              <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)"}}>{currentUser.role==="superadmin"?"superadmin":currentUser.role==="admin"?"admin":currentUser.role==="power_user"?"power_user":currentUser.role||"user"}</div>
+              <div className="sidebar-footer-name" style={{fontSize:11,fontWeight:600,color:"rgba(240,242,250,0.65)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser.displayName}</div>
+              <div className="sidebar-footer-role" style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)"}}>{currentUser.role==="superadmin"?"superadmin":currentUser.role==="admin"?"admin":currentUser.role==="power_user"?"power_user":currentUser.role||"user"}</div>
             </div>
             <div style={{display:"flex",gap:3,flexShrink:0}}>
               {(()=>{const unread=notifications.filter(n=>!readNotifIds.has(n.id)).length;return(
-                <button onClick={()=>setNotifOpen(o=>!o)} aria-label="Notifications" style={{position:"relative",width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",touchAction:"manipulation"}}>
+                <button onClick={()=>setNotifOpen(o=>!o)} aria-label="Notifications" className="icon-btn-sidebar" style={{position:"relative",width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",touchAction:"manipulation"}}>
                   <svg width="14" height="14" viewBox="0 0 15 15" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M7.5 1.5a4 4 0 014 4v3l1 1.5H2.5L3.5 8.5v-3a4 4 0 014-4z"/><line x1="6" y1="12" x2="9" y2="12"/></svg>
-                  {unread>0&&<span style={{position:"absolute",top:4,right:4,width:5,height:5,borderRadius:"50%",background:"#ef4444",border:"1.5px solid #0c0f1f"}}/>}
+                  {unread>0&&<span className="notif-unread-dot" style={{position:"absolute",top:4,right:4,width:5,height:5,borderRadius:"50%",background:"#ef4444",border:"1.5px solid #0c0f1f"}}/>}
                 </button>
               );})()}
-              <button onClick={()=>setDarkMode(d=>!d)} aria-label="Toggle theme" style={{width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",touchAction:"manipulation"}}>
+              <button onClick={()=>setDarkMode(d=>!d)} aria-label="Toggle theme" className="icon-btn-sidebar" style={{width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",touchAction:"manipulation"}}>
                 {darkMode
                   ?<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><circle cx="7" cy="7" r="2.5"/><line x1="7" y1="1" x2="7" y2="2.5"/><line x1="7" y1="11.5" x2="7" y2="13"/><line x1="1" y1="7" x2="2.5" y2="7"/><line x1="11.5" y1="7" x2="13" y2="7"/><line x1="2.9" y1="2.9" x2="3.9" y2="3.9"/><line x1="10.1" y1="10.1" x2="11.1" y2="11.1"/><line x1="11.1" y1="2.9" x2="10.1" y2="3.9"/><line x1="3.9" y1="10.1" x2="2.9" y2="11.1"/></svg>
                   :<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M12 8.5A5.5 5.5 0 015.5 2a5.5 5.5 0 000 11A5.5 5.5 0 0012 8.5z"/></svg>
                 }
               </button>
-              <button onClick={handleLogout} aria-label="Sign out" title={t.signOut} style={{width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",touchAction:"manipulation"}}>
+              <button onClick={handleLogout} aria-label="Sign out" title={t.signOut} className="icon-btn-sidebar" style={{width:28,height:28,borderRadius:7,border:"1px solid var(--color-border)",background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",touchAction:"manipulation"}}>
                 <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="rgba(240,242,250,0.4)" strokeWidth="1.4" aria-hidden="true"><path d="M9 1H12a1 1 0 011 1v10a1 1 0 01-1 1H9"/><polyline points="6,10 9,7 6,4"/><line x1="9" y1="7" x2="1" y2="7"/></svg>
               </button>
             </div>
@@ -3179,6 +3179,7 @@ export default function App(){
             <div style={{display:"flex",gap:3}}>
               {LANG_OPTIONS.map(l=>(
                 <button key={l.code} onClick={()=>selectLang(l.code)} title={l.label}
+                  className={lang===l.code?"lang-btn-active":"lang-btn-inactive"}
                   style={{background:lang===l.code?"rgba(99,102,241,0.18)":"transparent",border:"none",borderRadius:5,padding:"3px 5px",fontSize:10,fontWeight:700,fontFamily:"'DM Mono',monospace",color:lang===l.code?"#a5b4fc":"rgba(240,242,250,0.22)",cursor:"pointer"}}>
                   {l.emoji}
                 </button>
@@ -3199,12 +3200,12 @@ export default function App(){
               <div className="main-topbar" style={{background:"var(--color-bg-surface)",borderBottom:"1px solid var(--color-border)",padding:"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,position:"sticky",top:0,zIndex:50}}>
                 <div>
                   <div style={{fontSize:17,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>{greeting}, {firstName}.</div>
-                  <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)",marginTop:3}}>{dateStr} · {activeCount} ACTIVE CLIENTS{company?.name?" · "+company.name.toUpperCase():""}</div>
+                  <div className="topbar-meta" style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"rgba(240,242,250,0.22)",marginTop:3}}>{dateStr} · {activeCount} ACTIVE CLIENTS{company?.name?" · "+company.name.toUpperCase():""}</div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <input id="cm-search" aria-label="Search clients" style={{height:34,width:160,padding:"0 12px",background:"rgba(255,255,255,0.04)",border:"1px solid var(--color-border)",borderRadius:8,fontSize:12,color:"var(--color-text-secondary)",fontFamily:"'DM Sans',sans-serif",outline:"none"}} placeholder={t.search||"Search…"} value={search} onChange={e=>{setSearch(e.target.value);if(view!=="clients"&&e.target.value){setView("clients");setSelected(null);}}} onFocus={()=>{if(view!=="clients"){setView("clients");setSelected(null);}}}/>
                   {can(currentUser.role,"add",perms)&&(
-                    <button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client"
+                    <button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" className="btn-new-client"
                       style={{height:34,padding:"0 16px",background:"linear-gradient(135deg,#4f6ef7,#6366f1)",color:"#fff",fontWeight:700,fontSize:12,borderRadius:9,boxShadow:"0 4px 16px rgba(99,102,241,0.3)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
                       + {t.newClient.replace("+ ","")}
                     </button>
