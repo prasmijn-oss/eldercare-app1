@@ -3621,8 +3621,8 @@ export default function App(){
                             <span title="Incidents last 30d">⚠️ {recentInc}</span>
                             {pct!==null&&(
                               <div style={{flex:1,display:"flex",alignItems:"center",gap:5}}>
-                                <div style={{flex:1,height:4,borderRadius:2,background:"rgba(255,255,255,0.06)",overflow:"hidden"}}>
-                                  <div style={{height:"100%",width:pct+"%",background:pct===100?"#34d399":"#6366f1",borderRadius:2,transition:"width 300ms"}}/>
+                                <div style={{flex:1,height:4,borderRadius:2,background:"rgba(128,128,128,0.12)",overflow:"hidden"}}>
+                                  <div style={{height:"100%",width:pct+"%",background:pct===100?"#34d399":"var(--color-accent)",borderRadius:2,transition:"width 300ms"}}/>
                                 </div>
                                 <span style={{fontSize:10}}>{pct}%</span>
                               </div>
