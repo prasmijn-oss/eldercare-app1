@@ -1589,9 +1589,9 @@ function CompanyView({company,onUpdate,currentUser,t}){
           {form.mission_statement&&<div style={{color:"var(--color-text-dim)",fontSize:13,marginTop:4,fontStyle:"italic"}}>"{form.mission_statement}"</div>}
         </div>
       </div>
-      <div style={{display:"flex",gap:2,marginBottom:24,borderBottom:"1px solid var(--color-border)"}}>
+      <div style={{display:"flex",gap:2,marginBottom:24,borderBottom:"1px solid var(--color-border)",overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
         {TABS.map(tab_=>(<button key={tab_.id} onClick={()=>setTab(tab_.id)}
-          style={{padding:"8px 16px",border:"none",borderBottom:tab===tab_.id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:tab===tab_.id?"#6366f1":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:13,cursor:"pointer",marginBottom:-1}}>
+          style={{padding:"8px 14px",border:"none",borderBottom:tab===tab_.id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:tab===tab_.id?"#6366f1":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:12,cursor:"pointer",marginBottom:-1,whiteSpace:"nowrap",flexShrink:0}}>
           {tab_.label}</button>))}
       </div>
       <form onSubmit={onSave}>
