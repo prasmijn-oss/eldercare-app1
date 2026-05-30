@@ -986,8 +986,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                             <div style={{fontSize:10,color:"var(--color-text-dim)",fontWeight:600}}>CLIENTS</div>
                             {st.archivedClients>0&&<div style={{fontSize:9,color:"var(--color-text-muted)",marginTop:2}}>{st.archivedClients} archived</div>}
                           </div>
-                          <div style={{textAlign:"center",background:"var(--color-bg-active)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
-                            <div style={{fontSize:22,fontWeight:700,color:"var(--color-accent)"}}>{st.users}</div>
+                          <div style={{textAlign:"center",background:"rgba(99,102,241,0.12)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
+                            <div style={{fontSize:22,fontWeight:700,color:"#6366f1"}}>{st.users}</div>
                             <div style={{fontSize:10,color:"var(--color-text-dim)",fontWeight:600}}>USERS</div>
                           </div>
                           <div style={{textAlign:"center",background:"rgba(71,85,105,0.2)",borderRadius:10,padding:"10px 16px",minWidth:80}}>
