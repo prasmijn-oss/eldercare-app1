@@ -3546,6 +3546,7 @@ export default function App(){
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                     {recentClients.map(rc=>{
                       const full=clients.find(c=>c.id===rc.id);
+                      if(full?.archived)return null;
                       return(
                         <button key={rc.id} onClick={()=>{if(!full)return;setSelected(full);setView("detail");trackRecent(full);}}
                           className="client-row" style={{display:"flex",alignItems:"center",gap:8,background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:10,padding:"7px 12px",cursor:full?"pointer":"not-allowed",maxWidth:180,opacity:full?1:0.5}}>
@@ -3569,6 +3570,7 @@ export default function App(){
                   </div>
                   {recentClients.length===0?<div style={{color:"var(--color-text-muted)",fontSize:12,padding:"12px 0"}}>No recently viewed clients</div>:recentClients.map(rc=>{
                     const full=clients.find(c=>c.id===rc.id);
+                    if(full?.archived)return null;
                     const fr=full?calcFallRisk(full):null;
                     const age=full?calcAge(full.date_of_birth):null;
                     const topDiag=full?(full.diagnoses||[]).find(d=>d.value&&d.value.trim()):null;
