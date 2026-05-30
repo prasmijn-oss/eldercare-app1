@@ -34,7 +34,7 @@ import {
 import { PasswordStrengthMeter, UserManagement } from "./components/UserManagement.jsx";
 import { TiltCard, FlipCard, Dashboard } from "./components/Dashboard.jsx";
 import { AuditTrail } from "./components/AuditTrail.jsx";
-import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, PRNLog, HandoverNotes, PreventiveCare } from "./components/ClinicalComponents.jsx";
+import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, PRNLog, HandoverNotes, PreventiveCare, ControlledSubLog } from "./components/ClinicalComponents.jsx";
 import { PermissionsContext } from "./lib/PermissionsContext.jsx";
 
 function buildNotifications(clients){
@@ -941,6 +941,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser,cfSchema}){
       <Sec icon="⚡" title="PRN — As-Needed Medication Log" accent="#f59e0b" defaultOpen={false}><PRNLog prnLog={d.prn_log||[]} medications={d.medications||[]} onChange={v=>s("prn_log",v)} currentUser={currentUser}/></Sec>
       <Sec icon="🏥" title="Hospitalisation Log" accent="#ef4444" defaultOpen={false}><HospLog items={d.hospitalizations||[]} onChange={v=>s("hospitalizations",v)}/></Sec>
       <Sec icon="🛡" title="Preventive Care — Vaccines & Screenings" accent="#10b981" defaultOpen={false}><PreventiveCare items={d.preventive_care||[]} onChange={v=>s("preventive_care",v)}/></Sec>
+      <Sec icon="🔐" title="Controlled Substance Log" accent="#7c3aed" defaultOpen={false}><ControlledSubLog items={d.controlled_sub_log||[]} medications={d.medications||[]} onChange={v=>s("controlled_sub_log",v)} currentUser={currentUser} logAudit={logAudit} clientName={d.name}/></Sec>
       <Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
       <Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
       <Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>
@@ -1046,7 +1047,7 @@ function EmergCard({client,onClose,t}){
   );
 }
 
-function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,currentUser,cfSchema}){
+function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,currentUser,cfSchema,logAudit}){
   const perms=useContext(PermissionsContext);
   const role=currentUser?.role||"user";
   const canEdit=can(role,"edit",perms);
@@ -1363,6 +1364,12 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>🛡 PREVENTIVE CARE — VACCINES & SCREENINGS</div>
             <PreventiveCare items={client.preventive_care||[]} onChange={onInlineUpdate?v=>onInlineUpdate("preventive_care",v):()=>{}}/>
+          </div>
+        )}
+        {(client.controlled_sub_log||[]).length>0&&(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+            <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:12}}>🔐 CONTROLLED SUBSTANCE LOG</div>
+            <ControlledSubLog items={client.controlled_sub_log||[]} medications={client.medications||[]} onChange={onInlineUpdate?v=>onInlineUpdate("controlled_sub_log",v):()=>{}} currentUser={currentUser} logAudit={logAudit} clientName={client.name}/>
           </div>
         )}
       {(()=>{const cfs=cfSchema?JSON.parse(cfSchema||"[]"):[];const vals=client.custom_fields||{};const filled=cfs.filter(f=>f.type==="checkbox"?vals[f.id]!==undefined:vals[f.id]);if(!cfs.length||!filled.length)return null;return(<div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}><div style={{fontWeight:700,color:"#6366f1",fontSize:13,marginBottom:12}}>🧩 ADDITIONAL INFORMATION</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px 16px"}}>{cfs.map(f=>{const v=vals[f.id];if(v===undefined||v==="")return null;return(<div key={f.id}><div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:700,letterSpacing:"0.5px",marginBottom:2}}>{f.label.toUpperCase()}</div><div style={{fontSize:13,color:"var(--color-text-secondary)"}}>{f.type==="checkbox"?(v?"Yes":"No"):String(v)}</div></div>);})}</div></div>);})()}
@@ -4225,7 +4232,7 @@ export default function App(){
             return(
               <>
                 {(()=>{const editors=(editPresence[fresh.id]||[]).filter(p=>p.userId!==currentUser.id);return editors.length>0&&(<div style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",borderRadius:9,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.25)",marginBottom:14}}><span style={{fontSize:15}}>✏️</span><span style={{fontSize:12,color:"#818cf8",fontWeight:600}}>{editors.map(p=>p.userName).join(", ")} {editors.length===1?"is":"are"} currently editing this record</span></div>);})()}
-                <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser} cfSchema={company?.custom_fields_schema}/>
+                <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser} cfSchema={company?.custom_fields_schema} logAudit={logAudit}/>
                 {deleteConfirm&&(
                   <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400}}>
                     <div style={{background:"var(--color-bg-card)",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid rgba(255,255,255,0.08)"}}>
