@@ -1591,7 +1591,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
       </div>
       <div style={{display:"flex",gap:2,marginBottom:24,borderBottom:"1px solid var(--color-border)",overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
         {TABS.map(tab_=>(<button key={tab_.id} onClick={()=>setTab(tab_.id)}
-          style={{padding:"8px 14px",border:"none",borderBottom:tab===tab_.id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:tab===tab_.id?"#6366f1":"rgba(240,242,250,0.3)",fontWeight:600,fontSize:12,cursor:"pointer",marginBottom:-1,whiteSpace:"nowrap",flexShrink:0}}>
+          style={{padding:"8px 14px",border:"none",borderBottom:tab===tab_.id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:tab===tab_.id?"#6366f1":"var(--color-text-dim)",fontWeight:600,fontSize:12,cursor:"pointer",marginBottom:-1,whiteSpace:"nowrap",flexShrink:0}}>
           {tab_.label}</button>))}
       </div>
       <form onSubmit={onSave}>
@@ -1753,13 +1753,13 @@ function CompanyView({company,onUpdate,currentUser,t}){
                       {/* Row 3: action buttons */}
                       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
                         <button type="button" disabled={subSaving===c.id} onClick={()=>updateSubscription(c.id,{subscription_status:"active"})}
-                          style={{padding:"6px 4px",borderRadius:6,border:"none",background:"rgba(16,185,129,0.15)",color:"#10b981",fontSize:11,fontWeight:700,cursor:"pointer"}}>Activate</button>
+                          style={{padding:"6px 4px",borderRadius:6,border:"1px solid #10b981",background:"transparent",color:"#10b981",fontSize:11,fontWeight:700,cursor:"pointer"}}>Activate</button>
                         <button type="button" disabled={subSaving===c.id} onClick={()=>setTrial(c.id,30)}
-                          style={{padding:"6px 4px",borderRadius:6,border:"none",background:"rgba(245,158,11,0.15)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Trial 30d</button>
+                          style={{padding:"6px 4px",borderRadius:6,border:"1px solid #f59e0b",background:"transparent",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Trial 30d</button>
                         <button type="button" disabled={subSaving===c.id} onClick={()=>setTrial(c.id,90)}
-                          style={{padding:"6px 4px",borderRadius:6,border:"none",background:"rgba(245,158,11,0.15)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Trial 90d</button>
+                          style={{padding:"6px 4px",borderRadius:6,border:"1px solid #f59e0b",background:"transparent",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Trial 90d</button>
                         <button type="button" disabled={subSaving===c.id} onClick={()=>updateSubscription(c.id,{subscription_status:"suspended"})}
-                          style={{padding:"6px 4px",borderRadius:6,border:"none",background:"rgba(107,114,128,0.15)",color:"#9ca3af",fontSize:11,fontWeight:700,cursor:"pointer"}}>Suspend</button>
+                          style={{padding:"6px 4px",borderRadius:6,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",fontSize:11,fontWeight:700,cursor:"pointer"}}>Suspend</button>
                       </div>
                     </div>
                   );
@@ -1770,7 +1770,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
         )}
         {tab!=="fields"&&tab!=="subscription"&&<div style={{marginTop:20}}>
           <button type="submit" disabled={saving||uploading}
-            style={{padding:"11px 28px",borderRadius:10,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:14}}>
+            style={{padding:"11px 28px",borderRadius:10,border:"none",background:saving?"var(--color-bg-hover)":"#10b981",color:saving?"var(--color-text-muted)":"#fff",fontWeight:700,fontSize:14}}>
             {saving?"Saving...":"Save Company Information"}
           </button>
         </div>}
