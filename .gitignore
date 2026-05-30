@@ -24,7 +24,7 @@ dist-ssr
 *.sw?
 
 # Claude / tooling artifacts
-.claude/
+.claude/settings.local.json
 .vercel/
 graph.json
 graphify-out/
