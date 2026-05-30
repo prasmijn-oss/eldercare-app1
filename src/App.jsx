@@ -3211,9 +3211,21 @@ export default function App(){
         </div>
       )}
       <div className="mob-hdr">
-        <button onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" style={{background:"rgba(128,128,128,0.12)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>☰</button>
-        <span style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>CareManager</span>
-        {can(currentUser.role,"add",perms)&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" className="btn-new-client" style={{background:"linear-gradient(135deg,var(--btn-primary-from),var(--btn-primary-to))",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
+        {(view==="detail"||view==="edit"||view==="add"||view==="profile")?(
+          <>
+            <button onClick={()=>{setView(view==="add"||view==="profile"?"dashboard":selected?"detail":"dashboard");if(view==="edit")setView("detail");}} aria-label="Go back" style={{background:"rgba(128,128,128,0.12)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>←</button>
+            <span style={{fontSize:14,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"55vw"}}>
+              {view==="add"?"New Client":view==="profile"?"My Profile":view==="edit"?(selected?.name||"Edit"):selected?.name||"Client"}
+            </span>
+            <div style={{width:34}}/>
+          </>
+        ):(
+          <>
+            <button onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" style={{background:"rgba(128,128,128,0.12)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>☰</button>
+            <span style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>CareManager</span>
+            {can(currentUser.role,"add",perms)&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" className="btn-new-client" style={{background:"linear-gradient(135deg,var(--btn-primary-from),var(--btn-primary-to))",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
+          </>
+        )}
       </div>
       <div className={"overlay"+(sidebarOpen?" show":"")} onClick={()=>setSidebarOpen(false)}/>
       <div style={{display:"flex",minHeight:"100vh"}}>
@@ -3611,7 +3623,7 @@ export default function App(){
                     ))}
                   </div>
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:18,alignItems:"start"}}>
+                <div className="readmission-grid" style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:18,alignItems:"start"}}>
                   <div>
                     <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
                       {FILTERS.map(f=>(

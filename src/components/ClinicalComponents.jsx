@@ -1891,7 +1891,7 @@ function PreventiveCare({items,onChange}){
               {PC_PRESETS.map(p=>(<span key={p.key} onClick={()=>addPreset(p)} style={{fontSize:11,padding:"3px 9px",borderRadius:20,cursor:addedKeys.has(p.key)?"default":"pointer",border:"1px solid "+(addedKeys.has(p.key)?"#10b98140":"var(--color-border)"),background:addedKeys.has(p.key)?"rgba(16,185,129,0.08)":"transparent",color:addedKeys.has(p.key)?"#10b981":"var(--color-text-secondary)",userSelect:"none"}}>{addedKeys.has(p.key)?"✓ ":""}{p.label}</span>))}
             </div>
             <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-dim)",marginBottom:6}}>CUSTOM ITEM</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 120px 150px",gap:8,marginBottom:8}}>
+            <div className="pc-add-form" style={{display:"grid",gridTemplateColumns:"1fr 120px 150px",gap:8,marginBottom:8}}>
               <input value={customForm.label} onChange={e=>setCustomForm(p=>({...p,label:e.target.value}))} placeholder="Item name" style={{...INP,marginBottom:0,fontSize:11}}/>
               <select value={customForm.category} onChange={e=>setCustomForm(p=>({...p,category:e.target.value}))} style={{...INP,marginBottom:0,fontSize:11,padding:"6px 8px"}}>
                 <option value="Vaccine">Vaccine</option><option value="Screening">Screening</option>
