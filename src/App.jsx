@@ -2683,6 +2683,7 @@ export default function App(){
   const [notifOpen,setNotifOpen]=useState(false);
   const [readNotifIds,setReadNotifIds]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem("cm-read-notifs")||"[]"));}catch{return new Set();}});
   const [showShortcuts,setShowShortcuts]=useState(false);
+  const [readmissionFilter,setReadmissionFilter]=useState("All");
   const [recentClients,setRecentClients]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-recent")||"[]");}catch{return [];}});
   const [emailPrefs,setEmailPrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-email-prefs")||"{}") ;}catch{return {};}});
   const [appMsg,setAppMsg]=useState(null); // {type:"success"|"error", text:string}
@@ -3472,7 +3473,8 @@ export default function App(){
             const LEVEL_ORDER={"Very High":0,"High":1,"Moderate":2,"Low":3};
             const activeClts=clients.filter(c=>c.status!=="Archived");
             const scored=activeClts.map(c=>({c,risk:calcReadmissionRisk(c)})).sort((a,b)=>b.risk.score-a.risk.score||(LEVEL_ORDER[a.risk.level.label]||3)-(LEVEL_ORDER[b.risk.level.label]||3));
-            const [rFilter,setRFilter]=useState("All");
+            const rFilter=readmissionFilter;
+            const setRFilter=setReadmissionFilter;
             const filtered=rFilter==="All"?scored:scored.filter(({risk})=>risk.level.label===rFilter);
             const vhCount=scored.filter(({risk})=>risk.level.label==="Very High").length;
             const hCount=scored.filter(({risk})=>risk.level.label==="High").length;
