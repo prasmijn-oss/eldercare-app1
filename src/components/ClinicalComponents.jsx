@@ -959,10 +959,102 @@ function ADLTracker({items,onChange}){
 // ─── Incident Reports ─────────────────────────────────────────────────────────
 const INCIDENT_TYPES=["Fall","Near Fall","Behavioral Event","Medical Emergency","Medication Error","Skin / Wound","Property Damage","Other"];
 const INCIDENT_SEV_COLORS={Minor:"#f59e0b",Moderate:"#ef4444",Severe:"#dc2626"};
+const RCA_CAUSES=["Environmental hazard","Equipment failure","Staff error","Communication breakdown","Policy/procedure gap","Patient behaviour","Inadequate supervision","Inadequate training","Staffing level","Unknown/other"];
+const CA_STATUSES=["Open","In Progress","Completed","Overdue"];
+const CA_STATUS_COLOR={Open:"#f59e0b","In Progress":"#6366f1",Completed:"#10b981",Overdue:"#ef4444"};
+
+function RCAPanel({incident,onChange}){
+  const rca=incident.rca||{immediate_cause:"",contributing_factors:[],root_cause:"",corrective_actions:[],status:"Open",opened_at:tod()};
+  const set=k=>v=>onChange({...incident,rca:{...rca,[k]:v}});
+  const [newCa,setNewCa]=useState({id:"",action:"",assigned_to:"",due_date:"",status:"Open",notes:""});
+  const [showCaForm,setShowCaForm]=useState(false);
+  const addCa=()=>{if(!newCa.action.trim())return;set("corrective_actions")([...rca.corrective_actions,{...newCa,id:uid()}]);setNewCa({id:"",action:"",assigned_to:"",due_date:"",status:"Open",notes:""});setShowCaForm(false);};
+  const updateCa=(id,key,val)=>set("corrective_actions")(rca.corrective_actions.map(c=>c.id===id?{...c,[key]:val}:c));
+  const removeCa=id=>set("corrective_actions")(rca.corrective_actions.filter(c=>c.id!==id));
+  const openCount=rca.corrective_actions.filter(c=>c.status!=="Completed").length;
+  return(
+    <div style={{background:"rgba(99,102,241,0.05)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:9,padding:14,marginTop:10}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <span style={{fontSize:12,fontWeight:700,color:"#6366f1",letterSpacing:"0.5px"}}>🔍 ROOT CAUSE ANALYSIS</span>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {openCount>0&&<span style={{fontSize:11,background:"rgba(239,68,68,0.15)",color:"#f87171",border:"1px solid rgba(239,68,68,0.25)",borderRadius:20,padding:"2px 8px",fontWeight:700}}>{openCount} open action{openCount!==1?"s":""}</span>}
+          <select value={rca.status} onChange={e=>set("status")(e.target.value)} style={{...INP,marginBottom:0,fontSize:11,padding:"3px 8px",color:CA_STATUS_COLOR[rca.status]||"#6366f1",borderColor:CA_STATUS_COLOR[rca.status]||"rgba(99,102,241,0.4)",background:"transparent",width:"auto"}}>
+            {["Open","Under Review","Closed"].map(s=><option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+        <div>
+          <label style={{...LBL,marginBottom:3}}>Immediate Cause</label>
+          <input value={rca.immediate_cause} onChange={e=>set("immediate_cause")(e.target.value)} placeholder="What directly caused the incident?" style={{...INP,marginBottom:0,fontSize:12}}/>
+        </div>
+        <div>
+          <label style={{...LBL,marginBottom:3}}>Contributing Factors</label>
+          <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:4}}>
+            {RCA_CAUSES.map(c=>{const sel=(rca.contributing_factors||[]).includes(c);return(<span key={c} onClick={()=>set("contributing_factors")(sel?(rca.contributing_factors||[]).filter(x=>x!==c):[...(rca.contributing_factors||[]),c])} style={{fontSize:10,padding:"2px 7px",borderRadius:20,cursor:"pointer",border:"1px solid "+(sel?"#6366f1":"var(--color-border)"),background:sel?"rgba(99,102,241,0.15)":"transparent",color:sel?"#a5b4fc":"var(--color-text-muted)",userSelect:"none"}}>{c}</span>);})}
+          </div>
+        </div>
+        <div style={{gridColumn:"1/-1"}}>
+          <label style={{...LBL,marginBottom:3}}>Root Cause (underlying system/process issue)</label>
+          <textarea value={rca.root_cause} onChange={e=>set("root_cause")(e.target.value)} placeholder="Describe the underlying root cause..." rows={3} style={{...INP,marginBottom:0,resize:"vertical",fontSize:12}}/>
+        </div>
+      </div>
+      <div style={{borderTop:"1px solid rgba(99,102,241,0.15)",paddingTop:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <span style={{fontSize:11,fontWeight:700,color:"var(--color-text-dim)",letterSpacing:"0.5px"}}>CORRECTIVE ACTIONS</span>
+          <button onClick={()=>setShowCaForm(s=>!s)} style={{...ABTN,borderStyle:"solid",borderColor:"#6366f1",color:"#6366f1",fontSize:11,padding:"3px 10px"}}>+ Add Action</button>
+        </div>
+        {showCaForm&&(
+          <div style={{background:"var(--color-bg-surface)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:8,padding:10,marginBottom:10}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+              <div style={{gridColumn:"1/-1"}}><label style={{...LBL,marginBottom:2}}>Action</label><input value={newCa.action} onChange={e=>setNewCa(p=>({...p,action:e.target.value}))} placeholder="What corrective action will be taken?" style={{...INP,marginBottom:0,fontSize:12}}/></div>
+              <div><label style={{...LBL,marginBottom:2}}>Assigned To</label><input value={newCa.assigned_to} onChange={e=>setNewCa(p=>({...p,assigned_to:e.target.value}))} placeholder="Staff member" style={{...INP,marginBottom:0,fontSize:12}}/></div>
+              <div><label style={{...LBL,marginBottom:2}}>Due Date</label><input type="date" value={newCa.due_date} onChange={e=>setNewCa(p=>({...p,due_date:e.target.value}))} style={{...INP,marginBottom:0,fontSize:12}}/></div>
+              <div style={{gridColumn:"1/-1"}}><label style={{...LBL,marginBottom:2}}>Notes</label><input value={newCa.notes} onChange={e=>setNewCa(p=>({...p,notes:e.target.value}))} placeholder="Additional notes..." style={{...INP,marginBottom:0,fontSize:12}}/></div>
+            </div>
+            <div style={{display:"flex",gap:6,justifyContent:"flex-end"}}>
+              <button onClick={()=>setShowCaForm(false)} style={{...ABTN,borderStyle:"solid",fontSize:11,padding:"4px 12px"}}>Cancel</button>
+              <button onClick={addCa} style={{padding:"5px 14px",borderRadius:7,border:"none",background:"#6366f1",color:"#fff",fontWeight:600,fontSize:11}}>Add</button>
+            </div>
+          </div>
+        )}
+        {rca.corrective_actions.length===0&&!showCaForm&&<div style={{fontSize:12,color:"var(--color-text-muted)",textAlign:"center",padding:"10px 0"}}>No corrective actions defined yet.</div>}
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {rca.corrective_actions.map(ca=>{
+            const sc=CA_STATUS_COLOR[ca.status]||"#6366f1";
+            const overdue=ca.due_date&&ca.status!=="Completed"&&ca.due_date<tod();
+            return(
+              <div key={ca.id} style={{background:"var(--color-bg-surface)",border:"1px solid var(--color-border)",borderRadius:8,padding:"9px 12px",borderLeft:"3px solid "+sc}}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:600,color:"var(--color-text-primary)",marginBottom:3}}>{ca.action}</div>
+                    <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                      {ca.assigned_to&&<span style={{fontSize:11,color:"var(--color-text-dim)"}}>👤 {ca.assigned_to}</span>}
+                      {ca.due_date&&<span style={{fontSize:11,color:overdue?"#f87171":"var(--color-text-dim)"}}>{overdue?"⚠ Overdue: ":"📅 "}{new Date(ca.due_date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>}
+                      {ca.notes&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>{ca.notes}</span>}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                    <select value={ca.status} onChange={e=>updateCa(ca.id,"status",e.target.value)} style={{fontSize:10,padding:"2px 6px",borderRadius:6,border:"1px solid "+sc,background:"transparent",color:sc,cursor:"pointer",fontWeight:700}}>
+                      {CA_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <button onClick={()=>removeCa(ca.id)} style={{background:"none",border:"none",color:"var(--color-text-muted)",fontSize:13,cursor:"pointer",padding:"0 2px"}}>×</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function IncidentReports({items,onChange,currentUser}){
   const [showForm,setShowForm]=useState(false);
   const [entry,setEntry]=useState(null);
-  const blank=()=>({id:uid(),date:tod(),time:"",type:"Fall",severity:"Minor",description:"",witnesses:"",action_taken:"",reported_by:currentUser?.displayName||"",follow_up_required:false,follow_up_date:""});
+  const [rcaOpen,setRcaOpen]=useState({});
+  const blank=()=>({id:uid(),date:tod(),time:"",type:"Fall",severity:"Minor",description:"",witnesses:"",action_taken:"",reported_by:currentUser?.displayName||"",follow_up_required:false,follow_up_date:"",rca:null});
   const openNew=()=>{setEntry(blank());setShowForm(true);};
   const openEdit=item=>{setEntry({...item});setShowForm(true);};
   const save=()=>{onChange([...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date.localeCompare(a.date)));setShowForm(false);setEntry(null);};
@@ -1021,9 +1113,11 @@ function IncidentReports({items,onChange,currentUser}){
                   </div>
                   <span style={{fontSize:11,color:"var(--color-text-dim)"}}>{new Date(item.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{item.time&&" at "+item.time}</span>
                 </div>
-                <div style={{display:"flex",gap:6,flexShrink:0}}>
-                  <button onClick={()=>openEdit(item)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#6366f1",fontSize:11}}>Edit</button>
-                  <button onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:"var(--color-text-muted)",fontSize:12}}>x</button>
+                <div style={{display:"flex",gap:6,flexShrink:0,alignItems:"center"}}>
+                  {item.rca&&<span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20,background:"rgba(99,102,241,0.12)",color:"#a5b4fc",border:"1px solid rgba(99,102,241,0.25)"}}>{item.rca.status||"RCA"}</span>}
+                  <button onClick={()=>setRcaOpen(p=>({...p,[item.id]:!p[item.id]}))} style={{background:"none",border:"1px solid rgba(99,102,241,0.3)",borderRadius:5,padding:"2px 8px",color:"#6366f1",fontSize:11}}>🔍 RCA</button>
+                  <button onClick={()=>openEdit(item)} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"var(--color-text-dim)",fontSize:11}}>Edit</button>
+                  <button onClick={()=>rm(item.id)} style={{background:"none",border:"none",color:"var(--color-text-muted)",fontSize:12}}>×</button>
                 </div>
               </div>
               {item.description&&<div style={{fontSize:13,color:"var(--color-text-secondary)",lineHeight:1.5,marginBottom:6}}>{item.description}</div>}
@@ -1031,7 +1125,9 @@ function IncidentReports({items,onChange,currentUser}){
                 {item.action_taken&&<span style={{fontSize:11,color:"var(--color-text-dim)"}}>✓ {item.action_taken}</span>}
                 {item.reported_by&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>By: {item.reported_by}</span>}
                 {item.follow_up_required&&<span style={{fontSize:11,fontWeight:700,color:"#8b5cf6"}}>📋 Follow-up{item.follow_up_date?" "+item.follow_up_date:""}</span>}
+                {item.rca?.corrective_actions?.length>0&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>{item.rca.corrective_actions.filter(c=>c.status==="Completed").length}/{item.rca.corrective_actions.length} actions done</span>}
               </div>
+              {rcaOpen[item.id]&&<RCAPanel incident={item} onChange={updated=>onChange([...items.filter(i=>i.id!==updated.id),updated].sort((a,b)=>b.date.localeCompare(a.date)))}/>}
             </div>
           );
         })}
