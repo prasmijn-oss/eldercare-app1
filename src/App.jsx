@@ -1981,7 +1981,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
           )}
 
           {/* Role cards */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <div className="perms-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
             {ROLES.map(role=>{
               const enabledCount=ACTIONS.filter(a=>getPermValue(role,a.key,isCompanyTab&&!!activeCompanyId)).length;
               const roleColor=ROLE_COLORS[role];

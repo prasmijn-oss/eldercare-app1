@@ -217,6 +217,7 @@ export const GCSS = [
   "  .notif-panel { width: 100vw !important; }",
   "  .three-col { grid-template-columns: 1fr !important; }",
   "  .four-col { grid-template-columns: 1fr 1fr !important; }",
+  "  .perms-grid { grid-template-columns: 1fr !important; }",
   "  .nav-item { min-height: 44px !important; }",
   "  .sidebar-footer { padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important; }",
   "  .filter-pill { min-height: 36px !important; padding-left: 14px !important; padding-right: 14px !important; display: inline-flex !important; align-items: center !important; }",
