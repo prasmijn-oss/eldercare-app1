@@ -64,7 +64,7 @@ function FlipCard({frontIcon,frontLabel,backValue,backSub,backGradient}){
   );
 }
 
-function Dashboard({clients,onSelect,t,currentUser}){
+function Dashboard({clients,onSelect,t,currentUser,company}){
   const total=clients.length;
   const totalMeds=clients.reduce((s,c)=>s+(c.medications||[]).filter(m=>m.name&&m.name.trim()).length,0);
   const totalAllergies=clients.reduce((s,c)=>s+(c.allergies||[]).filter(a=>a.value&&a.value.trim()).length,0);
@@ -117,6 +117,35 @@ function Dashboard({clients,onSelect,t,currentUser}){
         <TiltCard label={t.allergyAlerts} value={totalAllergies} color="#34d399" glowColor="#34d399"/>
         <TiltCard label={t.diagnosesLogged} value={totalDiag} color="#fbbf24" glowColor="#fbbf24"/>
       </div>
+      {/* ── Subscription card ── */}
+      {company&&(()=>{
+        const status=company.subscription_status||"active";
+        const plan=company.plan||"standard";
+        const exp=company.subscription_expires_at?new Date(company.subscription_expires_at):null;
+        const daysLeft=exp?Math.ceil((exp-new Date())/(1000*60*60*24)):null;
+        const expired=status==="expired"||status==="suspended"||(exp&&daysLeft<0);
+        const statusColors={active:"#10b981",trial:"#f59e0b",expired:"#ef4444",suspended:"#6b7280"};
+        const sc=statusColors[status]||"#10b981";
+        let countdownText,countdownColor;
+        if(daysLeft===null){countdownText="No expiry date set";countdownColor="var(--color-text-muted)";}
+        else if(daysLeft<0){countdownText="Expired "+Math.abs(daysLeft)+" day"+(Math.abs(daysLeft)!==1?"s":"")+" ago";countdownColor="#ef4444";}
+        else if(daysLeft===0){countdownText="Expires today";countdownColor="#ef4444";}
+        else if(daysLeft<=30){countdownText=daysLeft+" day"+(daysLeft!==1?"s":"")+" until renewal";countdownColor="#f59e0b";}
+        else{countdownText=daysLeft+" days until renewal";countdownColor="var(--color-text-dim)";}
+        return(
+          <div style={{display:"flex",alignItems:"center",gap:14,background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"10px 16px",marginBottom:14,flexWrap:"wrap"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,flex:"0 0 auto"}}>
+              <span style={{fontSize:18}}>💳</span>
+              <span style={{fontSize:10,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--color-text-muted)"}}>Subscription</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0,flexWrap:"wrap"}}>
+              <span style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)",textTransform:"capitalize"}}>{plan}</span>
+              <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40",textTransform:"capitalize",flexShrink:0}}>{status}</span>
+            </div>
+            <div style={{fontSize:11,fontWeight:600,color:countdownColor,flexShrink:0,fontFamily:"'DM Mono',monospace"}}>{countdownText}</div>
+          </div>
+        );
+      })()}
       {/* ── Status pills ── */}
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
         {Object.entries(sc).map(([s,c])=>{const cols={Active:"#34d399",Inactive:"#fbbf24",Discharged:"#818cf8"};const col=cols[s];return <span key={s} style={{fontSize:11,fontWeight:700,fontFamily:"'DM Mono',monospace",padding:"3px 12px",borderRadius:20,background:col+"18",color:col,border:"1px solid "+col+"30"}}>{s}: {c}</span>;})}
