@@ -849,6 +849,14 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
                 <option value="Discharged">{t.discharged}</option>
               </select>
             </div>
+            <div><label style={LBL}>Isolation Precautions</label>
+              <select style={{...INP,cursor:"pointer",color:{None:"var(--color-text-primary)",Contact:"#f59e0b",Droplet:"#06b6d4",Airborne:"#ef4444"}[d.isolation_type||"None"]}} value={d.isolation_type||"None"} onChange={e=>s("isolation_type",e.target.value)}>
+                <option value="None">None</option>
+                <option value="Contact">Contact</option>
+                <option value="Droplet">Droplet</option>
+                <option value="Airborne">Airborne</option>
+              </select>
+            </div>
           </div>
         </Sec>
       </div>
@@ -1066,6 +1074,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
                 </div>
               )}
               {client.date_of_birth&&<div style={{fontSize:14,color:"var(--color-text-secondary)",marginBottom:4}}>{new Date(client.date_of_birth+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}{age!==null&&" - Age "+age}{client.room_or_address&&" - "+client.room_or_address}</div>}
+              {client.isolation_type&&client.isolation_type!=="None"&&(()=>{const icols={Contact:{bg:"rgba(245,158,11,0.15)",border:"rgba(245,158,11,0.4)",color:"#f59e0b"},Droplet:{bg:"rgba(6,182,212,0.15)",border:"rgba(6,182,212,0.4)",color:"#06b6d4"},Airborne:{bg:"rgba(239,68,68,0.15)",border:"rgba(239,68,68,0.4)",color:"#ef4444"}};const ic=icols[client.isolation_type]||icols.Contact;return<span style={{display:"inline-block",fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:ic.bg,border:"1px solid "+ic.border,color:ic.color,marginBottom:6,letterSpacing:0.3}}>🚨 {client.isolation_type.toUpperCase()} PRECAUTIONS</span>;})()}
               <div style={{display:"flex",flexWrap:"wrap",gap:12}}>
                 {client.azv_number&&<span style={{fontSize:13,color:"var(--color-text-dim)"}}>ID: {client.azv_number}</span>}
                 {client.phone&&<span style={{fontSize:13,color:"var(--color-text-dim)"}}>Ph: {client.phone}</span>}
@@ -1628,6 +1637,7 @@ const ACTIONS=[
   {key:"company",    label:"Company Settings",    icon:"🏢", desc:"Edit company profile and settings"},
   {key:"users",      label:"User Management",     icon:"👥", desc:"Create, edit and deactivate staff accounts"},
   {key:"permissions",label:"Permissions Panel",   icon:"🔐", desc:"Edit what each role can do"},
+  {key:"rooms",      label:"Rooms Board",          icon:"🛏", desc:"View room assignments and isolation flags"},
 ];
 const ROLES=["superadmin","admin","power_user","nurse","care_assistant","user"];
 const ROLE_LABELS={superadmin:"Super Admin",admin:"Admin",power_user:"Power User",nurse:"Nurse",care_assistant:"Care Assistant",user:"User"};
@@ -3132,7 +3142,16 @@ export default function App(){
                   {medFlagCount>0&&<span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"rgba(245,158,11,0.15)",color:"#fbbf24",borderRadius:5,padding:"1px 6px",fontWeight:700,border:"1px solid rgba(245,158,11,0.2)"}}>{medFlagCount}</span>}
                 </button>
               );
-              return <>{dashBtn}{clientsBtn}{incBtn}{apptBtn}{medBtn}</>;
+              const roomsActive=view==="rooms";
+              const roomsBtn=can(currentUser.role,"rooms",perms)?(
+                <button onClick={()=>{setView("rooms");setSelected(null);setSidebarOpen(false);}}
+                  className={roomsActive?"nav-item nav-active":"nav-item"} style={NAV_STYLE(roomsActive)}>
+                  {roomsActive&&ACCENT_BAR}
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="1" y="5" width="13" height="9" rx="1.5"/><path d="M4 5V3.5a3.5 3.5 0 017 0V5"/><line x1="5" y1="9" x2="5" y2="11"/><line x1="10" y1="9" x2="10" y2="11"/></svg>
+                  <span style={{flex:1}}>Rooms</span>
+                </button>
+              ):null;
+              return <>{dashBtn}{clientsBtn}{incBtn}{apptBtn}{medBtn}{roomsBtn}</>;
             })()}
             {/* MANAGEMENT group */}
             <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"var(--color-text-muted)",padding:"0 8px",margin:"10px 0 4px"}}>Management</div>
@@ -3386,6 +3405,74 @@ export default function App(){
               <Dashboard clients={clients} onSelect={c=>{setSelected(c);setView("detail");trackRecent(c);}} t={t} currentUser={currentUser}/>
             </>
           )}
+          {!loading&&view==="rooms"&&can(currentUser.role,"rooms",perms)&&(()=>{
+            const ISOLATION_CFG={
+              None:     {bg:"transparent",border:"transparent",color:"var(--color-text-muted)",label:""},
+              Contact:  {bg:"rgba(245,158,11,0.12)",border:"rgba(245,158,11,0.35)",color:"#f59e0b",label:"CONTACT"},
+              Droplet:  {bg:"rgba(6,182,212,0.12)",border:"rgba(6,182,212,0.35)",color:"#06b6d4",label:"DROPLET"},
+              Airborne: {bg:"rgba(239,68,68,0.12)",border:"rgba(239,68,68,0.35)",color:"#ef4444",label:"AIRBORNE"},
+            };
+            const activeClients2=clients.filter(c=>c.status!=="Archived"&&c.status!=="Discharged"&&c.status!=="Inactive");
+            const byRoom=Object.entries(
+              activeClients2.reduce((acc,c)=>{const r=(c.room_or_address||"").trim()||"Unassigned";(acc[r]=acc[r]||[]).push(c);return acc;},{})
+            ).sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true}));
+            const totalIsolation=activeClients2.filter(c=>c.isolation_type&&c.isolation_type!=="None").length;
+            return(
+              <div style={{padding:"24px 20px",maxWidth:1100,margin:"0 auto"}}>
+                <div style={{marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+                  <div>
+                    <div style={{fontSize:20,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>🛏 Rooms Board</div>
+                    <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:3}}>{byRoom.length} room{byRoom.length!==1?"s":""} · {activeClients2.length} active client{activeClients2.length!==1?"s":""}{totalIsolation>0?" · "+totalIsolation+" on isolation precautions":""}</div>
+                  </div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    {[["Contact","#f59e0b"],["Droplet","#06b6d4"],["Airborne","#ef4444"]].map(([type,col])=>{
+                      const n=activeClients2.filter(c=>c.isolation_type===type).length;
+                      if(!n)return null;
+                      return<span key={type} style={{fontSize:11,fontWeight:700,padding:"4px 10px",borderRadius:20,background:col+"20",border:"1px solid "+col+"50",color:col}}>🚨 {type}: {n}</span>;
+                    })}
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
+                  {byRoom.map(([room,occupants])=>{
+                    const hasIso=occupants.some(c=>c.isolation_type&&c.isolation_type!=="None");
+                    const isoTypes=[...new Set(occupants.map(c=>c.isolation_type).filter(t=>t&&t!=="None"))];
+                    return(
+                      <div key={room} style={{background:"var(--color-bg-card)",border:"1px solid "+(hasIso?"rgba(239,68,68,0.3)":"var(--color-border)"),borderRadius:12,overflow:"hidden"}}>
+                        <div style={{padding:"10px 14px",borderBottom:"1px solid var(--color-border)",display:"flex",alignItems:"center",justifyContent:"space-between",background:hasIso?"rgba(239,68,68,0.05)":"var(--color-bg-surface)"}}>
+                          <span style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)",fontFamily:"'DM Mono',monospace"}}>🛏 {room}</span>
+                          <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end"}}>
+                            {isoTypes.map(t=>{const cfg=ISOLATION_CFG[t];return cfg?<span key={t} style={{fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:20,background:cfg.bg,border:"1px solid "+cfg.border,color:cfg.color,letterSpacing:0.4}}>{cfg.label}</span>:null;})}
+                            <span style={{fontSize:10,fontWeight:600,color:"var(--color-text-muted)",padding:"2px 7px",borderRadius:20,background:"var(--color-bg-hover)"}}>{occupants.length} client{occupants.length!==1?"s":""}</span>
+                          </div>
+                        </div>
+                        <div style={{padding:8,display:"flex",flexDirection:"column",gap:6}}>
+                          {occupants.map(c=>{
+                            const age=calcAge(c.date_of_birth);
+                            const fr=calcFallRisk(c);
+                            const frCol=fr.level==="High"?"#ef4444":fr.level==="Medium"?"#f59e0b":"#10b981";
+                            const iso=ISOLATION_CFG[c.isolation_type||"None"];
+                            const topDiag=(c.diagnoses||[]).find(d=>d.value);
+                            return(
+                              <div key={c.id} onClick={()=>{setSelected(c);setView("detail");trackRecent(c);}}
+                                style={{display:"flex",gap:10,alignItems:"center",padding:"8px 10px",borderRadius:8,cursor:"pointer",background:"var(--color-bg-hover)",border:"1px solid "+(c.isolation_type&&c.isolation_type!=="None"?iso.border:"transparent"),transition:"background 120ms ease"}}
+                                className="card-hover">
+                                <ClientPhoto url={c.photo_url} name={c.name} size={36}/>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:12,fontWeight:700,color:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
+                                  <div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:1}}>{age!==null?age+"y":""}{topDiag?(age!==null?" · ":"")+topDiag.value:""}</div>
+                                </div>
+                                <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20,background:frCol+"20",border:"1px solid "+frCol+"40",color:frCol,flexShrink:0}}>{fr.level} FR</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
           {!loading&&view==="incidents"&&(()=>{
             const SEVCOLS={Low:"#34d399",Moderate:"#f59e0b",High:"#ef4444",Critical:"#ef4444"};
             const allInc=clients.flatMap(c=>(c.incidents||[]).map(i=>({...i,clientName:c.name,client:c}))).sort((a,b)=>(b.date||"").localeCompare(a.date||""));

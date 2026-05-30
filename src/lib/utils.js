@@ -413,7 +413,7 @@ export async function loadPermissions(companyId) {
 export function toDb(d) {
   return {
     id: d.id, name: d.name, date_of_birth: d.date_of_birth || null,
-    phone: d.phone, room_or_address: d.room_or_address,
+    phone: d.phone, room_or_address: d.room_or_address, isolation_type: d.isolation_type || "None",
     emergency_contact: d.emergency_contact, emergency_phone: d.emergency_phone,
     azv_number: d.azv_number, dr_di_cas: d.dr_di_cas, dr_specialista: d.dr_specialista,
     photo_url: d.photo_url || null, status: d.status || "Active",
@@ -438,6 +438,7 @@ export function toDb(d) {
     nutrition_assessments:  JSON.stringify(d.nutrition_assessments || []),
     mar_log:                JSON.stringify(d.mar_log || []),
     prn_log:                JSON.stringify(d.prn_log || []),
+    isolation_type:         d.isolation_type || "None",
   };
 }
 
@@ -466,6 +467,7 @@ export function fromDb(row) {
     nutrition_assessments: p(row.nutrition_assessments, []),
     mar_log:               p(row.mar_log,               []),
     prn_log:               p(row.prn_log,               []),
+    isolation_type:        row.isolation_type || "None",
   };
 }
 
@@ -482,7 +484,7 @@ export function emptyClient() {
     family_contacts: [], appointments: [], incidents: [],
     adl_logs: [], pain_assessments: [], wound_assessments: [], braden_assessments: [],
     cognitive_assessments: [], continence_logs: [], nutrition_assessments: [],
-    mar_log: [], prn_log: [],
+    mar_log: [], prn_log: [], isolation_type: "None",
     intake_checklist: DEFAULT_INTAKE_ITEMS.map(i => ({
       id: uid(), key: i.key, label: i.label, done: false, completed_by: "", completed_at: "",
     })),
