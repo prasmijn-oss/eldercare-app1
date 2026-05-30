@@ -79,7 +79,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     const {data:ud}=activeCompanyId?await uq.eq("company_id",activeCompanyId):await uq;
     setUsers(ud||[]);
     const {data:cd}=await supabase.from("companies").select("*").order("name");
-    setCompanies((cd||[]).filter(c=>!c.archived_at));
+    setCompanies(cd||[]);
     // Load ALL users across all companies for existing user picker + stats
     const {data:au}=await supabase.from("user_roles").select("user_id,name,company_id,role,email").order("name");
     setAllUserRoles(au||[]);
@@ -556,7 +556,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   <div style={{gridColumn:"1/-1"}}>
                     <label style={LBL}>Companies * (select one or more)</label>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"rgba(255,255,255,0.03)",borderRadius:8,padding:12,border:"1px solid rgba(255,255,255,0.08)"}}>
-                      {companies.map(c=>(
+                      {companies.filter(c=>!c.archived_at).map(c=>(
                         <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"var(--color-text-primary)",cursor:"pointer"}}>
                           <input type="checkbox" checked={existingForm.company_ids.includes(c.id)} onChange={()=>onToggleCompany(c.id)} style={{accentColor:"var(--color-accent)",width:15,height:15}}/>
                           {c.name}
@@ -596,7 +596,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   <div style={{gridColumn:"1/-1"}}>
                     <label style={LBL}>Companies * (select one or more)</label>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"rgba(255,255,255,0.03)",borderRadius:8,padding:12,border:"1px solid rgba(255,255,255,0.08)"}}>
-                      {companies.map(c=>(
+                      {companies.filter(c=>!c.archived_at).map(c=>(
                         <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"var(--color-text-primary)",cursor:"pointer"}}>
                           <input type="checkbox" checked={userForm.company_ids.includes(c.id)} onChange={()=>onToggleUserCompany(c.id)} style={{accentColor:"var(--color-accent)",width:15,height:15}}/>
                           {c.name}
@@ -704,9 +704,9 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                 )}
                               </span>
                             ))}
-                            {companies.filter(c=>!allUserRoles.find(r=>r.user_id===u.user_id&&r.company_id===c.id)).length>0&&(
+                            {companies.filter(c=>!c.archived_at&&!allUserRoles.find(r=>r.user_id===u.user_id&&r.company_id===c.id)).length>0&&(
                               expandedUser===u.user_id
-                                ? companies.filter(c=>!allUserRoles.find(r=>r.user_id===u.user_id&&r.company_id===c.id)).map(c=>(
+                                ? companies.filter(c=>!c.archived_at&&!allUserRoles.find(r=>r.user_id===u.user_id&&r.company_id===c.id)).map(c=>(
                                     <span key={c.id} onClick={()=>addToCompany(u.user_id,c.id)}
                                       style={{display:"inline-flex",alignItems:"center",background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.35)",borderRadius:12,padding:"2px 8px",fontSize:11,color:"#10b981",cursor:"pointer",whiteSpace:"nowrap"}}>
                                       + {companyName(c.id)}
