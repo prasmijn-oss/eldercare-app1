@@ -2766,7 +2766,7 @@ export default function App(){
   const [showShortcuts,setShowShortcuts]=useState(false);
   const [readmissionFilter,setReadmissionFilter]=useState("All");
   const [apptFilter,setApptFilter]=useState("all");
-  const [recentClients,setRecentClients]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-recent")||"[]");}catch{return [];}});
+  const [recentClients,setRecentClients]=useState([]);
   const [emailPrefs,setEmailPrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-email-prefs")||"{}") ;}catch{return {};}});
   const [appMsg,setAppMsg]=useState(null); // {type:"success"|"error", text:string}
   const showAppMsg=(type,text)=>{setAppMsg({type,text});setTimeout(()=>setAppMsg(null),3200);};
@@ -2785,14 +2785,20 @@ export default function App(){
   const t=T[lang]||T["en"];
   const selectLang=code=>{localStorage.setItem("cm-lang",code);setLang(code);};
 
+  const recentKey=`cm-recent-${selectedCompany||currentUser?.company_id||"default"}`;
+
+  useEffect(()=>{
+    try{setRecentClients(JSON.parse(localStorage.getItem(recentKey)||"[]"));}catch{setRecentClients([]);}
+  },[recentKey]);
+
   const trackRecent=useCallback((c)=>{
     if(!c)return;
     setRecentClients(prev=>{
       const next=[{id:c.id,name:c.name,photo_url:c.photo_url||null},...prev.filter(x=>x.id!==c.id)].slice(0,5);
-      localStorage.setItem("cm-recent",JSON.stringify(next));
+      localStorage.setItem(recentKey,JSON.stringify(next));
       return next;
     });
-  },[]);
+  },[recentKey]);
 
   useEffect(()=>{
     document.documentElement.classList.toggle("cm-light",!darkMode);
@@ -3151,7 +3157,8 @@ export default function App(){
   const handleLogout=async()=>{
     await supabase.auth.signOut();
     // Clear all PHI and session data from localStorage on every logout
-    ["cm-recent","cm-read-notifs","cm-dash-note","cm-email-prefs"].forEach(k=>localStorage.removeItem(k));
+    ["cm-read-notifs","cm-dash-note","cm-email-prefs"].forEach(k=>localStorage.removeItem(k));
+    Object.keys(localStorage).filter(k=>k.startsWith("cm-recent-")).forEach(k=>localStorage.removeItem(k));
     setCurrentUser(null);
   };
 
