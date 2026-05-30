@@ -26,6 +26,7 @@ import {
   cognitiveLevel, calcCognitiveSummary,
   calcContinenceSummary,
   mustRisk, mustScore, calcNutritionSummary,
+  calcReadmissionRisk,
   scorePassword,
   can, loadPermissions,
   toDb, fromDb, emptyClient,
@@ -827,6 +828,65 @@ function AppointmentLog({items,onChange}){
 }
 
 
+function HospLog({items,onChange}){
+  const empty=()=>({id:uid(),date_admitted:"",date_discharged:"",reason:"",hospital:"",notes:""});
+  const [form,setForm]=useState(null);
+  const f=(k,v)=>setForm(p=>({...p,[k]:v}));
+  const save=()=>{if(!form.date_admitted)return;onChange([...items.filter(i=>i.id!==form.id),form].sort((a,b)=>b.date_admitted.localeCompare(a.date_admitted)));setForm(null);};
+  const rm=id=>onChange(items.filter(i=>i.id!==id));
+  const sorted=[...items].sort((a,b)=>b.date_admitted.localeCompare(a.date_admitted));
+  const fmtD=d=>d?new Date(d+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"present";
+  const nights=h=>{if(!h.date_discharged)return null;const ms=new Date(h.date_discharged+"T00:00:00")-new Date(h.date_admitted+"T00:00:00");return Math.max(0,Math.round(ms/86400000));};
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {form&&(
+        <div style={{background:"var(--color-bg-hover)",border:"1px solid rgba(99,102,241,0.3)",borderRadius:10,padding:14,display:"flex",flexDirection:"column",gap:10}}>
+          <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><label style={LBL}>Date Admitted *</label><input type="date" style={INP} value={form.date_admitted} onChange={e=>f("date_admitted",e.target.value)}/></div>
+            <div><label style={LBL}>Date Discharged</label><input type="date" style={INP} value={form.date_discharged} onChange={e=>f("date_discharged",e.target.value)}/></div>
+          </div>
+          <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><label style={LBL}>Reason / Diagnosis</label><input style={INP} placeholder="e.g. CHF exacerbation" value={form.reason} onChange={e=>f("reason",e.target.value)}/></div>
+            <div><label style={LBL}>Hospital</label><input style={INP} placeholder="Hospital name" value={form.hospital} onChange={e=>f("hospital",e.target.value)}/></div>
+          </div>
+          <div><label style={LBL}>Notes</label><input style={INP} placeholder="Any relevant notes" value={form.notes} onChange={e=>f("notes",e.target.value)}/></div>
+          <div style={{display:"flex",gap:8}}>
+            <button style={{...ABTN,flex:1}} onClick={save}>Save</button>
+            <button style={{...IBTN,padding:"6px 16px"}} onClick={()=>setForm(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {sorted.map((h,i)=>{
+        const prev=sorted[i+1];
+        const isReadmit=prev&&prev.date_discharged&&(()=>{const gap=(new Date(h.date_admitted+"T00:00:00")-new Date(prev.date_discharged+"T00:00:00"))/86400000;return gap>=0&&gap<=30;})();
+        const n=nights(h);
+        return(
+          <div key={h.id} style={{background:"var(--color-bg-hover)",border:"1px solid "+(isReadmit?"rgba(239,68,68,0.35)":"var(--color-border)"),borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+(h.date_discharged?"#10b981":"#f59e0b")}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:6}}>
+              <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                <span style={{fontWeight:700,fontSize:13,color:"var(--color-text-primary)"}}>{fmtD(h.date_admitted)} → {fmtD(h.date_discharged)}</span>
+                {n!==null&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>{n} night{n!==1?"s":""}</span>}
+                {!h.date_discharged&&<span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>Current</span>}
+                {isReadmit&&<span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:"rgba(239,68,68,0.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.3)"}}>⚠ Readmission</span>}
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>setForm({...h})} style={{background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:5,padding:"2px 8px",color:"#6366f1",fontSize:11}}>Edit</button>
+                <button onClick={()=>rm(h.id)} style={IBTN} aria-label="Remove">x</button>
+              </div>
+            </div>
+            {(h.reason||h.hospital)&&<div style={{display:"flex",gap:12,marginTop:4,flexWrap:"wrap"}}>
+              {h.reason&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>🏥 {h.reason}</span>}
+              {h.hospital&&<span style={{fontSize:12,color:"var(--color-text-dim)"}}>📍 {h.hospital}</span>}
+            </div>}
+            {h.notes&&<div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:4,fontStyle:"italic"}}>{h.notes}</div>}
+          </div>
+        );
+      })}
+      {!form&&<button style={ABTN} onClick={()=>setForm(empty())}>+ Log Admission</button>}
+    </div>
+  );
+}
+
 function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
   const [d,setD]=useState(()=>JSON.parse(JSON.stringify(client)));
   const s=(f,v)=>setD(prev=>({...prev,[f]:v}));
@@ -874,6 +934,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
       <Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
       <Sec icon="💊" title="MAR — Daily Medication Log" accent="#16a34a" defaultOpen={true}><MARTracker marLog={d.mar_log||[]} medications={d.medications||[]} onChange={v=>s("mar_log",v)} currentUser={currentUser}/></Sec>
       <Sec icon="⚡" title="PRN — As-Needed Medication Log" accent="#f59e0b" defaultOpen={false}><PRNLog prnLog={d.prn_log||[]} medications={d.medications||[]} onChange={v=>s("prn_log",v)} currentUser={currentUser}/></Sec>
+      <Sec icon="🏥" title="Hospitalisation Log" accent="#ef4444" defaultOpen={false}><HospLog items={d.hospitalizations||[]} onChange={v=>s("hospitalizations",v)}/></Sec>
       <Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
       <Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
       <Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>
@@ -1638,6 +1699,7 @@ const ACTIONS=[
   {key:"users",      label:"User Management",     icon:"👥", desc:"Create, edit and deactivate staff accounts"},
   {key:"permissions",label:"Permissions Panel",   icon:"🔐", desc:"Edit what each role can do"},
   {key:"rooms",      label:"Rooms Board",          icon:"🛏", desc:"View room assignments and isolation flags"},
+  {key:"readmission",label:"Readmission Risk",      icon:"🏥", desc:"View hospitalisation history and readmission risk dashboard"},
 ];
 const ROLES=["superadmin","admin","power_user","nurse","care_assistant","user"];
 const ROLE_LABELS={superadmin:"Super Admin",admin:"Admin",power_user:"Power User",nurse:"Nurse",care_assistant:"Care Assistant",user:"User"};
@@ -3172,6 +3234,7 @@ export default function App(){
               };
               return(<>
                 {navBtn("handover","Handovers",'<rect x="1" y="3" width="13" height="10" rx="1.5"/><line x1="4" y1="7" x2="11" y2="7"/><line x1="4" y1="10" x2="8" y2="10"/><circle cx="11" cy="10" r="2" fill="currentColor" stroke="none"/>')}
+                {navBtn("readmission","Readmission Risk",'<path d="M7.5 2a5.5 5.5 0 100 11A5.5 5.5 0 007.5 2z"/><line x1="7.5" y1="5" x2="7.5" y2="7.5"/><line x1="7.5" y1="7.5" x2="9.5" y2="9.5"/><path d="M12.5 12.5l2 2"/>',can(currentUser.role,"readmission",perms))}
                 {navBtn("reports","Reports",'<rect x="2" y="1" width="11" height="13" rx="1.5"/><line x1="4.5" y1="5" x2="10.5" y2="5"/><line x1="4.5" y1="8" x2="10.5" y2="8"/><line x1="4.5" y1="11" x2="8" y2="11"/>')}
                 {navBtn("users","Staff / Users",'<circle cx="6" cy="5" r="3"/><path d="M1 13c0-2.8 2.2-5 5-5"/><circle cx="11.5" cy="9" r="2.5"/><line x1="11.5" y1="11.5" x2="11.5" y2="14"/><line x1="10" y1="12.5" x2="13" y2="12.5"/>',can(currentUser.role,"users",perms))}
                 {navBtn("audit",t.auditTrail,'<circle cx="7.5" cy="7.5" r="6"/><polyline points="7.5,4.5 7.5,7.5 9.5,9.5"/>',can(currentUser.role,"audit",perms))}
@@ -3405,6 +3468,107 @@ export default function App(){
               <Dashboard clients={clients} onSelect={c=>{setSelected(c);setView("detail");trackRecent(c);}} t={t} currentUser={currentUser}/>
             </>
           )}
+          {!loading&&view==="readmission"&&can(currentUser.role,"readmission",perms)&&(()=>{
+            const LEVEL_ORDER={"Very High":0,"High":1,"Moderate":2,"Low":3};
+            const activeClts=clients.filter(c=>c.status!=="Archived");
+            const scored=activeClts.map(c=>({c,risk:calcReadmissionRisk(c)})).sort((a,b)=>b.risk.score-a.risk.score||(LEVEL_ORDER[a.risk.level.label]||3)-(LEVEL_ORDER[b.risk.level.label]||3));
+            const [rFilter,setRFilter]=useState("All");
+            const filtered=rFilter==="All"?scored:scored.filter(({risk})=>risk.level.label===rFilter);
+            const vhCount=scored.filter(({risk})=>risk.level.label==="Very High").length;
+            const hCount=scored.filter(({risk})=>risk.level.label==="High").length;
+            const cutoff30=new Date();cutoff30.setDate(cutoff30.getDate()-30);
+            const cut30s=cutoff30.toISOString().slice(0,10);
+            const recentAdmits=activeClts.flatMap(c=>(c.hospitalizations||[]).filter(h=>h.date_admitted>=cut30s).map(h=>({...h,clientName:c.name,client:c}))).sort((a,b)=>b.date_admitted.localeCompare(a.date_admitted));
+            const readmits=scored.filter(({risk})=>risk.isReadmission);
+            const fmtD=d=>d?new Date(d+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"present";
+            const FILTERS=["All","Very High","High","Moderate","Low"];
+            const FCOLS={"Very High":"#ef4444","High":"#f97316","Moderate":"#f59e0b","Low":"#10b981"};
+            return(
+              <div style={{padding:"24px 20px",maxWidth:1100,margin:"0 auto"}}>
+                <div style={{marginBottom:20}}>
+                  <div style={{fontSize:20,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",marginBottom:4}}>🏥 Readmission Risk Dashboard</div>
+                  <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:10}}>
+                    {[["Very High","#ef4444",vhCount],["High","#f97316",hCount],["Admissions (30d)","#6366f1",recentAdmits.length],["Readmissions","#f59e0b",readmits.length]].map(([lbl,col,n])=>(
+                      <div key={lbl} style={{background:"var(--color-bg-card)",border:"1px solid "+col+"40",borderRadius:10,padding:"12px 18px",minWidth:120,textAlign:"center"}}>
+                        <div style={{fontSize:26,fontWeight:800,color:col,fontFamily:"'DM Mono',monospace"}}>{n}</div>
+                        <div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:2}}>{lbl}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:18,alignItems:"start"}}>
+                  <div>
+                    <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
+                      {FILTERS.map(f=>(
+                        <button key={f} onClick={()=>setRFilter(f)} style={{padding:"5px 12px",borderRadius:20,border:"1.5px solid "+(rFilter===f?(FCOLS[f]||"var(--color-accent)")+"80":"rgba(255,255,255,0.08)"),background:rFilter===f?(FCOLS[f]||"var(--color-accent)")+"15":"transparent",color:rFilter===f?(FCOLS[f]||"var(--color-accent-light)"):"var(--color-text-secondary)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                          {f}{f!=="All"&&` (${scored.filter(({risk})=>risk.level.label===f).length})`}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                      {filtered.map(({c,risk})=>{
+                        const age=calcAge(c.date_of_birth);
+                        const maxScore=20;
+                        const pct=Math.min(100,Math.round(risk.score/maxScore*100));
+                        return(
+                          <div key={c.id} onClick={()=>{setSelected(c);setView("detail");trackRecent(c);}} style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",cursor:"pointer",display:"flex",gap:12,alignItems:"center"}} className="card-hover">
+                            <ClientPhoto url={c.photo_url} name={c.name} size={40}/>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+                                <span style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{c.name}</span>
+                                <span style={{fontSize:11,fontWeight:700,padding:"2px 9px",borderRadius:20,background:risk.level.bg,border:"1px solid "+risk.level.color+"50",color:risk.level.color}}>{risk.level.label}</span>
+                                {risk.isReadmission&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(239,68,68,0.1)",color:"#ef4444",border:"1px solid rgba(239,68,68,0.3)"}}>⚠ Readmission</span>}
+                              </div>
+                              <div style={{display:"flex",gap:4,marginBottom:6}}>
+                                <div style={{flex:1,height:5,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}>
+                                  <div style={{height:"100%",width:pct+"%",background:risk.level.color,borderRadius:3,transition:"width 300ms ease"}}/>
+                                </div>
+                                <span style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:risk.level.color,fontWeight:700,minWidth:30,textAlign:"right"}}>{risk.score}pt</span>
+                              </div>
+                              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                                {risk.factors.slice(0,4).map((f,i)=><span key={i} style={{fontSize:10,padding:"1px 7px",borderRadius:20,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",color:"var(--color-text-dim)"}}>{f}</span>)}
+                                {risk.factors.length>4&&<span style={{fontSize:10,color:"var(--color-text-muted)"}}>+{risk.factors.length-4} more</span>}
+                              </div>
+                            </div>
+                            {age!==null&&<span style={{fontSize:12,color:"var(--color-text-muted)",flexShrink:0}}>{age}y</span>}
+                          </div>
+                        );
+                      })}
+                      {filtered.length===0&&<div style={{textAlign:"center",padding:40,color:"var(--color-text-muted)",fontSize:13}}>No clients at {rFilter.toLowerCase()} risk.</div>}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                    <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,overflow:"hidden"}}>
+                      <div style={{padding:"12px 14px",borderBottom:"1px solid var(--color-border)",fontSize:12,fontWeight:700,color:"var(--color-text-primary)"}}>🏥 Recent Admissions <span style={{fontWeight:400,color:"var(--color-text-muted)"}}>(30 days)</span></div>
+                      <div style={{maxHeight:280,overflowY:"auto"}}>
+                        {recentAdmits.length===0?<div style={{padding:"16px 14px",fontSize:12,color:"var(--color-text-muted)"}}>No admissions in the last 30 days.</div>:recentAdmits.map((h,i)=>(
+                          <div key={h.id||i} onClick={()=>{setSelected(h.client);setView("detail");trackRecent(h.client);}} style={{padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",display:"flex",flexDirection:"column",gap:2}} className="client-row">
+                            <span style={{fontSize:12,fontWeight:600,color:"var(--color-text-primary)"}}>{h.clientName}</span>
+                            <span style={{fontSize:11,color:"var(--color-text-dim)"}}>{fmtD(h.date_admitted)}{h.date_discharged?" → "+fmtD(h.date_discharged):" (current)"}</span>
+                            {h.reason&&<span style={{fontSize:11,color:"var(--color-text-muted)",fontStyle:"italic"}}>{h.reason}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{background:"var(--color-bg-card)",border:"1px solid "+(readmits.length>0?"rgba(239,68,68,0.3)":"var(--color-border)"),borderRadius:12,overflow:"hidden"}}>
+                      <div style={{padding:"12px 14px",borderBottom:"1px solid var(--color-border)",fontSize:12,fontWeight:700,color:readmits.length>0?"#ef4444":"var(--color-text-primary)"}}>⚠ Readmissions <span style={{fontWeight:400,color:"var(--color-text-muted)"}}>(within 30d of discharge)</span></div>
+                      <div style={{maxHeight:240,overflowY:"auto"}}>
+                        {readmits.length===0?<div style={{padding:"16px 14px",fontSize:12,color:"var(--color-text-muted)"}}>No readmissions detected.</div>:readmits.map(({c})=>(
+                          <div key={c.id} onClick={()=>{setSelected(c);setView("detail");trackRecent(c);}} style={{padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",display:"flex",alignItems:"center",gap:10}} className="client-row">
+                            <ClientPhoto url={c.photo_url} name={c.name} size={32}/>
+                            <div>
+                              <div style={{fontSize:12,fontWeight:600,color:"var(--color-text-primary)"}}>{c.name}</div>
+                              <div style={{fontSize:11,color:"#ef4444",fontWeight:600}}>Readmitted within 30 days</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           {!loading&&view==="rooms"&&can(currentUser.role,"rooms",perms)&&(()=>{
             const ISOLATION_CFG={
               None:     {bg:"transparent",border:"transparent",color:"var(--color-text-muted)",label:""},

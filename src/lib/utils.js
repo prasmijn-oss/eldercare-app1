@@ -356,6 +356,120 @@ export function calcNutritionSummary(assessments) {
   return { latest, score, risk, trend, count: sorted.length };
 }
 
+// ── Readmission / hospitalisation risk ────────────────────────────────────
+const HOSP_RISK_DIAG = [
+  { kw: "heart failure", pts: 2 }, { kw: "cardiac failure", pts: 2 },
+  { kw: "copd", pts: 2 }, { kw: "chronic obstructive", pts: 2 },
+  { kw: "chronic kidney", pts: 2 }, { kw: "renal failure", pts: 2 },
+  { kw: "renal disease", pts: 2 },
+  { kw: "diabetes", pts: 1 }, { kw: "stroke", pts: 1 }, { kw: "cva", pts: 1 },
+  { kw: "pneumonia", pts: 1 }, { kw: "sepsis", pts: 2 },
+];
+
+export function calcReadmissionRisk(client) {
+  let score = 0;
+  const factors = [];
+
+  // Age
+  const age = calcAge(client.date_of_birth);
+  if (age !== null) {
+    if (age >= 85)      { score += 3; factors.push(`Age ${age} (≥85)`); }
+    else if (age >= 75) { score += 2; factors.push(`Age ${age} (≥75)`); }
+    else if (age >= 65) { score += 1; factors.push(`Age ${age} (≥65)`); }
+  }
+
+  // Polypharmacy
+  const medCount = (client.medications || []).filter(m => m.name && m.name.trim()).length;
+  if (medCount >= 10)     { score += 3; factors.push(`${medCount} meds (high polypharmacy)`); }
+  else if (medCount >= 5) { score += 2; factors.push(`${medCount} meds (polypharmacy)`); }
+
+  // Fall risk
+  const fr = calcFallRisk(client);
+  if (fr.level === "High")   { score += 2; factors.push("High fall risk"); }
+  else if (fr.level === "Medium") { score += 1; factors.push("Medium fall risk"); }
+
+  // Nutrition
+  const nutr = calcNutritionSummary(client.nutrition_assessments);
+  if (nutr) {
+    if (nutr.score >= 2)      { score += 2; factors.push(`MUST score ${nutr.score} (high risk)`); }
+    else if (nutr.score === 1) { score += 1; factors.push("MUST score 1 (medium risk)"); }
+  }
+
+  // ADL dependency
+  const adl = calcAdlSummary(client.adl_logs);
+  if (adl && adl.dep.label === "High") { score += 2; factors.push("High ADL dependency"); }
+
+  // Cognitive impairment
+  const cog = calcCognitiveSummary(client.cognitive_assessments);
+  if (cog) {
+    if (cog.level.label === "Severe Impairment")   { score += 2; factors.push("Severe cognitive impairment"); }
+    else if (cog.level.label === "Moderate Impairment") { score += 1; factors.push("Moderate cognitive impairment"); }
+  }
+
+  // Braden
+  const braden = calcBradenSummary(client.braden_assessments);
+  if (braden) {
+    if (braden.score <= 12)      { score += 2; factors.push(`Braden ${braden.score} (high pressure ulcer risk)`); }
+    else if (braden.score <= 14) { score += 1; factors.push(`Braden ${braden.score} (moderate pressure ulcer risk)`); }
+  }
+
+  // High-risk diagnoses (cap at +4)
+  const diagText = (client.diagnoses || []).map(d => (d.value || "").toLowerCase()).join(" ");
+  let diagPts = 0;
+  const hitDiags = [];
+  for (const { kw, pts } of HOSP_RISK_DIAG) {
+    if (diagText.includes(kw)) { diagPts += pts; hitDiags.push(kw.replace(/\b\w/g, c => c.toUpperCase())); }
+  }
+  if (diagPts > 0) { const capped = Math.min(diagPts, 4); score += capped; factors.push(...hitDiags.slice(0, 3)); }
+
+  // Recent hospitalisations & readmissions
+  const hosps = (client.hospitalizations || [])
+    .filter(h => h.date_admitted)
+    .sort((a, b) => b.date_admitted.localeCompare(a.date_admitted));
+  const today = tod();
+  const cutoff90 = new Date(); cutoff90.setDate(cutoff90.getDate() - 90);
+  const cutoff30 = new Date(); cutoff30.setDate(cutoff30.getDate() - 30);
+  const cutoff90s = cutoff90.toISOString().slice(0, 10);
+  const cutoff30s = cutoff30.toISOString().slice(0, 10);
+
+  const recentHosps = hosps.filter(h => h.date_admitted >= cutoff90s);
+  if (recentHosps.length > 0) { score += 3; factors.push(`Hospitalised in last 90 days`); }
+
+  // Readmission: admitted within 30d of a previous discharge
+  let isReadmission = false;
+  for (let i = 0; i < hosps.length - 1; i++) {
+    const prev = hosps[i + 1];
+    const curr = hosps[i];
+    if (!prev.date_discharged) continue;
+    const dischDate = new Date(prev.date_discharged + "T00:00:00");
+    const admDate   = new Date(curr.date_admitted  + "T00:00:00");
+    const gap = (admDate - dischDate) / 86400000;
+    if (gap >= 0 && gap <= 30) { isReadmission = true; break; }
+  }
+  if (isReadmission) { score += 4; factors.push("Prior readmission within 30 days"); }
+
+  // Recent incidents
+  const recentInc = (client.incidents || []).filter(i => i.date && i.date >= cutoff30s).length;
+  if (recentInc >= 2)     { score += 2; factors.push(`${recentInc} incidents in 30 days`); }
+  else if (recentInc === 1) { score += 1; factors.push("Recent incident"); }
+
+  // Missed appointments
+  const ma = getMissedAppointments(client.appointments);
+  if (ma.pattern) { score += 1; factors.push("Repeated missed appointments"); }
+
+  // Active wounds
+  const activeWounds = (client.wound_assessments || []).filter(w => w.status !== "Healed" && w.status !== "Closed");
+  if (activeWounds.length > 0) { score += 1; factors.push(`${activeWounds.length} active wound${activeWounds.length !== 1 ? "s" : ""}`); }
+
+  const level =
+    score >= 12 ? { label: "Very High", color: "#ef4444", bg: "rgba(239,68,68,0.12)" } :
+    score >= 8  ? { label: "High",      color: "#f97316", bg: "rgba(249,115,22,0.12)" } :
+    score >= 4  ? { label: "Moderate",  color: "#f59e0b", bg: "rgba(245,158,11,0.12)" } :
+                  { label: "Low",       color: "#10b981", bg: "rgba(16,185,129,0.12)" };
+
+  return { score, level, factors, recentHosps, isReadmission };
+}
+
 // ── Password scoring ───────────────────────────────────────────────────────
 export function scorePassword(pw) {
   if (!pw || pw.length < 6) return 0;
@@ -438,6 +552,7 @@ export function toDb(d) {
     nutrition_assessments:  JSON.stringify(d.nutrition_assessments || []),
     mar_log:                JSON.stringify(d.mar_log || []),
     prn_log:                JSON.stringify(d.prn_log || []),
+    hospitalizations:       JSON.stringify(d.hospitalizations || []),
     isolation_type:         d.isolation_type || "None",
   };
 }
@@ -467,6 +582,7 @@ export function fromDb(row) {
     nutrition_assessments: p(row.nutrition_assessments, []),
     mar_log:               p(row.mar_log,               []),
     prn_log:               p(row.prn_log,               []),
+    hospitalizations:      p(row.hospitalizations,      []),
     isolation_type:        row.isolation_type || "None",
   };
 }
@@ -484,7 +600,7 @@ export function emptyClient() {
     family_contacts: [], appointments: [], incidents: [],
     adl_logs: [], pain_assessments: [], wound_assessments: [], braden_assessments: [],
     cognitive_assessments: [], continence_logs: [], nutrition_assessments: [],
-    mar_log: [], prn_log: [], isolation_type: "None",
+    mar_log: [], prn_log: [], hospitalizations: [], isolation_type: "None",
     intake_checklist: DEFAULT_INTAKE_ITEMS.map(i => ({
       id: uid(), key: i.key, label: i.label, done: false, completed_by: "", completed_at: "",
     })),
