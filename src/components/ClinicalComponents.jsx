@@ -1764,4 +1764,149 @@ function HandoverNotes({supabase,companyId,currentUser,clients}){
   );
 }
 
-export { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, PRNLog, HandoverNotes };
+// ─── Preventive Care Compliance ───────────────────────────────────────────────
+const PC_PRESETS=[
+  {key:"flu_vaccine",label:"Influenza Vaccine",category:"Vaccine",intervalMonths:12},
+  {key:"pneumo_vaccine",label:"Pneumococcal Vaccine (PPSV23)",category:"Vaccine",intervalMonths:60},
+  {key:"pneumo_pcv",label:"Pneumococcal Vaccine (PCV15/20)",category:"Vaccine",intervalMonths:null},
+  {key:"shingles",label:"Shingles Vaccine (Shingrix)",category:"Vaccine",intervalMonths:null},
+  {key:"tdap",label:"Tdap / Tetanus Booster",category:"Vaccine",intervalMonths:120},
+  {key:"covid",label:"COVID-19 Booster",category:"Vaccine",intervalMonths:12},
+  {key:"bp_check",label:"Blood Pressure Check",category:"Screening",intervalMonths:6},
+  {key:"cholesterol",label:"Cholesterol / Lipid Panel",category:"Screening",intervalMonths:12},
+  {key:"diabetes_screen",label:"Blood Glucose / HbA1c",category:"Screening",intervalMonths:12},
+  {key:"eye_exam",label:"Eye Exam",category:"Screening",intervalMonths:12},
+  {key:"dental",label:"Dental Check-up",category:"Screening",intervalMonths:6},
+  {key:"hearing",label:"Hearing Test",category:"Screening",intervalMonths:12},
+  {key:"bone_density",label:"Bone Density (DEXA)",category:"Screening",intervalMonths:24},
+  {key:"mammogram",label:"Mammogram",category:"Screening",intervalMonths:24},
+  {key:"colonoscopy",label:"Colonoscopy / Colorectal Screen",category:"Screening",intervalMonths:120},
+  {key:"psa",label:"PSA / Prostate Screen",category:"Screening",intervalMonths:12},
+  {key:"skin_check",label:"Skin Cancer Check",category:"Screening",intervalMonths:12},
+  {key:"cognitive_review",label:"Cognitive Review",category:"Screening",intervalMonths:12},
+  {key:"fall_risk_review",label:"Fall Risk Assessment Review",category:"Screening",intervalMonths:6},
+];
+const PC_STATUS_COLOR={Scheduled:"#f59e0b",Completed:"#10b981",Overdue:"#ef4444",Declined:"#64748b","N/A":"#64748b"};
+
+function PreventiveCare({items,onChange}){
+  const [addOpen,setAddOpen]=useState(false);
+  const [customForm,setCustomForm]=useState({label:"",category:"Screening",due_date:"",notes:""});
+  const today=tod();
+
+  const addPreset=preset=>{
+    if(items.find(i=>i.key===preset.key))return;
+    onChange([...items,{id:uid(),key:preset.key,label:preset.label,category:preset.category,intervalMonths:preset.intervalMonths||null,due_date:"",completed_date:"",status:"Scheduled",notes:""}]);
+  };
+  const addCustom=()=>{
+    if(!customForm.label.trim())return;
+    onChange([...items,{id:uid(),key:"custom_"+uid(),label:customForm.label,category:customForm.category,intervalMonths:null,due_date:customForm.due_date,completed_date:"",status:"Scheduled",notes:customForm.notes}]);
+    setCustomForm({label:"",category:"Screening",due_date:"",notes:""});setAddOpen(false);
+  };
+  const update=(id,key,val)=>{
+    onChange(items.map(it=>{
+      if(it.id!==id)return it;
+      const updated={...it,[key]:val};
+      if(key==="status"&&val==="Completed"&&!updated.completed_date)updated.completed_date=today;
+      if(key==="completed_date"&&val&&updated.status!=="Completed")updated.status="Completed";
+      // auto-set next due from completed date + interval
+      if((key==="completed_date"||key==="status")&&updated.status==="Completed"&&updated.intervalMonths&&updated.completed_date){
+        const d=new Date(updated.completed_date+"T00:00:00");
+        d.setMonth(d.getMonth()+updated.intervalMonths);
+        updated.due_date=d.toISOString().slice(0,10);
+      }
+      // auto-flag overdue
+      if(updated.status==="Scheduled"&&updated.due_date&&updated.due_date<today)updated.status="Overdue";
+      return updated;
+    }));
+  };
+  const remove=id=>onChange(items.filter(i=>i.id!==id));
+
+  // auto-refresh overdue status
+  const displayed=items.map(it=>({...it,status:it.status==="Scheduled"&&it.due_date&&it.due_date<today?"Overdue":it.status}));
+
+  const grouped={Vaccine:displayed.filter(i=>i.category==="Vaccine"),Screening:displayed.filter(i=>i.category==="Screening")};
+  const done=displayed.filter(i=>i.status==="Completed").length;
+  const overdue=displayed.filter(i=>i.status==="Overdue").length;
+  const scheduled=displayed.filter(i=>i.status==="Scheduled").length;
+  const addedKeys=new Set(items.map(i=>i.key));
+
+  return(
+    <div>
+      {/* Summary bar */}
+      {items.length>0&&(
+        <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+          {[["✅","Completed",done,"#10b981"],["📅","Scheduled",scheduled,"#f59e0b"],["⚠️","Overdue",overdue,"#ef4444"]].map(([icon,label,count,color])=>(
+            <div key={label} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:8,background:count>0?`rgba(${color==="$10b981"?"16,185,129":color==="#ef4444"?"239,68,68":"245,158,11"},0.1)`:"transparent",border:`1px solid ${count>0?color+"40":"var(--color-border)"}` }}>
+              <span style={{fontSize:13}}>{icon}</span>
+              <span style={{fontSize:12,fontWeight:700,color:count>0?color:"var(--color-text-muted)"}}>{count} {label}</span>
+            </div>
+          ))}
+          <div style={{marginLeft:"auto",fontSize:11,color:"var(--color-text-dim)",alignSelf:"center"}}>{done}/{items.length} complete ({items.length>0?Math.round(done/items.length*100):0}%)</div>
+        </div>
+      )}
+
+      {/* Items by category */}
+      {["Vaccine","Screening"].map(cat=>{
+        const catItems=grouped[cat];
+        if(!catItems.length)return null;
+        return(
+          <div key={cat} style={{marginBottom:14}}>
+            <div style={{fontSize:10,fontWeight:700,color:"var(--color-text-muted)",letterSpacing:"0.7px",marginBottom:6,textTransform:"uppercase"}}>{cat==="Vaccine"?"💉 Vaccines":"🔬 Screenings"}</div>
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              {catItems.map(it=>{
+                const sc=PC_STATUS_COLOR[it.status]||"#64748b";
+                return(
+                  <div key={it.id} style={{display:"flex",gap:8,alignItems:"center",background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:8,padding:"8px 10px",borderLeft:"3px solid "+sc}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:600,color:"var(--color-text-primary)",marginBottom:2}}>{it.label}</div>
+                      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                        {it.due_date&&<span style={{fontSize:10,color:it.status==="Overdue"?"#f87171":"var(--color-text-dim)"}}>📅 Due: {new Date(it.due_date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>}
+                        {it.completed_date&&<span style={{fontSize:10,color:"#10b981"}}>✓ Done: {new Date(it.completed_date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>}
+                        {it.notes&&<span style={{fontSize:10,color:"var(--color-text-muted)",fontStyle:"italic"}}>{it.notes}</span>}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+                      <input type="date" value={it.due_date||""} onChange={e=>update(it.id,"due_date",e.target.value)} title="Due date" style={{fontSize:10,padding:"2px 4px",borderRadius:5,border:"1px solid var(--color-border)",background:"var(--color-bg-surface)",color:"var(--color-text-secondary)",width:110}}/>
+                      <input type="date" value={it.completed_date||""} onChange={e=>update(it.id,"completed_date",e.target.value)} title="Completed date" style={{fontSize:10,padding:"2px 4px",borderRadius:5,border:"1px solid var(--color-border)",background:"var(--color-bg-surface)",color:"var(--color-text-secondary)",width:110}}/>
+                      <select value={it.status} onChange={e=>update(it.id,"status",e.target.value)} style={{fontSize:10,padding:"2px 5px",borderRadius:5,border:"1px solid "+sc,background:"transparent",color:sc,fontWeight:700,cursor:"pointer"}}>
+                        {["Scheduled","Completed","Overdue","Declined","N/A"].map(s=><option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <button onClick={()=>remove(it.id)} style={{background:"none",border:"none",color:"var(--color-text-muted)",fontSize:13,cursor:"pointer",padding:"0 2px"}}>×</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Add items */}
+      <div style={{marginTop:10,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+        <button onClick={()=>setAddOpen(s=>!s)} style={{...ABTN,borderStyle:"solid",borderColor:"#10b981",color:"#10b981",fontSize:11,padding:"4px 12px"}}>+ Add Item</button>
+        {addOpen&&(
+          <div style={{width:"100%",background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:9,padding:12,marginTop:6}}>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-dim)",marginBottom:8}}>PRESETS — click to add</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:12}}>
+              {PC_PRESETS.map(p=>(<span key={p.key} onClick={()=>addPreset(p)} style={{fontSize:11,padding:"3px 9px",borderRadius:20,cursor:addedKeys.has(p.key)?"default":"pointer",border:"1px solid "+(addedKeys.has(p.key)?"#10b98140":"var(--color-border)"),background:addedKeys.has(p.key)?"rgba(16,185,129,0.08)":"transparent",color:addedKeys.has(p.key)?"#10b981":"var(--color-text-secondary)",userSelect:"none"}}>{addedKeys.has(p.key)?"✓ ":""}{p.label}</span>))}
+            </div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-dim)",marginBottom:6}}>CUSTOM ITEM</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 120px 150px",gap:8,marginBottom:8}}>
+              <input value={customForm.label} onChange={e=>setCustomForm(p=>({...p,label:e.target.value}))} placeholder="Item name" style={{...INP,marginBottom:0,fontSize:11}}/>
+              <select value={customForm.category} onChange={e=>setCustomForm(p=>({...p,category:e.target.value}))} style={{...INP,marginBottom:0,fontSize:11,padding:"6px 8px"}}>
+                <option value="Vaccine">Vaccine</option><option value="Screening">Screening</option>
+              </select>
+              <input type="date" value={customForm.due_date} onChange={e=>setCustomForm(p=>({...p,due_date:e.target.value}))} style={{...INP,marginBottom:0,fontSize:11}}/>
+            </div>
+            <div style={{display:"flex",gap:6,justifyContent:"flex-end"}}>
+              <button onClick={()=>setAddOpen(false)} style={{...ABTN,borderStyle:"solid",fontSize:11,padding:"4px 10px"}}>Cancel</button>
+              <button onClick={addCustom} style={{padding:"5px 14px",borderRadius:7,border:"none",background:"#10b981",color:"#fff",fontWeight:600,fontSize:11}}>Add Custom</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, PRNLog, HandoverNotes, PreventiveCare };

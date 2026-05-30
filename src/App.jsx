@@ -34,7 +34,7 @@ import {
 import { PasswordStrengthMeter, UserManagement } from "./components/UserManagement.jsx";
 import { TiltCard, FlipCard, Dashboard } from "./components/Dashboard.jsx";
 import { AuditTrail } from "./components/AuditTrail.jsx";
-import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, PRNLog, HandoverNotes } from "./components/ClinicalComponents.jsx";
+import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, PRNLog, HandoverNotes, PreventiveCare } from "./components/ClinicalComponents.jsx";
 import { PermissionsContext } from "./lib/PermissionsContext.jsx";
 
 function buildNotifications(clients){
@@ -96,6 +96,11 @@ function buildNotifications(clients){
       if(!inc.date)return;
       const days=Math.ceil((now-new Date(inc.date))/86400000);
       if(days<=7)notifs.push({id:`inc-${c.id}-${inc.id}`,type:"incident",urgency:inc.severity==="Severe"?"high":inc.severity==="Moderate"?"medium":"low",icon:"⚠️",title:`${inc.type||"Incident"} reported`,body:`${c.name} — ${inc.severity||""} ${days===0?"today":days===1?"yesterday":days+"d ago"}`,clientId:c.id,clientName:c.name});
+    });
+    const today=now.toISOString().slice(0,10);
+    (c.preventive_care||[]).forEach(pc=>{
+      if(!pc.due_date||pc.status==="Completed"||pc.status==="Declined"||pc.status==="N/A")return;
+      if(pc.due_date<today)notifs.push({id:`pc-${c.id}-${pc.id}`,type:"preventive",urgency:"medium",icon:"🛡",title:"Overdue preventive care",body:`${c.name} — ${pc.label} was due ${new Date(pc.due_date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`,clientId:c.id,clientName:c.name});
     });
   });
   const ord={high:0,medium:1,low:2};
@@ -935,6 +940,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser,cfSchema}){
       <Sec icon="💊" title="MAR — Daily Medication Log" accent="#16a34a" defaultOpen={true}><MARTracker marLog={d.mar_log||[]} medications={d.medications||[]} onChange={v=>s("mar_log",v)} currentUser={currentUser}/></Sec>
       <Sec icon="⚡" title="PRN — As-Needed Medication Log" accent="#f59e0b" defaultOpen={false}><PRNLog prnLog={d.prn_log||[]} medications={d.medications||[]} onChange={v=>s("prn_log",v)} currentUser={currentUser}/></Sec>
       <Sec icon="🏥" title="Hospitalisation Log" accent="#ef4444" defaultOpen={false}><HospLog items={d.hospitalizations||[]} onChange={v=>s("hospitalizations",v)}/></Sec>
+      <Sec icon="🛡" title="Preventive Care — Vaccines & Screenings" accent="#10b981" defaultOpen={false}><PreventiveCare items={d.preventive_care||[]} onChange={v=>s("preventive_care",v)}/></Sec>
       <Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
       <Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
       <Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>
@@ -1353,6 +1359,12 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>🥗 NUTRITIONAL RISK SCREENING — MUST</div>
           <NutritionScreening items={client.nutrition_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("nutrition_assessments",v):()=>{}}/>
         </div>
+        {(client.preventive_care||[]).length>0&&(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+            <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>🛡 PREVENTIVE CARE — VACCINES & SCREENINGS</div>
+            <PreventiveCare items={client.preventive_care||[]} onChange={onInlineUpdate?v=>onInlineUpdate("preventive_care",v):()=>{}}/>
+          </div>
+        )}
       {(()=>{const cfs=cfSchema?JSON.parse(cfSchema||"[]"):[];const vals=client.custom_fields||{};const filled=cfs.filter(f=>f.type==="checkbox"?vals[f.id]!==undefined:vals[f.id]);if(!cfs.length||!filled.length)return null;return(<div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}><div style={{fontWeight:700,color:"#6366f1",fontSize:13,marginBottom:12}}>🧩 ADDITIONAL INFORMATION</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px 16px"}}>{cfs.map(f=>{const v=vals[f.id];if(v===undefined||v==="")return null;return(<div key={f.id}><div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:700,letterSpacing:"0.5px",marginBottom:2}}>{f.label.toUpperCase()}</div><div style={{fontSize:13,color:"var(--color-text-secondary)"}}>{f.type==="checkbox"?(v?"Yes":"No"):String(v)}</div></div>);})}</div></div>);})()}
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
     </div>
