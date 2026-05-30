@@ -4138,8 +4138,10 @@ export default function App(){
                       </button>
                     )}
                     {/* Export buttons */}
-                    <button onClick={exportCSV} style={{height:36,padding:"0 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-dim)",fontSize:12,fontWeight:600,cursor:"pointer"}}>CSV</button>
-                    <button onClick={exportPDF} style={{height:36,padding:"0 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-dim)",fontSize:12,fontWeight:600,cursor:"pointer"}}>PDF</button>
+                    <div style={{display:"flex",gap:4}}>
+                      <button onClick={exportCSV} style={{height:36,padding:"0 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-dim)",fontSize:12,fontWeight:600,cursor:"pointer"}}>CSV</button>
+                      <button onClick={exportPDF} style={{height:36,padding:"0 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-dim)",fontSize:12,fontWeight:600,cursor:"pointer"}}>PDF</button>
+                    </div>
                   </div>
                 </div>
                 {/* ── Filter pills ── */}
@@ -4148,7 +4150,7 @@ export default function App(){
                     const act=clientFilter===p.key;
                     return(
                       <button key={p.key} onClick={()=>setClientFilter(p.key)} className="filter-pill"
-                        style={{padding:"5px 14px",borderRadius:20,border:act?"1px solid "+p.color+"60":"1px solid rgba(255,255,255,0.08)",background:act?p.color+"18":"rgba(255,255,255,0.03)",color:act?p.color:"rgba(240,242,250,0.4)",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all 120ms"}}>
+                        style={{padding:"5px 14px",borderRadius:20,border:act?"1px solid "+p.color+"60":"1px solid var(--color-border)",background:act?p.color+"18":"transparent",color:act?p.color:"var(--color-text-secondary)",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all 120ms"}}>
                         {p.label}
                       </button>
                     );
@@ -4161,7 +4163,7 @@ export default function App(){
                         const act=statusFilter===s;
                         return(
                           <button key={s} onClick={()=>setStatusFilter(s)} className="filter-pill"
-                            style={{padding:"4px 10px",borderRadius:20,border:act?"1px solid "+cols[s]+"60":"1px solid rgba(255,255,255,0.06)",background:act?cols[s]+"15":"transparent",color:act?cols[s]:"rgba(240,242,250,0.3)",fontSize:11,fontWeight:600,cursor:"pointer"}}>
+                            style={{padding:"4px 10px",borderRadius:20,border:act?"1px solid "+cols[s]+"60":"1px solid var(--color-border)",background:act?cols[s]+"15":"transparent",color:act?cols[s]:"var(--color-text-muted)",fontSize:11,fontWeight:600,cursor:"pointer"}}>
                             {s}
                           </button>
                         );
