@@ -3269,7 +3269,7 @@ export default function App(){
           )}
 
           {/* ── Nav ── */}
-          <div style={{padding:"8px 8px 4px",flex:"0 0 auto"}}>
+          <div style={{padding:"8px 8px 4px",flex:"1 1 0",overflowY:"auto"}}>
             {/* MAIN group */}
             <div className="nav-group-label" style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"1.4px",color:"var(--color-text-muted)",padding:"0 8px",margin:"8px 0 4px"}}>Main</div>
             {(()=>{
