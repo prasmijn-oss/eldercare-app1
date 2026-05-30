@@ -1123,31 +1123,32 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
         </div>
         <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,marginBottom:16}}>
           <div style={{display:"flex",alignItems:"center",gap:18,padding:20}}>
-            <div style={{width:72,height:72,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,fontWeight:800,color:"#fff",flexShrink:0,overflow:"hidden"}}>
+            <div style={{width:80,height:80,borderRadius:"50%",background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:800,color:"#fff",flexShrink:0,overflow:"hidden"}}>
               <ClientPhoto path={client.photo_url} alt={client.name} style={{width:"100%",height:"100%",objectFit:"cover"}} fallback={initials(client.name)}/>
             </div>
-            <div style={{flex:1}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:4}}>
-                <span style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px"}}>{client.name}</span>
-                <span style={{fontSize:12,fontWeight:700,padding:"3px 10px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40"}}>{client.status||t.active}</span>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:20,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.4px",marginBottom:6}}>{client.name}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:8}}>
+                <span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40"}}>{client.status||t.active}</span>
                 <button onClick={()=>setShowFallFactors(f=>!f)} title={fallRisk.factors.join(", ")||"No risk factors"}
                   style={{fontSize:11,fontWeight:800,padding:"3px 10px",borderRadius:20,background:fallRisk.color+"20",color:fallRisk.color,border:"1px solid "+fallRisk.color+"40",cursor:"pointer"}}>
                   🚶 Fall Risk: {fallRisk.level} ({fallRisk.score})
                 </button>
                 {(()=>{const ic=client.intake_checklist||[];const done=ic.filter(i=>i.done).length;const total=DEFAULT_INTAKE_ITEMS.length;const pct=total>0?Math.round(done/total*100):0;return<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:pct===100?"rgba(16,185,129,0.2)":"rgba(99,102,241,0.1)",color:pct===100?"#10b981":"#a5b4fc",border:"1px solid "+(pct===100?"rgba(16,185,129,0.3)":"rgba(99,102,241,0.2)")}}>✅ Intake {pct}%</span>;})()}
+                {client.isolation_type&&client.isolation_type!=="None"&&(()=>{const icols={Contact:{bg:"rgba(245,158,11,0.15)",border:"rgba(245,158,11,0.4)",color:"#f59e0b"},Droplet:{bg:"rgba(6,182,212,0.15)",border:"rgba(6,182,212,0.4)",color:"#06b6d4"},Airborne:{bg:"rgba(239,68,68,0.15)",border:"rgba(239,68,68,0.4)",color:"#ef4444"}};const ic=icols[client.isolation_type]||icols.Contact;return<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:ic.bg,border:"1px solid "+ic.border,color:ic.color,letterSpacing:0.3}}>🚨 {client.isolation_type.toUpperCase()} PRECAUTIONS</span>;})()}
               </div>
               {showFallFactors&&fallRisk.factors.length>0&&(
                 <div style={{background:fallRisk.color+"10",border:"1px solid "+fallRisk.color+"30",borderRadius:8,padding:"8px 12px",marginBottom:8,display:"flex",gap:6,flexWrap:"wrap"}}>
                   {fallRisk.factors.map((f,i)=><span key={i} style={{fontSize:11,padding:"2px 8px",borderRadius:20,background:fallRisk.color+"20",color:fallRisk.color,fontWeight:600}}>{f}</span>)}
                 </div>
               )}
-              {client.date_of_birth&&<div style={{fontSize:14,color:"var(--color-text-secondary)",marginBottom:4}}>{new Date(client.date_of_birth+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}{age!==null&&" - Age "+age}{client.room_or_address&&" - "+client.room_or_address}</div>}
-              {client.isolation_type&&client.isolation_type!=="None"&&(()=>{const icols={Contact:{bg:"rgba(245,158,11,0.15)",border:"rgba(245,158,11,0.4)",color:"#f59e0b"},Droplet:{bg:"rgba(6,182,212,0.15)",border:"rgba(6,182,212,0.4)",color:"#06b6d4"},Airborne:{bg:"rgba(239,68,68,0.15)",border:"rgba(239,68,68,0.4)",color:"#ef4444"}};const ic=icols[client.isolation_type]||icols.Contact;return<span style={{display:"inline-block",fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:ic.bg,border:"1px solid "+ic.border,color:ic.color,marginBottom:6,letterSpacing:0.3}}>🚨 {client.isolation_type.toUpperCase()} PRECAUTIONS</span>;})()}
-              <div style={{display:"flex",flexWrap:"wrap",gap:12}}>
-                {client.azv_number&&<span style={{fontSize:13,color:"var(--color-text-dim)"}}>ID: {client.azv_number}</span>}
-                {client.phone&&<span style={{fontSize:13,color:"var(--color-text-dim)"}}>Ph: {client.phone}</span>}
-                {client.emergency_contact&&<span style={{fontSize:13,color:"var(--color-text-dim)"}}>SOS: {client.emergency_contact}{client.emergency_phone&&" - "+client.emergency_phone}</span>}
-                {client.dr_di_cas&&<span style={{fontSize:13,color:"var(--color-text-dim)"}}>Dr: {client.dr_di_cas}{client.dr_specialista&&" - "+client.dr_specialista}</span>}
+              <div style={{display:"grid",gridTemplateColumns:"18px 1fr",rowGap:5,columnGap:8,marginTop:2}}>
+                {client.date_of_birth&&<><span style={{fontSize:13,paddingTop:1}}>🎂</span><span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{new Date(client.date_of_birth+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}{age!==null&&" · Age "+age}</span></>}
+                {client.room_or_address&&<><span style={{fontSize:13,paddingTop:1}}>📍</span><span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{client.room_or_address}</span></>}
+                {client.azv_number&&<><span style={{fontSize:13,paddingTop:1}}>🪪</span><span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{client.azv_number}</span></>}
+                {client.phone&&<><span style={{fontSize:13,paddingTop:1}}>📞</span><span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{client.phone}</span></>}
+                {client.emergency_contact&&<><span style={{fontSize:13,paddingTop:1}}>🆘</span><span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{client.emergency_contact}{client.emergency_phone&&" · "+client.emergency_phone}</span></>}
+                {client.dr_di_cas&&<><span style={{fontSize:13,paddingTop:1}}>🩺</span><span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{client.dr_di_cas}{client.dr_specialista&&" · "+client.dr_specialista}</span></>}
               </div>
             </div>
           </div>
