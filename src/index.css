@@ -1,111 +1,126 @@
+/* ============================================================
+   CareManager — Design Token System
+   Three-layer: Primitive → Semantic → Component
+   ============================================================ */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* === PRIMITIVE TOKENS === */
+  --primitive-indigo-600: #4f46e5;
+  --primitive-indigo-500: #6366f1;
+  --primitive-indigo-400: #818cf8;
+  --primitive-indigo-300: #a5b4fc;
+  --primitive-emerald-500: #10b981;
+  --primitive-emerald-400: #34d399;
+  --primitive-amber-500:   #f59e0b;
+  --primitive-amber-400:   #fbbf24;
+  --primitive-red-500:     #ef4444;
+  --primitive-red-400:     #f87171;
+  --primitive-sky-500:     #0ea5e9;
+  --primitive-sky-400:     #38bdf8;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* === SEMANTIC TOKENS — dark mode (default) === */
+  --color-bg-base:      #07091c;
+  --color-bg-surface:   #0c0f1f;
+  --color-bg-card:      #111427;
+  --color-bg-hover:     rgba(255,255,255,0.04);
+  --color-bg-active:    rgba(99,102,241,0.12);
+  --color-border:       rgba(255,255,255,0.07);
+  --color-border-strong:rgba(255,255,255,0.12);
+  --color-border-accent:rgba(99,102,241,0.3);
+  --color-text-primary: #f0f2fa;
+  --color-text-secondary:rgba(240,242,250,0.5);
+  --color-text-dim:     rgba(240,242,250,0.35);
+  --color-text-muted:   rgba(240,242,250,0.25);
+  --color-accent:       var(--primitive-indigo-500);
+  --color-accent-light: var(--primitive-indigo-300);
+  /* Primary button gradient */
+  --btn-primary-from:   #4f6ef7;
+  --btn-primary-to:     #6366f1;
+  --btn-primary-shadow: rgba(99,102,241,0.3);
+  --color-success:      var(--primitive-emerald-400);
+  --color-warning:      var(--primitive-amber-400);
+  --color-danger:       var(--primitive-red-400);
+  --color-info:         var(--primitive-sky-400);
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  /* === COMPONENT TOKENS === */
+  --comp-card-bg:       var(--color-bg-card);
+  --comp-card-border:   var(--color-border);
+  --comp-card-radius:   14px;
+  --comp-card-padding:  16px;
+  --comp-btn-radius:    9px;
+  --comp-btn-height:    34px;
+  --comp-badge-radius:  6px;
+  --comp-avatar-radius: 10px;
+  --comp-input-radius:  8px;
+  --comp-input-height:  36px;
+  --comp-nav-radius:    9px;
+  --comp-modal-radius:  16px;
+  --comp-sidebar-width: 224px;
+  --font-display:       'DM Sans', system-ui, sans-serif;
+  --font-data:          'DM Mono', monospace;
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-5: 20px; --space-6: 24px;
+  --transition-fast: 120ms ease;
+  --transition-base: 180ms ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+/* === SEMANTIC TOKENS — light mode override (white + green) === */
+html.cm-light {
+  filter: none !important;
+  /* Backgrounds */
+  --color-bg-base:        #f9fafb;
+  --color-bg-surface:     #ffffff;
+  --color-bg-card:        #ffffff;
+  --color-bg-hover:       rgba(22,163,74,0.06);
+  --color-bg-active:      #16a34a;    /* solid green — active nav bg */
+  /* Borders */
+  --color-border:         #e5e7eb;
+  --color-border-strong:  #d1d5db;
+  --color-border-accent:  #bbf7d0;
+  /* Text */
+  --color-text-primary:   #0a0a0a;
+  --color-text-secondary: #374151;
+  --color-text-dim:       #6b7280;
+  --color-text-muted:     #9ca3af;
+  /* Accent — green replaces indigo in light mode */
+  --color-accent:         #16a34a;
+  --color-accent-light:   #ffffff;  /* white — text on solid green active bg (5.1:1 contrast) */
+  /* Primary button gradient */
+  --btn-primary-from:     #16a34a;
+  --btn-primary-to:       #15803d;
+  --btn-primary-shadow:   rgba(22,163,74,0.3);
+  --color-success:        #16a34a;
 }
+html.cm-light img, html.cm-light video { filter: none !important; }
+
+/* === GLOBAL RESET === */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  margin: 0;
+  font-family: var(--font-display);
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 #root {
-  width: 1126px;
+  width: 100%;
   max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
   margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  text-align: left;
+  min-height: 100svh;
+  display: block;
+  box-sizing: border-box;
 }
