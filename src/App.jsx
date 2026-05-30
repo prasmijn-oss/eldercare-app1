@@ -3941,7 +3941,7 @@ export default function App(){
               const urgColor=a.daysOverdue>14?"#ef4444":a.daysOverdue>7?"#f59e0b":"#fbbf24";
               return(
                 <div key={a.id||i} onClick={()=>{setSelected(a.client);setView("detail");trackRecent(a.client);}}
-                  className="dash-row" style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:9,cursor:"pointer",border:"1px solid var(--color-border)",marginBottom:6,background:"var(--color-bg-card)",position:"relative"}}>
+                  className="dash-row missed-row" style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:9,cursor:"pointer",border:"1px solid var(--color-border)",marginBottom:6,background:"var(--color-bg-card)",position:"relative"}}>
                   {a.isPattern&&<div style={{position:"absolute",top:0,left:0,bottom:0,width:3,borderRadius:"9px 0 0 9px",background:"#ef4444"}}/>}
                   <div style={{width:36,height:36,borderRadius:10,background:isNoShow?"rgba(239,68,68,0.12)":"rgba(245,158,11,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,marginLeft:a.isPattern?4:0}}>
                     {isNoShow?"🚫":"⏰"}
@@ -3954,7 +3954,7 @@ export default function App(){
                     <div style={{fontSize:12,color:"var(--color-text-secondary)",marginTop:1}}>{a.type||"Appointment"}{a.transport?" · "+a.transport:""}</div>
                     {a.notes&&<div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.notes}</div>}
                   </div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                  <div className="missed-row-actions" style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
                     <div style={{textAlign:"right"}}>
                       <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:isNoShow?"#ef4444":urgColor,fontWeight:700}}>{isNoShow?"NO-SHOW":a.daysOverdue+"d overdue"}</div>
                       <div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:1}}>{a.date}</div>
@@ -3983,7 +3983,7 @@ export default function App(){
                   </div>
                 </div>
                 {/* Summary stats */}
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+                <div className="four-col" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
                   {[
                     {label:"Total Missed",val:allMissed.length,color:"var(--color-text-primary)",bg:"var(--color-bg-card)"},
                     {label:"No-Shows",val:noShows.length,color:"#ef4444",bg:"rgba(239,68,68,0.07)"},
@@ -3997,7 +3997,7 @@ export default function App(){
                   ))}
                 </div>
                 {/* Filter tabs */}
-                <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+                <div style={{display:"flex",gap:6,marginBottom:16,overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:2}}>
                   {[["all","All",allMissed.length],["no-show","No-Show",noShows.length],["overdue","Overdue",overdue.length],["pattern","Pattern",allMissed.filter(a=>a.isPattern).length]].map(([val,label,count])=>(
                     <button key={val} onClick={()=>setApptFilter(val)}
                       className="filter-pill"
