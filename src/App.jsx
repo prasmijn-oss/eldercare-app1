@@ -3611,7 +3611,7 @@ export default function App(){
                   })}
                 </div>
               </div>
-              <Dashboard clients={clients} onSelect={c=>{setSelected(c);setView("detail");trackRecent(c);}} t={t} currentUser={currentUser}/>
+              <Dashboard clients={clients.filter(c=>!c.archived)} onSelect={c=>{setSelected(c);setView("detail");trackRecent(c);}} t={t} currentUser={currentUser}/>
             </>
           )}
           {!loading&&view==="readmission"&&can(currentUser.role,"readmission",perms)&&(()=>{
