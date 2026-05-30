@@ -2765,6 +2765,7 @@ export default function App(){
   const [readNotifIds,setReadNotifIds]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem("cm-read-notifs")||"[]"));}catch{return new Set();}});
   const [showShortcuts,setShowShortcuts]=useState(false);
   const [readmissionFilter,setReadmissionFilter]=useState("All");
+  const [apptFilter,setApptFilter]=useState("all");
   const [recentClients,setRecentClients]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-recent")||"[]");}catch{return [];}});
   const [emailPrefs,setEmailPrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-email-prefs")||"{}") ;}catch{return {};}});
   const [appMsg,setAppMsg]=useState(null); // {type:"success"|"error", text:string}
@@ -3891,59 +3892,132 @@ export default function App(){
           })()}
           {!loading&&view==="appointments"&&(()=>{
             const today=tod();
-            const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
-            const cutoffStr=cutoff.toISOString().slice(0,10);
-            const allOverdue=clients.filter(c=>!c.archived).flatMap(c=>
-              (c.appointments||[])
+            const cutoff30=new Date();cutoff30.setDate(cutoff30.getDate()-30);
+            const cutoffStr=cutoff30.toISOString().slice(0,10);
+            const daysOverdue=dateStr=>{
+              if(!dateStr)return 0;
+              const d=Math.floor((new Date(today+"T00:00:00")-new Date(dateStr+"T00:00:00"))/(1000*60*60*24));
+              return d>0?d:0;
+            };
+            const allMissed=clients.filter(c=>!c.archived).flatMap(c=>{
+              const ma=getMissedAppointments(c.appointments);
+              return(c.appointments||[])
                 .filter(a=>a.date&&(a.status==="No-Show"||(a.status==="Scheduled"&&a.date<today)))
-                .map(a=>({...a,clientName:c.name,client:c}))
-            ).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
-            const recent30=allOverdue.filter(a=>a.date&&a.date>=cutoffStr);
-            const older=allOverdue.filter(a=>!a.date||a.date<cutoffStr);
-            const renderRow=(a,i)=>(
-              <div key={a.id||i} onClick={()=>{setSelected(a.client);setView("detail");trackRecent(a.client);}}
-                className="dash-row" style={{display:"flex",alignItems:"center",gap:14,padding:"11px 16px",borderRadius:9,cursor:"pointer",border:"1px solid var(--color-border)",marginBottom:6,background:"var(--color-bg-card)"}}>
-                <div style={{width:36,height:36,borderRadius:10,background:a.status==="No-Show"?"rgba(239,68,68,0.12)":"rgba(245,158,11,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>
-                  {a.status==="No-Show"?"🚫":"⏰"}
+                .map(a=>({...a,clientName:c.name,client:c,isPattern:ma.pattern,daysOverdue:daysOverdue(a.date)}));
+            }).sort((a,b)=>b.daysOverdue-a.daysOverdue);
+            const noShows=allMissed.filter(a=>a.status==="No-Show");
+            const overdue=allMissed.filter(a=>a.status==="Scheduled");
+            const patternClients=[...new Map(allMissed.filter(a=>a.isPattern).map(a=>[a.client.id,a.client])).values()];
+            const filtered=apptFilter==="no-show"?noShows:apptFilter==="overdue"?overdue:apptFilter==="pattern"?allMissed.filter(a=>a.isPattern):allMissed;
+
+            const markRescheduled=async(a,e)=>{
+              e.stopPropagation();
+              const updated=(a.client.appointments||[]).map(ap=>ap.id===a.id?{...ap,status:"Scheduled",date:"",notes:(ap.notes?ap.notes+" | ":"")+"Rescheduled from "+ap.date}:ap);
+              await supabase.from("clients").update({appointments:JSON.stringify(updated)}).eq("id",a.client.id);
+              setClients(prev=>prev.map(c=>c.id===a.client.id?{...c,appointments:updated}:c));
+            };
+            const markNoShow=async(a,e)=>{
+              e.stopPropagation();
+              const updated=(a.client.appointments||[]).map(ap=>ap.id===a.id?{...ap,status:"No-Show"}:ap);
+              await supabase.from("clients").update({appointments:JSON.stringify(updated)}).eq("id",a.client.id);
+              setClients(prev=>prev.map(c=>c.id===a.client.id?{...c,appointments:updated}:c));
+            };
+
+            const renderRow=(a,i)=>{
+              const isNoShow=a.status==="No-Show";
+              const urgColor=a.daysOverdue>14?"#ef4444":a.daysOverdue>7?"#f59e0b":"#fbbf24";
+              return(
+                <div key={a.id||i} onClick={()=>{setSelected(a.client);setView("detail");trackRecent(a.client);}}
+                  className="dash-row" style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:9,cursor:"pointer",border:"1px solid var(--color-border)",marginBottom:6,background:"var(--color-bg-card)",position:"relative"}}>
+                  {a.isPattern&&<div style={{position:"absolute",top:0,left:0,bottom:0,width:3,borderRadius:"9px 0 0 9px",background:"#ef4444"}}/>}
+                  <div style={{width:36,height:36,borderRadius:10,background:isNoShow?"rgba(239,68,68,0.12)":"rgba(245,158,11,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,marginLeft:a.isPattern?4:0}}>
+                    {isNoShow?"🚫":"⏰"}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{a.clientName}</span>
+                      {a.isPattern&&<span style={{fontSize:9,fontFamily:"'DM Mono',monospace",background:"rgba(239,68,68,0.15)",color:"#f87171",borderRadius:4,padding:"1px 5px",fontWeight:700,border:"1px solid rgba(239,68,68,0.2)"}}>PATTERN</span>}
+                    </div>
+                    <div style={{fontSize:12,color:"var(--color-text-secondary)",marginTop:1}}>{a.type||"Appointment"}{a.transport?" · "+a.transport:""}</div>
+                    {a.notes&&<div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.notes}</div>}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:11,fontFamily:"'DM Mono',monospace",color:isNoShow?"#ef4444":urgColor,fontWeight:700}}>{isNoShow?"NO-SHOW":a.daysOverdue+"d overdue"}</div>
+                      <div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:1}}>{a.date}</div>
+                    </div>
+                    {!isNoShow&&(
+                      <button onClick={(e)=>markNoShow(a,e)} title="Mark as No-Show"
+                        style={{fontSize:11,padding:"3px 8px",borderRadius:5,border:"1px solid rgba(239,68,68,0.25)",background:"rgba(239,68,68,0.08)",color:"#f87171",cursor:"pointer",whiteSpace:"nowrap",fontFamily:"'DM Mono',monospace"}}>
+                        No-Show
+                      </button>
+                    )}
+                    <button onClick={(e)=>markRescheduled(a,e)} title="Mark as rescheduled"
+                      style={{fontSize:11,padding:"3px 8px",borderRadius:5,border:"1px solid rgba(99,102,241,0.25)",background:"rgba(99,102,241,0.08)",color:"#a5b4fc",cursor:"pointer",whiteSpace:"nowrap",fontFamily:"'DM Mono',monospace"}}>
+                      Reschedule
+                    </button>
+                  </div>
                 </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{a.clientName}</div>
-                  <div style={{fontSize:12,color:"var(--color-text-secondary)",marginTop:1}}>{a.type||"Appointment"}{a.transport?" · Transport: "+a.transport:""}</div>
-                  {a.notes&&<div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.notes}</div>}
-                </div>
-                <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{fontSize:12,fontFamily:"'DM Mono',monospace",color:a.status==="No-Show"?"#ef4444":"#f59e0b",fontWeight:700}}>{a.status}</div>
-                  <div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:1}}>{a.date}</div>
-                </div>
-              </div>
-            );
+              );
+            };
+
             return(
               <div>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-                  <div style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px"}}>Missed Appointments</div>
-                  <div style={{fontSize:12,color:"var(--color-text-muted)",fontFamily:"'DM Mono',monospace"}}>{allOverdue.length} total</div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+                  <div>
+                    <div style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px"}}>Missed Appointment Tracker</div>
+                    <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:3}}>Overdue and no-show appointments across all active clients.</div>
+                  </div>
                 </div>
-                <div style={{fontSize:13,color:"var(--color-text-dim)",marginBottom:20}}>Overdue (Scheduled past due) and No-Show appointments across all active clients.</div>
-                {allOverdue.length===0?(
+                {/* Summary stats */}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+                  {[
+                    {label:"Total Missed",val:allMissed.length,color:"var(--color-text-primary)",bg:"var(--color-bg-card)"},
+                    {label:"No-Shows",val:noShows.length,color:"#ef4444",bg:"rgba(239,68,68,0.07)"},
+                    {label:"Overdue",val:overdue.length,color:"#f59e0b",bg:"rgba(245,158,11,0.07)"},
+                    {label:"Pattern Clients",val:patternClients.length,color:"#f87171",bg:"rgba(239,68,68,0.05)"},
+                  ].map(s=>(
+                    <div key={s.label} style={{background:s.bg,border:"1px solid var(--color-border)",borderRadius:10,padding:"14px 16px"}}>
+                      <div style={{fontSize:11,color:"var(--color-text-muted)",marginBottom:4,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"0.05em"}}>{s.label}</div>
+                      <div style={{fontSize:26,fontWeight:700,color:s.color,fontFamily:"'DM Mono',monospace",letterSpacing:"-0.03em"}}>{s.val}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Filter tabs */}
+                <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+                  {[["all","All",allMissed.length],["no-show","No-Show",noShows.length],["overdue","Overdue",overdue.length],["pattern","Pattern",allMissed.filter(a=>a.isPattern).length]].map(([val,label,count])=>(
+                    <button key={val} onClick={()=>setApptFilter(val)}
+                      className="filter-pill"
+                      style={{padding:"5px 12px",borderRadius:6,border:"1px solid",fontSize:12,fontWeight:500,cursor:"pointer",
+                        borderColor:apptFilter===val?"#6366f1":"var(--color-border)",
+                        background:apptFilter===val?"rgba(99,102,241,0.12)":"transparent",
+                        color:apptFilter===val?"#a5b4fc":"var(--color-text-secondary)"}}>
+                      {label} {count>0&&<span style={{fontFamily:"'DM Mono',monospace",fontSize:11,opacity:0.8}}>({count})</span>}
+                    </button>
+                  ))}
+                </div>
+                {filtered.length===0?(
                   <div style={{textAlign:"center",padding:"48px 20px",color:"var(--color-text-muted)"}}>
-                    <div style={{fontSize:40,marginBottom:10}}>✅</div>
+                    <div style={{fontSize:36,marginBottom:10}}>✅</div>
                     <div style={{fontSize:15,fontWeight:600}}>No missed appointments</div>
                     <div style={{fontSize:13,marginTop:4}}>All appointments are on track.</div>
                   </div>
                 ):(
                   <>
-                    {recent30.length>0&&(
-                      <>
-                        <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",textTransform:"uppercase",letterSpacing:"0.6px",marginBottom:8}}>Last 30 days ({recent30.length})</div>
-                        {recent30.map(renderRow)}
-                      </>
+                    {patternClients.length>0&&apptFilter==="all"&&(
+                      <div style={{background:"rgba(239,68,68,0.05)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:10,padding:"12px 14px",marginBottom:16}}>
+                        <div style={{fontSize:11,fontWeight:700,color:"#f87171",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8,fontFamily:"'DM Mono',monospace"}}>⚠ Repeated pattern detected</div>
+                        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                          {patternClients.map(c=>(
+                            <button key={c.id} onClick={()=>{setSelected(c);setView("detail");trackRecent(c);}}
+                              style={{fontSize:12,padding:"4px 10px",borderRadius:6,border:"1px solid rgba(239,68,68,0.2)",background:"rgba(239,68,68,0.08)",color:"#fca5a5",cursor:"pointer"}}>
+                              {c.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
-                    {older.length>0&&(
-                      <>
-                        <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",textTransform:"uppercase",letterSpacing:"0.6px",margin:"16px 0 8px"}}>Older ({older.length})</div>
-                        {older.map(renderRow)}
-                      </>
-                    )}
+                    {filtered.map(renderRow)}
                   </>
                 )}
               </div>
