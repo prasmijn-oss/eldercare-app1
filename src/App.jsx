@@ -1540,7 +1540,11 @@ function CompanyView({company,onUpdate,currentUser,t}){
     setSubSaving(companyId);
     const {error}=await supabase.from("companies").update(patch).eq("id",companyId);
     if(error)showToast("error","Save failed: "+error.message);
-    else{setAllCompanies(cs=>cs.map(c=>c.id===companyId?{...c,...patch}:c));showToast("success","Subscription updated");}
+    else{
+      setAllCompanies(cs=>cs.map(c=>c.id===companyId?{...c,...patch}:c));
+      if(companyId===company?.id)onUpdate({...company,...patch});
+      showToast("success","Subscription updated");
+    }
     setSubSaving(null);
   };
 
