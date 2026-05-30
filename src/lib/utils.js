@@ -8,7 +8,13 @@ import {
   ADL_ITEMS, ADL_LEVEL_SCORE,
   DEFAULT_PERMS, DEFAULT_INTAKE_ITEMS,
   PW_LEVELS,
+  PLAN_FEATURES,
 } from "./constants.js";
+
+export function planCan(plan, feature) {
+  const p = plan || "standard";
+  return (PLAN_FEATURES[p] || PLAN_FEATURES.standard).includes(feature);
+}
 
 // ── HTML-escape (used in report/PDF generators to prevent XSS) ────────────
 export const he = v =>

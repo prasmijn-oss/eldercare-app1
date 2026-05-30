@@ -1,5 +1,16 @@
 // ── Shared constants used across components ────────────────────────────────
 
+// ── Subscription plan feature gating ──────────────────────────────────────
+export const PLAN_FEATURES = {
+  standard:     ["dashboard","clients","appointments","users","company"],
+  professional: ["dashboard","clients","appointments","users","company",
+                 "medications_view","incidents_view","reports","audit",
+                 "handover","clinical"],
+  enterprise:   ["dashboard","clients","appointments","users","company",
+                 "medications_view","incidents_view","reports","audit",
+                 "handover","clinical","readmission","rooms","permissions","custom_fields"],
+};
+
 // ── Branding / palette ─────────────────────────────────────────────────────
 export const COLORS = ["#6366f1","#8b5cf6","#06b6d4","#10b981","#f59e0b","#ef4444","#ec4899","#14b8a6"];
 export const PLY    = 5; // polypharmacy threshold

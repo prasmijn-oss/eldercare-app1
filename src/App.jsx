@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, Fragment, createCont
 import { supabase, supabaseAdmin, SUPABASE_URL } from "./lib/supabase.js";
 import {
   COLORS, PLY, DIAGNOSES, MEDICATIONS, HIGH_RISK,
+  PLAN_FEATURES,
   FALL_RISK_DIAG, FALL_RISK_MEDS,
   BRADEN_SUBSCALES, BRADEN_MAX,
   MMSE_DOMAINS,
@@ -28,7 +29,7 @@ import {
   mustRisk, mustScore, calcNutritionSummary,
   calcReadmissionRisk,
   scorePassword,
-  can, loadPermissions,
+  can, planCan, loadPermissions,
   toDb, fromDb, emptyClient,
 } from "./lib/utils.js";
 import { PasswordStrengthMeter, UserManagement } from "./components/UserManagement.jsx";
@@ -1046,7 +1047,7 @@ function EmergCard({client,onClose,t}){
   );
 }
 
-function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,currentUser,cfSchema,logAudit}){
+function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,currentUser,cfSchema,logAudit,companyPlan}){
   const perms=useContext(PermissionsContext);
   const role=currentUser?.role||"user";
   const canEdit=can(role,"edit",perms);
@@ -1325,48 +1326,57 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
             <IntakeChecklist items={ic} onChange={onInlineUpdate?v=>onInlineUpdate("intake_checklist",v):()=>{}} currentUser={currentUser}/>
           </div>
         );})()}
-        {/* ADL Tracking */}
-        <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🧍 ADL TRACKING</div>
-          <ADLTracker items={client.adl_logs||[]} onChange={onInlineUpdate?v=>onInlineUpdate("adl_logs",v):()=>{}}/>
-        </div>
-        {/* Pain Assessment */}
-        <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:12}}>🩹 PAIN ASSESSMENT</div>
-          <PainAssessment items={client.pain_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("pain_assessments",v):()=>{}}/>
-        </div>
-        {/* Wound & Skin Assessment */}
-        <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🩺 WOUND & SKIN ASSESSMENT</div>
-          <WoundAssessment items={client.wound_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("wound_assessments",v):()=>{}}/>
-        </div>
-        {/* Braden Scale */}
-        <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>🛏 BRADEN SCALE — PRESSURE ULCER RISK</div>
-          <BradenScale items={client.braden_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("braden_assessments",v):()=>{}}/>
-        </div>
-        {/* Cognitive Screening */}
-        <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#a78bfa",fontSize:13,marginBottom:12}}>🧠 COGNITIVE SCREENING — MMSE / MoCA</div>
-          <CognitiveScreening items={client.cognitive_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("cognitive_assessments",v):()=>{}}/>
-        </div>
-        {/* Continence Monitoring */}
-        <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>💧 CONTINENCE MONITORING</div>
-          <ContinenceLog items={client.continence_logs||[]} onChange={onInlineUpdate?v=>onInlineUpdate("continence_logs",v):()=>{}}/>
-        </div>
-        {/* Nutritional Risk Screening */}
-        <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>🥗 NUTRITIONAL RISK SCREENING — MUST</div>
-          <NutritionScreening items={client.nutrition_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("nutrition_assessments",v):()=>{}}/>
-        </div>
-        {(client.preventive_care||[]).length>0&&(
-          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>🛡 PREVENTIVE CARE — VACCINES & SCREENINGS</div>
-            <PreventiveCare items={client.preventive_care||[]} onChange={onInlineUpdate?v=>onInlineUpdate("preventive_care",v):()=>{}}/>
+        {/* Clinical assessments — Professional+ plan */}
+        {planCan(companyPlan,"clinical")?(
+          <>
+            {/* ADL Tracking */}
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🧍 ADL TRACKING</div>
+              <ADLTracker items={client.adl_logs||[]} onChange={onInlineUpdate?v=>onInlineUpdate("adl_logs",v):()=>{}}/>
+            </div>
+            {/* Pain Assessment */}
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#f59e0b",fontSize:13,marginBottom:12}}>🩹 PAIN ASSESSMENT</div>
+              <PainAssessment items={client.pain_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("pain_assessments",v):()=>{}}/>
+            </div>
+            {/* Wound & Skin Assessment */}
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>🩺 WOUND & SKIN ASSESSMENT</div>
+              <WoundAssessment items={client.wound_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("wound_assessments",v):()=>{}}/>
+            </div>
+            {/* Braden Scale */}
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>🛏 BRADEN SCALE — PRESSURE ULCER RISK</div>
+              <BradenScale items={client.braden_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("braden_assessments",v):()=>{}}/>
+            </div>
+            {/* Cognitive Screening */}
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#a78bfa",fontSize:13,marginBottom:12}}>🧠 COGNITIVE SCREENING — MMSE / MoCA</div>
+              <CognitiveScreening items={client.cognitive_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("cognitive_assessments",v):()=>{}}/>
+            </div>
+            {/* Continence Monitoring */}
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>💧 CONTINENCE MONITORING</div>
+              <ContinenceLog items={client.continence_logs||[]} onChange={onInlineUpdate?v=>onInlineUpdate("continence_logs",v):()=>{}}/>
+            </div>
+            {/* Nutritional Risk Screening */}
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>🥗 NUTRITIONAL RISK SCREENING — MUST</div>
+              <NutritionScreening items={client.nutrition_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("nutrition_assessments",v):()=>{}}/>
+            </div>
+            {(client.preventive_care||[]).length>0&&(
+              <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+                <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>🛡 PREVENTIVE CARE — VACCINES & SCREENINGS</div>
+                <PreventiveCare items={client.preventive_care||[]} onChange={onInlineUpdate?v=>onInlineUpdate("preventive_care",v):()=>{}}/>
+              </div>
+            )}
+          </>
+        ):(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"28px 20px",marginBottom:12,textAlign:"center",color:"var(--color-text-muted)",fontSize:13}}>
+            🔒 Clinical assessments are available on the <strong style={{color:"var(--color-text-secondary)"}}>Professional</strong> plan.
           </div>
         )}
-      {(()=>{const cfs=cfSchema?JSON.parse(cfSchema||"[]"):[];const vals=client.custom_fields||{};const filled=cfs.filter(f=>f.type==="checkbox"?vals[f.id]!==undefined:vals[f.id]);if(!cfs.length||!filled.length)return null;return(<div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}><div style={{fontWeight:700,color:"#6366f1",fontSize:13,marginBottom:12}}>🧩 ADDITIONAL INFORMATION</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px 16px"}}>{cfs.map(f=>{const v=vals[f.id];if(v===undefined||v==="")return null;return(<div key={f.id}><div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:700,letterSpacing:"0.5px",marginBottom:2}}>{f.label.toUpperCase()}</div><div style={{fontSize:13,color:"var(--color-text-secondary)"}}>{f.type==="checkbox"?(v?"Yes":"No"):String(v)}</div></div>);})}</div></div>);})()}
+      {planCan(companyPlan,"custom_fields")&&(()=>{const cfs=cfSchema?JSON.parse(cfSchema||"[]"):[];const vals=client.custom_fields||{};const filled=cfs.filter(f=>f.type==="checkbox"?vals[f.id]!==undefined:vals[f.id]);if(!cfs.length||!filled.length)return null;return(<div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}><div style={{fontWeight:700,color:"#6366f1",fontSize:13,marginBottom:12}}>🧩 ADDITIONAL INFORMATION</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px 16px"}}>{cfs.map(f=>{const v=vals[f.id];if(v===undefined||v==="")return null;return(<div key={f.id}><div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:700,letterSpacing:"0.5px",marginBottom:2}}>{f.label.toUpperCase()}</div><div style={{fontSize:13,color:"var(--color-text-secondary)"}}>{f.type==="checkbox"?(v?"Yes":"No"):String(v)}</div></div>);})}</div></div>);})()}
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
     </div>
   );
@@ -3428,7 +3438,7 @@ export default function App(){
               );
               // Incidents nav
               const incActive=view==="incidents";
-              const incBtn=can(currentUser.role,"incidents_view",perms)?(
+              const incBtn=(can(currentUser.role,"incidents_view",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"incidents_view")))?(
                 <button onClick={()=>{setView("incidents");setSelected(null);setSidebarOpen(false);}}
                   className={incActive?"nav-item nav-active":"nav-item"} style={NAV_STYLE(incActive)}>
                   {incActive&&ACCENT_BAR}
@@ -3450,7 +3460,7 @@ export default function App(){
               );
               // Medications nav
               const medActive=view==="medications";
-              const medBtn=can(currentUser.role,"medications_view",perms)?(
+              const medBtn=(can(currentUser.role,"medications_view",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"medications_view")))?(
                 <button onClick={()=>{setView("medications");setSelected(null);setSidebarOpen(false);}}
                   className={medActive?"nav-item nav-active":"nav-item"} style={NAV_STYLE(medActive)}>
                   {medActive&&ACCENT_BAR}
@@ -3460,7 +3470,7 @@ export default function App(){
                 </button>
               ):null;
               const roomsActive=view==="rooms";
-              const roomsBtn=can(currentUser.role,"rooms",perms)?(
+              const roomsBtn=(can(currentUser.role,"rooms",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"rooms")))?(
                 <button onClick={()=>{setView("rooms");setSelected(null);setSidebarOpen(false);}}
                   className={roomsActive?"nav-item nav-active":"nav-item"} style={NAV_STYLE(roomsActive)}>
                   {roomsActive&&ACCENT_BAR}
@@ -3488,11 +3498,11 @@ export default function App(){
                 );
               };
               return(<>
-                {navBtn("handover","Handovers",'<rect x="1" y="3" width="13" height="10" rx="1.5"/><line x1="4" y1="7" x2="11" y2="7"/><line x1="4" y1="10" x2="8" y2="10"/><circle cx="11" cy="10" r="2" fill="currentColor" stroke="none"/>',can(currentUser.role,"handover",perms))}
-                {navBtn("readmission","Readmission Risk",'<path d="M7.5 2a5.5 5.5 0 100 11A5.5 5.5 0 007.5 2z"/><line x1="7.5" y1="5" x2="7.5" y2="7.5"/><line x1="7.5" y1="7.5" x2="9.5" y2="9.5"/><path d="M12.5 12.5l2 2"/>',can(currentUser.role,"readmission",perms))}
-                {navBtn("reports","Reports",'<rect x="2" y="1" width="11" height="13" rx="1.5"/><line x1="4.5" y1="5" x2="10.5" y2="5"/><line x1="4.5" y1="8" x2="10.5" y2="8"/><line x1="4.5" y1="11" x2="8" y2="11"/>',can(currentUser.role,"reports",perms))}
+                {navBtn("handover","Handovers",'<rect x="1" y="3" width="13" height="10" rx="1.5"/><line x1="4" y1="7" x2="11" y2="7"/><line x1="4" y1="10" x2="8" y2="10"/><circle cx="11" cy="10" r="2" fill="currentColor" stroke="none"/>',can(currentUser.role,"handover",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"handover")))}
+                {navBtn("readmission","Readmission Risk",'<path d="M7.5 2a5.5 5.5 0 100 11A5.5 5.5 0 007.5 2z"/><line x1="7.5" y1="5" x2="7.5" y2="7.5"/><line x1="7.5" y1="7.5" x2="9.5" y2="9.5"/><path d="M12.5 12.5l2 2"/>',can(currentUser.role,"readmission",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"readmission")))}
+                {navBtn("reports","Reports",'<rect x="2" y="1" width="11" height="13" rx="1.5"/><line x1="4.5" y1="5" x2="10.5" y2="5"/><line x1="4.5" y1="8" x2="10.5" y2="8"/><line x1="4.5" y1="11" x2="8" y2="11"/>',can(currentUser.role,"reports",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"reports")))}
                 {navBtn("users","Staff / Users",'<circle cx="6" cy="5" r="3"/><path d="M1 13c0-2.8 2.2-5 5-5"/><circle cx="11.5" cy="9" r="2.5"/><line x1="11.5" y1="11.5" x2="11.5" y2="14"/><line x1="10" y1="12.5" x2="13" y2="12.5"/>',can(currentUser.role,"users",perms))}
-                {navBtn("audit",t.auditTrail,'<circle cx="7.5" cy="7.5" r="6"/><polyline points="7.5,4.5 7.5,7.5 9.5,9.5"/>',can(currentUser.role,"audit",perms))}
+                {navBtn("audit",t.auditTrail,'<circle cx="7.5" cy="7.5" r="6"/><polyline points="7.5,4.5 7.5,7.5 9.5,9.5"/>',can(currentUser.role,"audit",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"audit")))}
               </>);
             })()}
             {/* ADMIN group — only if at least one admin view accessible */}
@@ -3510,7 +3520,7 @@ export default function App(){
                       Company
                     </button>
                   )}
-                  {can(currentUser.role,"permissions",perms)&&(
+                  {can(currentUser.role,"permissions",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"permissions"))&&(
                     <button onClick={()=>{setView("permissions");setSelected(null);setSidebarOpen(false);}}
                       className={view==="permissions"?"nav-item nav-active":"nav-item"} style={NAV_STYLE(view==="permissions")}>
                       {view==="permissions"&&ACCENT_BAR}
@@ -3614,9 +3624,9 @@ export default function App(){
             {error}
           </div>}
           {loading&&view==="dashboard"&&<div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"60px 0",fontFamily:"'DM Mono',monospace",fontSize:13}}>Loading...</div>}
-          {!loading&&view==="handover"&&can(currentUser.role,"handover",perms)&&<HandoverNotes supabase={supabase} companyId={activeCompanyId} currentUser={currentUser} clients={clients}/>}
-          {!loading&&view==="audit"&&can(currentUser.role,"audit",perms)&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
-          {!loading&&view==="reports"&&can(currentUser.role,"reports",perms)&&<ReportsView clients={clients} company={company} currentUser={currentUser} t={t} logAudit={logAudit}/>}
+          {!loading&&view==="handover"&&can(currentUser.role,"handover",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"handover"))&&<HandoverNotes supabase={supabase} companyId={activeCompanyId} currentUser={currentUser} clients={clients}/>}
+          {!loading&&view==="audit"&&can(currentUser.role,"audit",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"audit"))&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
+          {!loading&&view==="reports"&&can(currentUser.role,"reports",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"reports"))&&<ReportsView clients={clients} company={company} currentUser={currentUser} t={t} logAudit={logAudit}/>}
           {!loading&&view==="company"&&can(currentUser.role,"company",perms)&&(
             <CompanyView company={company} onUpdate={updated=>{setCompany(updated);}} currentUser={currentUser} t={t}/>
           )}
@@ -3631,7 +3641,7 @@ export default function App(){
           {!loading&&view==="users"&&can(currentUser.role,"users",perms)&&(
             <UserManagement currentUser={currentUser} onRoleChange={refreshCurrentUser} activeCompanyId={activeCompanyId} t={t} logAudit={logAudit}/>
           )}
-          {!loading&&view==="permissions"&&can(currentUser.role,"permissions",perms)&&(
+          {!loading&&view==="permissions"&&can(currentUser.role,"permissions",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"permissions"))&&(
             <PermissionsPanel activeCompanyId={activeCompanyId} currentUser={currentUser} t={t}/>
           )}
           {!loading&&view!=="audit"&&searchMode==="notes"&&search.trim().length>1?(
@@ -3740,7 +3750,7 @@ export default function App(){
               <Dashboard clients={clients.filter(c=>!c.archived)} onSelect={c=>{setSelected(c);setView("detail");trackRecent(c);}} t={t} currentUser={currentUser} company={company}/>
             </>
           )}
-          {!loading&&view==="readmission"&&can(currentUser.role,"readmission",perms)&&(()=>{
+          {!loading&&view==="readmission"&&can(currentUser.role,"readmission",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"readmission"))&&(()=>{
             const LEVEL_ORDER={"Very High":0,"High":1,"Moderate":2,"Low":3};
             const activeClts=clients.filter(c=>c.status!=="Archived");
             const scored=activeClts.map(c=>({c,risk:calcReadmissionRisk(c)})).sort((a,b)=>b.risk.score-a.risk.score||(LEVEL_ORDER[a.risk.level.label]||3)-(LEVEL_ORDER[b.risk.level.label]||3));
@@ -3842,7 +3852,7 @@ export default function App(){
               </div>
             );
           })()}
-          {!loading&&view==="rooms"&&can(currentUser.role,"rooms",perms)&&(()=>{
+          {!loading&&view==="rooms"&&can(currentUser.role,"rooms",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"rooms"))&&(()=>{
             const ISOLATION_CFG={
               None:     {bg:"transparent",border:"transparent",color:"var(--color-text-muted)",label:""},
               Contact:  {bg:"rgba(245,158,11,0.12)",border:"rgba(245,158,11,0.35)",color:"#f59e0b",label:"CONTACT"},
@@ -3910,7 +3920,7 @@ export default function App(){
               </div>
             );
           })()}
-          {!loading&&view==="incidents"&&can(currentUser.role,"incidents_view",perms)&&(()=>{
+          {!loading&&view==="incidents"&&can(currentUser.role,"incidents_view",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"incidents_view"))&&(()=>{
             const SEVCOLS={Low:"#34d399",Moderate:"#f59e0b",High:"#ef4444",Critical:"#ef4444"};
             const allInc=clients.flatMap(c=>(c.incidents||[]).map(i=>({...i,clientName:c.name,client:c}))).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
             const ago7=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
@@ -4168,7 +4178,7 @@ export default function App(){
               </div>
             );
           })()}
-          {!loading&&view==="medications"&&can(currentUser.role,"medications_view",perms)&&(()=>{
+          {!loading&&view==="medications"&&can(currentUser.role,"medications_view",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"medications_view"))&&(()=>{
             const activeWithFlags=clients.filter(c=>!c.archived).map(c=>({c,flags:getMedFlags(c)}));
             const allMeds=activeWithFlags.flatMap(({c,flags})=>(c.medications||[]).filter(m=>m.name&&m.name.trim()).map(m=>({...m,clientName:c.name,client:c,isHighRisk:flags.highRisk.some(h=>h.name===m.name),polypharmacy:flags.polypharmacy,medCount:flags.medCount})));
             const flaggedClients=activeWithFlags.filter(({flags})=>flags.polypharmacy||flags.highRisk.length>0).map(({c,flags})=>({...c,_flags:flags}));
@@ -4458,7 +4468,7 @@ export default function App(){
             return(
               <>
                 {(()=>{const editors=(editPresence[fresh.id]||[]).filter(p=>p.userId!==currentUser.id);return editors.length>0&&(<div style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",borderRadius:9,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.25)",marginBottom:14}}><span style={{fontSize:15}}>✏️</span><span style={{fontSize:12,color:"#818cf8",fontWeight:600}}>{editors.map(p=>p.userName).join(", ")} {editors.length===1?"is":"are"} currently editing this record</span></div>);})()}
-                <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser} cfSchema={company?.custom_fields_schema} logAudit={logAudit}/>
+                <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser} cfSchema={company?.custom_fields_schema} logAudit={logAudit} companyPlan={currentUser.role==="superadmin"?"enterprise":company?.plan}/>
                 {deleteConfirm&&(
                   <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400}}>
                     <div style={{background:"var(--color-bg-card)",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid rgba(255,255,255,0.08)"}}>
