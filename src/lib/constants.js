@@ -149,10 +149,10 @@ export const IDLE_WARN_SECS  = 60;              // countdown before auto-logout
 
 // ── RBAC ───────────────────────────────────────────────────────────────────
 export const DEFAULT_PERMS = {
-  superadmin: ["view","add","edit","delete","audit","users","company","permissions"],
-  admin:      ["view","add","edit","delete","audit","company"],
-  power_user: ["view","add","edit"],
-  user:       ["view"],
+  superadmin: ["view","add","edit","delete","audit","users","company","permissions","rooms","readmission","medications_view","incidents_view","reports","handover"],
+  admin:      ["view","add","edit","delete","audit","company","rooms","readmission","medications_view","incidents_view","reports","handover"],
+  power_user: ["view","add","edit","medications_view","incidents_view","reports","handover"],
+  user:       ["view","medications_view","incidents_view","handover"],
   inactive:   [],
 };
 
@@ -217,6 +217,7 @@ export const GCSS = [
   "  .notif-panel { width: 100vw !important; }",
   "  .three-col { grid-template-columns: 1fr !important; }",
   "  .four-col { grid-template-columns: 1fr 1fr !important; }",
+  "  .perms-grid { grid-template-columns: 1fr !important; }",
   "  .nav-item { min-height: 44px !important; }",
   "  .sidebar-footer { padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important; }",
   "  .filter-pill { min-height: 36px !important; padding-left: 14px !important; padding-right: 14px !important; display: inline-flex !important; align-items: center !important; }",
