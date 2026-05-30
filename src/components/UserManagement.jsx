@@ -52,7 +52,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const [search,setSearch]=useState("");
   const [expandedUser,setExpandedUser]=useState(null);
   const [editingUser,setEditingUser]=useState(null);
-  const [roleDropdownOpen,setRoleDropdownOpen]=useState(null); // user_id of open dropdown
+  const [roleDropdown,setRoleDropdown]=useState(null); // {userId, rect}
   const [editForm,setEditForm]=useState({name:"",email:"",username:""});
   const [deleteConfirmUser,setDeleteConfirmUser]=useState(null);
   const [pendingAction,setPendingAction]=useState(null);
@@ -115,11 +115,11 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
 
   useEffect(()=>{loadData();},[activeCompanyId]);
   useEffect(()=>{
-    if(!roleDropdownOpen)return;
-    const handler=()=>setRoleDropdownOpen(null);
+    if(!roleDropdown)return;
+    const handler=()=>setRoleDropdown(null);
     document.addEventListener("click",handler,true);
     return()=>document.removeEventListener("click",handler,true);
-  },[roleDropdownOpen]);
+  },[roleDropdown]);
 
   const loadActivity=async(from,to)=>{
     setActivityLoading(true);
@@ -448,6 +448,26 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
 
   return(
     <div style={{maxWidth:1050}}>
+      {roleDropdown&&(()=>{
+        const ROLE_OPTS=[{v:"care_assistant",l:"Care Assistant"},{v:"user",l:"User"},{v:"nurse",l:"Nurse"},{v:"power_user",l:"Power User"},{v:"admin",l:"Admin"},...(currentUser.role==="superadmin"?[{v:"superadmin",l:"Super Admin"}]:[]),{v:"inactive",l:"Inactive"}];
+        const u=filteredUsers.find(x=>x.user_id===roleDropdown.userId);
+        if(!u)return null;
+        return(
+          <div style={{position:"fixed",top:roleDropdown.rect.bottom+4,left:roleDropdown.rect.left,zIndex:9999,background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:8,boxShadow:"0 8px 24px rgba(0,0,0,0.5)",minWidth:150,overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
+            {ROLE_OPTS.map(opt=>(
+              <div key={opt.v} onClick={()=>{
+                setRoleDropdown(null);
+                if(opt.v===u.role)return;
+                if(opt.v==="superadmin"&&currentUser.role!=="superadmin"){showToast("error","Only a superadmin can grant the superadmin role");return;}
+                setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:opt.v,oldRole:u.role}});
+              }}
+                style={{padding:"9px 14px",fontSize:12,fontWeight:opt.v===u.role?700:400,color:opt.v===u.role?(roleColor[opt.v]||"var(--color-text-primary)"):"var(--color-text-secondary)",background:opt.v===u.role?(roleBg[opt.v]||"transparent"):"transparent",cursor:"pointer",borderBottom:"1px solid var(--color-border)"}}>
+                {opt.l}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       {toast&&(
         <div style={{position:"fixed",top:24,right:24,zIndex:999,padding:"12px 20px",borderRadius:10,background:toast.type==="success"?"#059669":toast.type==="warning"?"#b45309":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
           {toast.type==="success"?"✓ ":toast.type==="warning"?"⚠ ":"✗ "}{toast.msg}
@@ -663,26 +683,11 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                             const canChange=!isMe&&(currentUser.role==="superadmin"||(RORD[u.role]??9)>(RORD[currentUser.role]??9));
                             const roleLabel=u.role==="superadmin"?"Super Admin":u.role==="power_user"?"Power User":u.role==="care_assistant"?"Care Assistant":(u.role||"").charAt(0).toUpperCase()+(u.role||"").slice(1);
                             return(
-                              <div style={{position:"relative",display:"inline-block"}}>
-                                <div onClick={()=>canChange&&setRoleDropdownOpen(p=>p===u.user_id?null:u.user_id)}
+                              <div style={{display:"inline-block"}}>
+                                <div onClick={e=>{if(!canChange)return;e.stopPropagation();const r=e.currentTarget.getBoundingClientRect();setRoleDropdown(p=>p?.userId===u.user_id?null:{userId:u.user_id,rect:r});}}
                                   style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"var(--color-text-muted)",border:"1px solid "+(roleColor[u.role]||"rgba(255,255,255,0.1)"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,whiteSpace:"nowrap",cursor:canChange?"pointer":"default",userSelect:"none",display:"flex",alignItems:"center",gap:4}}>
                                   {roleLabel}{canChange&&<span style={{fontSize:9,opacity:0.6}}>▾</span>}
                                 </div>
-                                {roleDropdownOpen===u.user_id&&(
-                                  <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:200,background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:8,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",minWidth:140,overflow:"hidden"}}>
-                                    {ROLE_OPTS.map(opt=>(
-                                      <div key={opt.v} onClick={()=>{
-                                        setRoleDropdownOpen(null);
-                                        if(opt.v===u.role)return;
-                                        if(opt.v==="superadmin"&&currentUser.role!=="superadmin"){showToast("error","Only a superadmin can grant the superadmin role");return;}
-                                        setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:opt.v,oldRole:u.role}});
-                                      }}
-                                        style={{padding:"8px 14px",fontSize:12,fontWeight:opt.v===u.role?700:400,color:opt.v===u.role?(roleColor[opt.v]||"var(--color-text-primary)"):"var(--color-text-secondary)",background:opt.v===u.role?(roleBg[opt.v]||"transparent"):"transparent",cursor:"pointer",borderBottom:"1px solid var(--color-border)"}}>
-                                        {opt.l}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
                               </div>
                             );
                           })()}
