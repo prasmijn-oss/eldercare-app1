@@ -296,16 +296,14 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const updateRole=async(userId,newRole)=>{
     const target=users.find(x=>x.user_id===userId);
     const oldRole=target?.role||"unknown";
-    // Role elevation ceiling: only superadmin can grant superadmin
-    if(newRole==="superadmin"&&currentUser.role!=="superadmin"){
-      showToast("error","Only a superadmin can grant superadmin role");return;
-    }
+    setSaving(true);
     // Update all rows for this user so role is consistent across companies
     const {data:updated,error}=await supabase.from("user_roles").update({role:newRole}).eq("user_id",userId).select();
-    if(error){showToast("error","Failed to update role: "+error.message);return;}
-    if(!updated||updated.length===0){showToast("error","Role update failed — no rows matched. Check permissions.");return;}
+    setSaving(false);
+    if(error){showToast("error","Save failed: "+error.message);return;}
+    if(!updated||updated.length===0){showToast("error","No rows updated — RLS may be blocking this. Check DB policies.");return;}
     await loadData();
-    showToast("success",`Role updated to ${newRole.replace(/_/g," ")}`);
+    showToast("success",`${(target?.name||"User").split(" ")[0]} → ${newRole.replace(/_/g," ")}`);
     await logAudit("Role changed",target?.name||target?.email||userId,{section:"User Management",details:`Role changed from "${oldRole.replace(/_/g," ")}" → "${newRole.replace(/_/g," ")}" for ${target?.name||target?.email||userId} (all companies)`});
     // If reactivating (old role was inactive), unban in auth
     if(oldRole==="inactive"&&newRole!=="inactive"){
@@ -456,11 +454,11 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
         return(
           <div style={{position:"fixed",top:roleDropdown.rect.bottom+4,left:roleDropdown.rect.left,zIndex:9999,background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:8,boxShadow:"0 8px 24px rgba(0,0,0,0.5)",minWidth:150,overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
             {ROLE_OPTS.map(opt=>(
-              <div key={opt.v} onClick={()=>{
+              <div key={opt.v} onClick={async()=>{
                 setRoleDropdown(null);
                 if(opt.v===u.role)return;
                 if(opt.v==="superadmin"&&currentUser.role!=="superadmin"){showToast("error","Only a superadmin can grant the superadmin role");return;}
-                setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:opt.v,oldRole:u.role}});
+                await updateRole(u.user_id,opt.v);
               }}
                 style={{padding:"9px 14px",fontSize:12,fontWeight:opt.v===u.role?700:400,color:opt.v===u.role?(roleColor[opt.v]||"var(--color-text-primary)"):"var(--color-text-secondary)",background:opt.v===u.role?(roleBg[opt.v]||"transparent"):"transparent",cursor:"pointer",borderBottom:"1px solid var(--color-border)"}}>
                 {opt.l}
