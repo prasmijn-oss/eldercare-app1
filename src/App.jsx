@@ -3601,7 +3601,7 @@ export default function App(){
                       <div key={n.id} onClick={()=>{if(client){setSelected(client);setView("detail");trackRecent(client);}}} style={{display:"flex",gap:9,padding:"8px 10px",borderRadius:9,marginBottom:4,cursor:client?"pointer":"default",transition:"background 120ms ease",borderLeft:"2px solid "+typeColor,background:typeBg}}>
                         <div style={{width:7,height:7,borderRadius:"50%",background:typeColor,marginTop:5,flexShrink:0}}/>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"var(--color-text-secondary)"}}><span style={{fontWeight:600,color:"var(--color-text-primary)"}}>{n.clientName}</span> — {n.message}</div>
+                          <div style={{fontSize:12,color:"var(--color-text-secondary)"}}><span style={{fontWeight:600,color:"var(--color-text-primary)"}}>{n.clientName}</span> — {n.body}</div>
                           <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginTop:2}}>{n.date||""}</div>
                         </div>
                       </div>
