@@ -813,7 +813,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           ):activityData.length===0?(
             <div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"40px 0"}}>No activity recorded in this period.</div>
           ):(
-            <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,overflow:"hidden"}}>
+            <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse"}}>
                 <thead>
                   <tr style={{borderBottom:"1px solid var(--color-border)"}}>

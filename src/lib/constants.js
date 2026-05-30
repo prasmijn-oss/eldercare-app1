@@ -223,6 +223,7 @@ export const GCSS = [
   "  .readmission-grid { grid-template-columns: 1fr !important; }",
   "  .pc-add-form { grid-template-columns: 1fr 1fr !important; }",
   "  .pc-add-form > :last-child { grid-column: 1 / -1 !important; }",
+  "  .cf-fields-row { grid-template-columns: 1fr 1fr !important; }",
   "}",
   "@media (prefers-reduced-motion: reduce) {",
   "  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }",

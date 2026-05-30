@@ -747,7 +747,7 @@ function WoundAssessment({items,onChange}){
               </select>
             </div>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:10,marginBottom:10}}>
+          <div className="three-col" style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={LBL}>Wound Site / Location</label><input style={INP} value={entry.site} onChange={e=>setEntry(v=>({...v,site:e.target.value}))} placeholder="e.g. Sacrum, Left heel..."/></div>
             <div><label style={LBL}>Type</label>
               <select style={{...INP,cursor:"pointer"}} value={entry.type} onChange={e=>setEntry(v=>({...v,type:e.target.value}))}>
@@ -1999,7 +1999,7 @@ function ControlledSubLog({items,medications,onChange,currentUser,logAudit,clien
             <div><label style={{...LBL,marginBottom:2}}>Dose Given <span style={{color:"#f87171"}}>*</span></label><input value={entry.dose_given} onChange={e=>set("dose_given")(e.target.value)} placeholder="e.g. 5mg" style={{...INP,marginBottom:0,fontSize:12}}/></div>
             <div><label style={{...LBL,marginBottom:2}}>Dose Wasted</label><input value={entry.dose_wasted} onChange={e=>set("dose_wasted")(e.target.value)} placeholder="0" style={{...INP,marginBottom:0,fontSize:12}}/></div>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:10}}>
+          <div className="four-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:10}}>
             <div><label style={{...LBL,marginBottom:2}}>Count Before</label><input type="number" value={entry.count_before} onChange={e=>set("count_before")(e.target.value)} placeholder="e.g. 20" style={{...INP,marginBottom:0,fontSize:12}}/></div>
             <div><label style={{...LBL,marginBottom:2}}>Count After</label><input type="number" value={entry.count_after} onChange={e=>set("count_after")(e.target.value)} placeholder="e.g. 18" style={{...INP,marginBottom:0,fontSize:12}}/></div>
             <div><label style={{...LBL,marginBottom:2}}>Administered By <span style={{color:"#f87171"}}>*</span></label><input value={entry.administered_by} onChange={e=>set("administered_by")(e.target.value)} style={{...INP,marginBottom:0,fontSize:12}}/></div>

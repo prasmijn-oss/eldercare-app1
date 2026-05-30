@@ -367,7 +367,7 @@ function NotesList({items,onChange,t}){
         </div>
       ):filtered.map(item=>(
         <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:12}}>
-          <div className="fg" style={{display:"grid",gridTemplateColumns:"160px 1fr 1fr auto",gap:8,alignItems:"center",marginBottom:10}}>
+          <div className="g4" style={{display:"grid",gridTemplateColumns:"160px 1fr 1fr auto",gap:8,alignItems:"center",marginBottom:10}}>
             <div><label style={LBL}>{t.date}</label><input type="date" style={INP} value={item.date} onChange={e=>upd(item.id,"date",e.target.value)}/></div>
             <div><label style={LBL}>{t.role}</label>
               <select style={{...INP,cursor:"pointer"}} value={item.role||""} onChange={e=>upd(item.id,"role",e.target.value)}>
@@ -564,7 +564,7 @@ function CarePlan({items,onChange,t}){
           <div key={item.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:10,padding:12,borderLeft:"3px solid "+gs.color}}>
             <div style={{marginBottom:8}}><label style={LBL}>{t.goalLabel}</label><input style={INP} placeholder={t.goalLabel+"..."} value={item.goal} onChange={e=>upd(item.id,"goal",e.target.value)}/></div>
             <div style={{marginBottom:8}}><label style={LBL}>{t.planLabel}</label><textarea style={{...INP,height:64,resize:"vertical"}} placeholder={t.planLabel+"..."} value={item.plan} onChange={e=>upd(item.id,"plan",e.target.value)}/></div>
-            <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
+            <div className="g4" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr auto",gap:8,alignItems:"flex-end"}}>
               <div><label style={LBL}>{t.goalStatus}</label>
                 <select style={{...INP,color:gs.color,borderColor:gs.color,cursor:"pointer"}} value={item.status} onChange={e=>upd(item.id,"status",e.target.value)}>
                   {GSTATUSES.map(s=><option key={s.value} value={s.value}>{slab[s.value]}</option>)}
@@ -1645,7 +1645,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
             {cfSchema.length===0&&<div style={{fontSize:13,color:"var(--color-text-muted)",textAlign:"center",padding:"24px 0"}}>No custom fields yet. Click Add Field to get started.</div>}
             {cfSchema.map((f,i)=>(
               <div key={f.id} style={{background:"var(--color-bg-surface)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:10,display:"flex",gap:10,alignItems:"flex-start"}}>
-                <div style={{flex:1,display:"grid",gridTemplateColumns:"1fr 130px 80px",gap:8,alignItems:"center"}}>
+                <div className="cf-fields-row" style={{flex:1,display:"grid",gridTemplateColumns:"1fr 130px 80px",gap:8,alignItems:"center"}}>
                   <div>
                     <div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:600,marginBottom:3}}>LABEL</div>
                     <input value={f.label} onChange={e=>updateCfField(f.id,"label",e.target.value)} placeholder="e.g. Insurance Number" style={{...INP,marginBottom:0,fontSize:12}}/>
@@ -3213,7 +3213,7 @@ export default function App(){
       <div className="mob-hdr">
         {(view==="detail"||view==="edit"||view==="add"||view==="profile")?(
           <>
-            <button onClick={()=>{setView(view==="add"||view==="profile"?"dashboard":selected?"detail":"dashboard");if(view==="edit")setView("detail");}} aria-label="Go back" style={{background:"rgba(128,128,128,0.12)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>←</button>
+            <button onClick={()=>setView(view==="add"||view==="profile"?"dashboard":view==="edit"?"detail":"clients")} aria-label="Go back" style={{background:"rgba(128,128,128,0.12)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>←</button>
             <span style={{fontSize:14,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"55vw"}}>
               {view==="add"?"New Client":view==="profile"?"My Profile":view==="edit"?(selected?.name||"Edit"):selected?.name||"Client"}
             </span>
