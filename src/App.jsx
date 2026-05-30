@@ -892,7 +892,7 @@ function HospLog({items,onChange}){
   );
 }
 
-function ClientForm({client,onSave,onCancel,saving,t,currentUser,cfSchema}){
+function ClientForm({client,onSave,onCancel,saving,t,currentUser,cfSchema,logAudit}){
   const [d,setD]=useState(()=>JSON.parse(JSON.stringify(client)));
   const s=(f,v)=>setD(prev=>({...prev,[f]:v}));
   const valid=(d.name||"").trim().length>0;
@@ -4204,7 +4204,7 @@ export default function App(){
           {view==="add"&&can(currentUser.role,"add",perms)&&(
             <div>
               <div style={{fontSize:17,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",marginBottom:20}}>{t.newClient}</div>
-              <ClientForm client={emptyClient()} onSave={saveClient} onCancel={()=>setView(selected?"detail":"clients")} saving={saving} t={t} currentUser={currentUser} cfSchema={company?.custom_fields_schema}/>
+              <ClientForm client={emptyClient()} onSave={saveClient} onCancel={()=>setView(selected?"detail":"clients")} saving={saving} t={t} currentUser={currentUser} cfSchema={company?.custom_fields_schema} logAudit={logAudit}/>
             </div>
           )}
           {view==="edit"&&selected&&can(currentUser.role,"edit",perms)&&(()=>{
@@ -4222,7 +4222,7 @@ export default function App(){
                   </div>
                 </div>
               )}
-              <ClientForm client={editClient} onSave={saveClient} onCancel={()=>setView("detail")} saving={saving} t={t} currentUser={currentUser} cfSchema={company?.custom_fields_schema}/>
+              <ClientForm client={editClient} onSave={saveClient} onCancel={()=>setView("detail")} saving={saving} t={t} currentUser={currentUser} cfSchema={company?.custom_fields_schema} logAudit={logAudit}/>
             </div>
             );
           })()}
