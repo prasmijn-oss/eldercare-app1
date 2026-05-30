@@ -437,6 +437,7 @@ export function toDb(d) {
     continence_logs:        JSON.stringify(d.continence_logs || []),
     nutrition_assessments:  JSON.stringify(d.nutrition_assessments || []),
     mar_log:                JSON.stringify(d.mar_log || []),
+    prn_log:                JSON.stringify(d.prn_log || []),
   };
 }
 
@@ -464,6 +465,7 @@ export function fromDb(row) {
     continence_logs:       p(row.continence_logs,       []),
     nutrition_assessments: p(row.nutrition_assessments, []),
     mar_log:               p(row.mar_log,               []),
+    prn_log:               p(row.prn_log,               []),
   };
 }
 
@@ -478,6 +480,9 @@ export function emptyClient() {
     session_notes: [{ id: uid(), date: tod(), role: "", staff_name: "", text: "" }],
     vitals: [], care_plan: [], documents: [], inventory: [],
     family_contacts: [], appointments: [], incidents: [],
+    adl_logs: [], pain_assessments: [], wound_assessments: [], braden_assessments: [],
+    cognitive_assessments: [], continence_logs: [], nutrition_assessments: [],
+    mar_log: [], prn_log: [],
     intake_checklist: DEFAULT_INTAKE_ITEMS.map(i => ({
       id: uid(), key: i.key, label: i.label, done: false, completed_by: "", completed_at: "",
     })),

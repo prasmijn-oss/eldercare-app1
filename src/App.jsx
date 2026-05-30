@@ -33,7 +33,7 @@ import {
 import { PasswordStrengthMeter, UserManagement } from "./components/UserManagement.jsx";
 import { TiltCard, FlipCard, Dashboard } from "./components/Dashboard.jsx";
 import { AuditTrail } from "./components/AuditTrail.jsx";
-import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, HandoverNotes } from "./components/ClinicalComponents.jsx";
+import { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, PRNLog, HandoverNotes } from "./components/ClinicalComponents.jsx";
 import { PermissionsContext } from "./lib/PermissionsContext.jsx";
 
 function buildNotifications(clients){
@@ -865,6 +865,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
       <Sec icon="⚠️" title="Incident Reports" accent="#ef4444" defaultOpen={false}><IncidentReports items={d.incidents||[]} onChange={v=>s("incidents",v)} currentUser={currentUser}/></Sec>
       <Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
       <Sec icon="💊" title="MAR — Daily Medication Log" accent="#16a34a" defaultOpen={true}><MARTracker marLog={d.mar_log||[]} medications={d.medications||[]} onChange={v=>s("mar_log",v)} currentUser={currentUser}/></Sec>
+      <Sec icon="⚡" title="PRN — As-Needed Medication Log" accent="#f59e0b" defaultOpen={false}><PRNLog prnLog={d.prn_log||[]} medications={d.medications||[]} onChange={v=>s("prn_log",v)} currentUser={currentUser}/></Sec>
       <Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
       <Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
       <Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>

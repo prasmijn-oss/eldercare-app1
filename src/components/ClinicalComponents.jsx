@@ -1216,6 +1216,202 @@ function MARTracker({marLog,medications,onChange,currentUser}){
   );
 }
 
+// ─── PRN Medication Log ───────────────────────────────────────────────────────
+const PRN_REASONS=["Pain","Anxiety / Agitation","Nausea / Vomiting","Insomnia","Shortness of breath","Fever","Constipation","Itching","Seizure activity","Behavioral episode","Other"];
+const PRN_RESPONSES=["Effective","Partially effective","No effect","Adverse reaction","Pending assessment"];
+
+function PRNLog({prnLog,medications,onChange,currentUser}){
+  const meds=(medications||[]).filter(m=>m.name&&m.name.trim());
+  const blank=()=>({
+    id:uid(),date:tod(),time:new Date().toTimeString().slice(0,5),
+    medication_name:"",dosage_given:"",reason:"",reason_other:"",
+    response:"",notes:"",given_by:currentUser?.displayName||"",
+  });
+  const [form,setForm]=useState(null);
+  const [filterMed,setFilterMed]=useState("");
+  const [showAll,setShowAll]=useState(false);
+
+  const entries=(prnLog||[]).slice().sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+  const filtered=filterMed?entries.filter(e=>e.medication_name===filterMed):entries;
+  const visible=showAll?filtered:filtered.slice(0,20);
+
+  const save=()=>{
+    if(!form.medication_name){alert("Select a medication");return;}
+    if(!form.reason){alert("Select a reason");return;}
+    const entry={...form,reason:form.reason==="Other"?form.reason_other||"Other":form.reason};
+    const updated=[...(prnLog||[]),entry];
+    // Prune entries older than 180 days
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-180);
+    const cutoffStr=cutoff.toISOString().slice(0,10);
+    onChange(updated.filter(e=>e.date>=cutoffStr));
+    setForm(null);
+  };
+
+  const remove=id=>onChange((prnLog||[]).filter(e=>e.id!==id));
+
+  const responseColor={
+    "Effective":"#10b981","Partially effective":"#f59e0b",
+    "No effect":"#94a3b8","Adverse reaction":"#ef4444","Pending assessment":"#6366f1",
+  };
+
+  return(
+    <div>
+      {/* Toolbar */}
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+        <button onClick={()=>setForm(blank())}
+          style={{padding:"7px 16px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",touchAction:"manipulation"}}>
+          + Log PRN Dose
+        </button>
+        {meds.length>0&&(
+          <select value={filterMed} onChange={e=>setFilterMed(e.target.value)}
+            style={{padding:"6px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:12,cursor:"pointer"}}>
+            <option value="">All medications</option>
+            {meds.map(m=><option key={m.id||m.name} value={m.name}>{m.name}</option>)}
+          </select>
+        )}
+        <span style={{fontSize:12,color:"var(--color-text-muted)",marginLeft:"auto",fontFamily:"'DM Mono',monospace"}}>{filtered.length} entr{filtered.length===1?"y":"ies"}</span>
+      </div>
+
+      {/* Log form */}
+      {form&&(
+        <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-accent)",borderRadius:12,padding:16,marginBottom:16}}>
+          <div style={{fontSize:14,fontWeight:700,color:"var(--color-text-primary)",marginBottom:12}}>Log PRN Administration</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            {/* Medication */}
+            <div style={{gridColumn:"1/-1"}}>
+              <label style={{fontSize:11,fontWeight:600,color:"var(--color-text-dim)",display:"block",marginBottom:4}}>Medication *</label>
+              <select value={form.medication_name} onChange={e=>setForm(f=>({...f,medication_name:e.target.value,dosage_given:meds.find(m=>m.name===e.target.value)?.dosage||""}))}
+                style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:13}}>
+                <option value="">Select medication…</option>
+                {meds.map(m=><option key={m.id||m.name} value={m.name}>{m.name}{m.dosage?" — "+m.dosage:""}</option>)}
+              </select>
+            </div>
+            {/* Dose given */}
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:"var(--color-text-dim)",display:"block",marginBottom:4}}>Dose Given</label>
+              <input value={form.dosage_given} onChange={e=>setForm(f=>({...f,dosage_given:e.target.value}))}
+                placeholder="e.g. 5mg, 2 tablets"
+                style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:13,boxSizing:"border-box"}}/>
+            </div>
+            {/* Date + time */}
+            <div style={{display:"flex",gap:6}}>
+              <div style={{flex:1}}>
+                <label style={{fontSize:11,fontWeight:600,color:"var(--color-text-dim)",display:"block",marginBottom:4}}>Date</label>
+                <input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}
+                  style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:13,boxSizing:"border-box"}}/>
+              </div>
+              <div style={{flex:1}}>
+                <label style={{fontSize:11,fontWeight:600,color:"var(--color-text-dim)",display:"block",marginBottom:4}}>Time</label>
+                <input type="time" value={form.time} onChange={e=>setForm(f=>({...f,time:e.target.value}))}
+                  style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:13,boxSizing:"border-box"}}/>
+              </div>
+            </div>
+            {/* Reason */}
+            <div style={{gridColumn:"1/-1"}}>
+              <label style={{fontSize:11,fontWeight:600,color:"var(--color-text-dim)",display:"block",marginBottom:4}}>Reason / Indication *</label>
+              <select value={form.reason} onChange={e=>setForm(f=>({...f,reason:e.target.value}))}
+                style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:13}}>
+                <option value="">Select reason…</option>
+                {PRN_REASONS.map(r=><option key={r} value={r}>{r}</option>)}
+              </select>
+              {form.reason==="Other"&&(
+                <input value={form.reason_other} onChange={e=>setForm(f=>({...f,reason_other:e.target.value}))}
+                  placeholder="Describe reason…"
+                  style={{width:"100%",marginTop:6,padding:"8px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:13,boxSizing:"border-box"}}/>
+              )}
+            </div>
+            {/* Response */}
+            <div style={{gridColumn:"1/-1"}}>
+              <label style={{fontSize:11,fontWeight:600,color:"var(--color-text-dim)",display:"block",marginBottom:4}}>Response / Outcome</label>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {PRN_RESPONSES.map(r=>(
+                  <button key={r} onClick={()=>setForm(f=>({...f,response:f.response===r?"":r}))}
+                    style={{padding:"5px 12px",borderRadius:20,border:"2px solid "+(form.response===r?(responseColor[r]||"var(--color-accent)"):"var(--color-border)"),
+                      background:form.response===r?"rgba(99,102,241,0.08)":"transparent",
+                      color:form.response===r?(responseColor[r]||"var(--color-accent)"):"var(--color-text-dim)",
+                      fontSize:11,fontWeight:600,cursor:"pointer",touchAction:"manipulation"}}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Notes */}
+            <div style={{gridColumn:"1/-1"}}>
+              <label style={{fontSize:11,fontWeight:600,color:"var(--color-text-dim)",display:"block",marginBottom:4}}>Notes</label>
+              <textarea value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} rows={2}
+                placeholder="Additional observations, vital signs, follow-up needed…"
+                style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:13,resize:"vertical",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            </div>
+            {/* Logged by */}
+            <div>
+              <label style={{fontSize:11,fontWeight:600,color:"var(--color-text-dim)",display:"block",marginBottom:4}}>Administered by</label>
+              <input value={form.given_by} onChange={e=>setForm(f=>({...f,given_by:e.target.value}))}
+                style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:13,boxSizing:"border-box"}}/>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={save}
+              style={{padding:"8px 20px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",touchAction:"manipulation"}}>
+              Save Entry
+            </button>
+            <button onClick={()=>setForm(null)}
+              style={{padding:"8px 16px",borderRadius:8,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",fontWeight:600,fontSize:13,cursor:"pointer",touchAction:"manipulation"}}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Log entries */}
+      {visible.length===0?(
+        <div style={{textAlign:"center",padding:"32px 20px",color:"var(--color-text-muted)"}}>
+          <div style={{fontSize:32,marginBottom:8}}>💊</div>
+          <div style={{fontSize:14,fontWeight:600}}>No PRN entries{filterMed?" for this medication":""}</div>
+          <div style={{fontSize:12,marginTop:4}}>Log a PRN dose using the button above</div>
+        </div>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {visible.map(e=>(
+            <div key={e.id} style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start"}}>
+              {/* Time column */}
+              <div style={{flexShrink:0,textAlign:"center",minWidth:52}}>
+                <div style={{fontSize:12,fontWeight:700,color:"var(--color-text-primary)",fontFamily:"'DM Mono',monospace"}}>{e.time||"—"}</div>
+                <div style={{fontSize:10,color:"var(--color-text-muted)",fontFamily:"'DM Mono',monospace"}}>{e.date}</div>
+              </div>
+              {/* Content */}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
+                  <span style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{e.medication_name}</span>
+                  {e.dosage_given&&<span style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace"}}>{e.dosage_given}</span>}
+                  {e.response&&(
+                    <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,
+                      background:(responseColor[e.response]||"#6366f1")+"18",
+                      color:responseColor[e.response]||"#6366f1"}}>
+                      {e.response}
+                    </span>
+                  )}
+                </div>
+                {e.reason&&<div style={{fontSize:12,color:"var(--color-text-secondary)",marginBottom:2}}>Reason: {e.reason}</div>}
+                {e.notes&&<div style={{fontSize:11,color:"var(--color-text-dim)",lineHeight:1.5}}>{e.notes}</div>}
+                {e.given_by&&<div style={{fontSize:10,color:"var(--color-text-muted)",marginTop:3}}>By {e.given_by}</div>}
+              </div>
+              {/* Delete */}
+              <button onClick={()=>remove(e.id)} aria-label="Remove"
+                style={{flexShrink:0,background:"none",border:"none",color:"var(--color-text-muted)",cursor:"pointer",fontSize:14,padding:4,touchAction:"manipulation"}}>✕</button>
+            </div>
+          ))}
+          {filtered.length>20&&!showAll&&(
+            <button onClick={()=>setShowAll(true)}
+              style={{padding:"8px",borderRadius:8,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+              Show all {filtered.length} entries
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Shift Handover Notes ─────────────────────────────────────────────────────
 const SHIFTS=[
   {key:"morning",  label:"Morning Shift",  icon:"🌅", time:"06:00–14:00"},
@@ -1472,4 +1668,4 @@ function HandoverNotes({supabase,companyId,currentUser,clients}){
   );
 }
 
-export { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, HandoverNotes };
+export { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, PRNLog, HandoverNotes };
