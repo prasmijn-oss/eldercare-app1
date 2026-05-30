@@ -1,5 +1,16 @@
 // ── Shared constants used across components ────────────────────────────────
 
+// ── Subscription plan feature gating ──────────────────────────────────────
+export const PLAN_FEATURES = {
+  standard:     ["dashboard","clients","appointments","users","company"],
+  professional: ["dashboard","clients","appointments","users","company",
+                 "medications_view","incidents_view","reports","audit",
+                 "handover","clinical"],
+  enterprise:   ["dashboard","clients","appointments","users","company",
+                 "medications_view","incidents_view","reports","audit",
+                 "handover","clinical","readmission","rooms","permissions","custom_fields"],
+};
+
 // ── Branding / palette ─────────────────────────────────────────────────────
 export const COLORS = ["#6366f1","#8b5cf6","#06b6d4","#10b981","#f59e0b","#ef4444","#ec4899","#14b8a6"];
 export const PLY    = 5; // polypharmacy threshold
@@ -149,12 +160,20 @@ export const IDLE_WARN_SECS  = 60;              // countdown before auto-logout
 
 // ── RBAC ───────────────────────────────────────────────────────────────────
 export const DEFAULT_PERMS = {
-  superadmin: ["view","add","edit","delete","audit","users","company","permissions","rooms","readmission","medications_view","incidents_view","reports","handover"],
-  admin:      ["view","add","edit","delete","audit","company","rooms","readmission","medications_view","incidents_view","reports","handover"],
-  power_user: ["view","add","edit","medications_view","incidents_view","reports","handover"],
-  user:       ["view","medications_view","incidents_view","handover"],
+  superadmin: ["view","add","edit","delete","audit","users","company","permissions","rooms","readmission","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub"],
+  admin:      ["view","add","edit","delete","audit","company","rooms","readmission","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub"],
+  power_user: ["view","add","edit","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub"],
+  user:       ["view","medications_view","incidents_view","handover","vitals","notes","clinical","mar"],
   inactive:   [],
 };
+
+export const PERMISSION_GROUPS = [
+  {key:"client_records", label:"Client Records",      icon:"👤", actions:["view","add","edit","delete"]},
+  {key:"clinical",       label:"Clinical",            icon:"🏥", actions:["clinical","vitals","mar","prn","controlled_sub","medications_view"]},
+  {key:"documentation",  label:"Documentation",       icon:"📋", actions:["notes","care_plan","documents","incidents_view","handover"]},
+  {key:"reports",        label:"Reports & Analytics", icon:"📊", actions:["reports","audit","readmission"]},
+  {key:"admin",          label:"Administration",      icon:"⚙️", actions:["users","company","permissions","rooms"]},
+];
 
 // ── Intake checklist defaults ──────────────────────────────────────────────
 export const DEFAULT_INTAKE_ITEMS = [

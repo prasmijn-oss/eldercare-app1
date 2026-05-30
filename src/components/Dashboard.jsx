@@ -64,7 +64,7 @@ function FlipCard({frontIcon,frontLabel,backValue,backSub,backGradient}){
   );
 }
 
-function Dashboard({clients,onSelect,t,currentUser}){
+function Dashboard({clients,onSelect,t,currentUser,company}){
   const total=clients.length;
   const totalMeds=clients.reduce((s,c)=>s+(c.medications||[]).filter(m=>m.name&&m.name.trim()).length,0);
   const totalAllergies=clients.reduce((s,c)=>s+(c.allergies||[]).filter(a=>a.value&&a.value.trim()).length,0);
