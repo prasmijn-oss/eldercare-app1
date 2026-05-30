@@ -2688,6 +2688,7 @@ export default function App(){
   const [emailPrefs,setEmailPrefs]=useState(()=>{try{return JSON.parse(localStorage.getItem("cm-email-prefs")||"{}") ;}catch{return {};}});
   const [appMsg,setAppMsg]=useState(null); // {type:"success"|"error", text:string}
   const showAppMsg=(type,text)=>{setAppMsg({type,text});setTimeout(()=>setAppMsg(null),3200);};
+  const [editPresence,setEditPresence]=useState({}); // clientId → [{userId,userName,avatar}]
   // ── Permissions (React context) ──────────────────────────────────────────────
   const [perms,setPerms]=useState(null);
   const refreshPerms=useCallback(async(companyId)=>{
@@ -2836,6 +2837,37 @@ export default function App(){
       .subscribe();
     return()=>{supabase.removeChannel(channel);};
   },[currentUser,loadClients]);
+
+  // ── Realtime Presence — track who is editing which client ─────────────────
+  const presenceChRef=useRef(null);
+  useEffect(()=>{
+    if(!currentUser)return;
+    const ch=supabase.channel("cm-edit-presence",{config:{presence:{key:currentUser.id}}});
+    presenceChRef.current=ch;
+    ch.on("presence",{event:"sync"},()=>{
+      const state=ch.presenceState();
+      const map={};
+      Object.values(state).forEach(presences=>{
+        presences.forEach(p=>{
+          if(!p.clientId)return;
+          if(!map[p.clientId])map[p.clientId]=[];
+          map[p.clientId].push({userId:p.userId,userName:p.userName,avatar:p.avatar||null});
+        });
+      });
+      setEditPresence(map);
+    }).subscribe();
+    return()=>{supabase.removeChannel(ch);presenceChRef.current=null;};
+  },[currentUser]);
+
+  useEffect(()=>{
+    const ch=presenceChRef.current;
+    if(!ch||!currentUser)return;
+    if(view==="edit"&&selected?.id){
+      ch.track({userId:currentUser.id,userName:currentUser.name||currentUser.email,avatar:currentUser.avatar_url||null,clientId:selected.id});
+    } else {
+      ch.untrack();
+    }
+  },[currentUser,view,selected?.id]);
 
   // Lazy-load full clinical detail when opening a client detail view
   useEffect(()=>{
@@ -4090,9 +4122,18 @@ export default function App(){
           {view==="edit"&&selected&&can(currentUser.role,"edit",perms)&&(()=>{
             const editClient=clients.find(c=>c.id===selected.id)||selected;
             if(!editClient.diagnoses)return null; // partial object guard
+            const others=(editPresence[selected.id]||[]).filter(p=>p.userId!==currentUser.id);
             return(
             <div>
-              <div style={{fontSize:17,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",marginBottom:20}}>Edit — {editClient.name}</div>
+              <div style={{fontSize:17,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",marginBottom:others.length?12:20}}>Edit — {editClient.name}</div>
+              {others.length>0&&(
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:9,background:"rgba(251,191,36,0.1)",border:"1px solid rgba(251,191,36,0.3)",marginBottom:18}}>
+                  <span style={{fontSize:16}}>⚠️</span>
+                  <div style={{fontSize:13,color:"#fbbf24",fontWeight:600}}>
+                    {others.map(p=>p.userName).join(", ")} {others.length===1?"is":"are"} also editing this client — saving will overwrite their changes.
+                  </div>
+                </div>
+              )}
               <ClientForm client={editClient} onSave={saveClient} onCancel={()=>setView("detail")} saving={saving} t={t} currentUser={currentUser}/>
             </div>
             );
@@ -4102,6 +4143,7 @@ export default function App(){
             if(!fresh)return null; // client not loaded yet — wait for clients state
             return(
               <>
+                {(()=>{const editors=(editPresence[fresh.id]||[]).filter(p=>p.userId!==currentUser.id);return editors.length>0&&(<div style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",borderRadius:9,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.25)",marginBottom:14}}><span style={{fontSize:15}}>✏️</span><span style={{fontSize:12,color:"#818cf8",fontWeight:600}}>{editors.map(p=>p.userName).join(", ")} {editors.length===1?"is":"are"} currently editing this record</span></div>);})()}
                 <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser}/>
                 {deleteConfirm&&(
                   <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400}}>
