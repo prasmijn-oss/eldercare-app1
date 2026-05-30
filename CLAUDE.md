@@ -26,12 +26,13 @@ Supabase credentials are read from `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_K
 | `staging` | `eldercare-app1-staging` |
 
 ## Database Schema (public)
-- `clients` — JSONB fields: diagnoses, medications, allergies, session_notes, vitals, care_plan, documents, inventory, family_contacts, appointments, incidents, intake_checklist
-- `companies` — logo_url, hours_of_operation (JSONB), mission_statement, etc.
+- `clients` — JSONB fields: diagnoses, medications, allergies, session_notes, vitals, care_plan, documents, inventory, family_contacts, appointments, incidents, intake_checklist, prn_log, controlled_sub_log, mar_log, preventive_care, custom_fields, adl_logs, pain_assessments, wound_assessments, braden_assessments, cognitive_assessments, continence_logs, nutrition_assessments
+- `companies` — logo_url, hours_of_operation (JSONB), mission_statement, custom_fields_schema (JSONB)
 - `user_roles` — user_id, company_id, role, name, email, username, avatar_url, login_history (JSONB)
 - `permissions` — global role/action permissions
 - `company_permissions` — per-company overrides
 - `audit_log` — performed_by, action, client_name, company_id, performed_at
+- `handover_notes` — company_id, date, shift, summary, outgoing_staff, incoming_staff, key_events (JSONB), action_items (JSONB), signed_off_by, signed_off_at, created_by, created_at
 
 ## RBAC Roles
 `superadmin` > `admin` > `power_user` > `user` > `inactive`
@@ -200,59 +201,58 @@ git checkout main && git merge staging && git push origin main && git checkout s
 - Staging Supabase has test companies ("Test Company", "Test 2") and test clients (test3–test9)
 - `p.rasmijn@gmail.com` is `superadmin` on "Test Company" in staging — logs straight to dashboard (single company)
 - Staging RLS gotcha: `get_my_role()` uses `LIMIT 1` on user_roles — if a user has multiple rows, the first one's role is used. Keep superadmin row as the only/first row for that user to avoid RLS blocking company reads.
-- Full UI redesign + all session features are on `staging` branch — **not yet merged to `main`**
 - `ale@ale.com` has a `user_roles` row on "Test 2" company (added via SQL INSERT) — was previously invisible in User Management
 
 ## Pending Features
 
 ### Security & Auth
-- [ ] Password strength indicator on create/edit user
-- [ ] Force password change enforcement (currently only a UI note)
+- [ ] Password strength indicator on create/edit user (scorePassword() exists in utils.js, UI not wired on create/edit user form)
+- [x] Force password change enforcement — fully blocks app access until changed (`force_password_change` flag in user_metadata)
 - [ ] Two-factor authentication
 - [ ] IP-based login alerts
 
 ### Medication Safety
-- [ ] PRN (as-needed) medication justification log
-- [ ] Drug interaction checker (flag conflicts when adding new meds)
-- [ ] Controlled substance audit trail (witness signatures)
+- [x] PRN (as-needed) medication justification log — `PRNLog` component in ClinicalComponents.jsx; `prn_log` JSON field on clients
+- [x] Drug interaction checker — `checkDrugInteractions()` in utils.js; 42 rules in constants.js; live warnings in med edit form
+- [x] Controlled substance audit trail (witness signatures) — `ControlledSubLog` in ClinicalComponents.jsx; `controlled_sub_log` field on clients
 
 ### Communication
 - [ ] Secure internal messaging between staff (tied to client records)
 - [ ] Family portal — read-only view for family members per client
-- [ ] Shift handover notes (structured template, sign-off verification)
+- [x] Shift handover notes — `HandoverNotes` in ClinicalComponents.jsx; `handover_notes` Supabase table; sign-off workflow; 4 shifts
 - [ ] Care team push alerts for critical events (falls, vital anomalies)
 
 ### Reports
-- [ ] Monthly client summary PDF
-- [ ] MAR (Medication Administration Record) export
-- [ ] Census report
+- [x] Monthly client summary PDF — in `ReportsView` (App.jsx ~2053); full clinical record export via print
+- [x] MAR (Medication Administration Record) export — `MARTracker` component + 31-day printable grid; `mar_log` field on clients
+- [x] Census report — in `ReportsView`; age bands, fall risk distribution, clinical flags, staff activity
 
 ### Analytics
-- [ ] Readmission / hospitalization risk dashboard
-- [ ] Preventive care compliance (vaccines, screenings — scheduled vs. completed)
+- [x] Readmission / hospitalization risk dashboard — `calcReadmissionRisk()` in utils.js; dedicated `view==="readmission"` (gated by `readmission` permission)
+- [x] Preventive care compliance — `PreventiveCare` in ClinicalComponents.jsx; vaccines + screenings with intervals; `preventive_care` field on clients
 - [ ] Staff productivity metrics (note timeliness, task completion rates)
 - [ ] Incident trend analysis (fall rates, medication errors by shift/season)
 
 ### Operations
-- [ ] Bed & room management (assignments, isolation flags, clean schedules)
+- [x] Bed & room management (assignments, isolation flags) — `RoomsBoard` view (App.jsx ~3717); gated by `rooms` permission; read-only display
 - [ ] Supply inventory forecasting (demand prediction from census + ADL data)
 - [ ] Electronic Visit Verification / EVV (GPS check-in for home health visits)
 - [ ] Training & certification tracker for staff (CPR, HIPAA — expiry alerts)
 
 ### Quality & Compliance
-- [ ] Root cause analysis workflow on incidents (corrective action tracking)
+- [x] Root cause analysis workflow on incidents — RCA form embedded in `IncidentReports` (ClinicalComponents.jsx ~962); contributing factors, corrective actions, status tracking
 - [ ] Care plan review signatures (patient/family sign-off, reassessment scheduling)
 - [ ] Regulatory inspection checklist generator
 
 ### Clinical
-- [ ] Weight trend alert (flag rapid gain/loss from vitals history)
-- [ ] Missed appointment tracker
+- [x] Weight trend alert — `calcWeightTrend()` in utils.js; alert banner in VitalsTracker; notification in `buildNotifications()`
+- [x] Missed appointment tracker — `getMissedAppointments()` in utils.js; dedicated aggregate view; pattern detection (2+ missed in 30d)
 
 ### Company / Admin
 - [ ] Staff scheduling
-- [ ] Custom fields per company
+- [x] Custom fields per company — field builder in Company Settings; renders in ClientForm + detail view; `custom_fields_schema` on companies, `custom_fields` on clients
 - [ ] Data retention policy
 - [ ] Company-wide announcement banner
 
 ### Notifications (backend)
-- [ ] Actual email delivery (requires edge function + email provider)
+- [ ] Actual email delivery (requires edge function + email provider) — email preference toggles exist in UI (localStorage only, cosmetic)

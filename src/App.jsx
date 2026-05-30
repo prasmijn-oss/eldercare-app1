@@ -3657,7 +3657,7 @@ export default function App(){
                         const pct=Math.min(100,Math.round(risk.score/maxScore*100));
                         return(
                           <div key={c.id} onClick={()=>{setSelected(c);setView("detail");trackRecent(c);}} style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",cursor:"pointer",display:"flex",gap:12,alignItems:"center"}} className="card-hover">
-                            <ClientPhoto url={c.photo_url} name={c.name} size={40}/>
+                            <ClientPhoto path={c.photo_url} alt={c.name} style={{width:40,height:40,borderRadius:"50%",objectFit:"cover",flexShrink:0}} fallback={<div style={{width:40,height:40,borderRadius:"50%",background:"var(--color-bg-hover)",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"var(--color-text-muted)"}}>{c.name?.[0]}</div>}/>
                             <div style={{flex:1,minWidth:0}}>
                               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
                                 <span style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{c.name}</span>
@@ -3700,7 +3700,7 @@ export default function App(){
                       <div style={{maxHeight:240,overflowY:"auto"}}>
                         {readmits.length===0?<div style={{padding:"16px 14px",fontSize:12,color:"var(--color-text-muted)"}}>No readmissions detected.</div>:readmits.map(({c})=>(
                           <div key={c.id} onClick={()=>{setSelected(c);setView("detail");trackRecent(c);}} style={{padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",display:"flex",alignItems:"center",gap:10}} className="client-row">
-                            <ClientPhoto url={c.photo_url} name={c.name} size={32}/>
+                            <ClientPhoto path={c.photo_url} alt={c.name} style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0}} fallback={<div style={{width:32,height:32,borderRadius:"50%",background:"var(--color-bg-hover)",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"var(--color-text-muted)"}}>{c.name?.[0]}</div>}/>
                             <div>
                               <div style={{fontSize:12,fontWeight:600,color:"var(--color-text-primary)"}}>{c.name}</div>
                               <div style={{fontSize:11,color:"#ef4444",fontWeight:600}}>Readmitted within 30 days</div>
@@ -3765,7 +3765,7 @@ export default function App(){
                               <div key={c.id} onClick={()=>{setSelected(c);setView("detail");trackRecent(c);}}
                                 style={{display:"flex",gap:10,alignItems:"center",padding:"8px 10px",borderRadius:8,cursor:"pointer",background:"var(--color-bg-hover)",border:"1px solid "+(c.isolation_type&&c.isolation_type!=="None"?iso.border:"transparent"),transition:"background 120ms ease"}}
                                 className="card-hover">
-                                <ClientPhoto url={c.photo_url} name={c.name} size={36}/>
+                                <ClientPhoto path={c.photo_url} alt={c.name} style={{width:36,height:36,borderRadius:"50%",objectFit:"cover",flexShrink:0}} fallback={<div style={{width:36,height:36,borderRadius:"50%",background:"var(--color-bg-hover)",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"var(--color-text-muted)"}}>{c.name?.[0]}</div>}/>
                                 <div style={{flex:1,minWidth:0}}>
                                   <div style={{fontSize:12,fontWeight:700,color:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
                                   <div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:1}}>{age!==null?age+"y":""}{topDiag?(age!==null?" · ":"")+topDiag.value:""}</div>
