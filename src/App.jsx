@@ -2762,7 +2762,7 @@ export default function App(){
   const [clientFilter,setClientFilter]=useState("all"); // all|hfr|mfr|lfr|archived
   const [darkMode,setDarkMode]=useState(()=>localStorage.getItem("cm-dark")!=="false");
   const [notifOpen,setNotifOpen]=useState(false);
-  const [readNotifIds,setReadNotifIds]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem("cm-read-notifs")||"[]"));}catch{return new Set();}});
+  const [readNotifIds,setReadNotifIds]=useState(new Set());
   const [showShortcuts,setShowShortcuts]=useState(false);
   const [readmissionFilter,setReadmissionFilter]=useState("All");
   const [apptFilter,setApptFilter]=useState("all");
@@ -2785,11 +2785,17 @@ export default function App(){
   const t=T[lang]||T["en"];
   const selectLang=code=>{localStorage.setItem("cm-lang",code);setLang(code);};
 
-  const recentKey=`cm-recent-${selectedCompany||currentUser?.company_id||"default"}`;
+  const activeCompanyKey=selectedCompany||currentUser?.company_id||"default";
+  const recentKey=`cm-recent-${activeCompanyKey}`;
+  const notifKey=`cm-notifs-${activeCompanyKey}`;
 
   useEffect(()=>{
     try{setRecentClients(JSON.parse(localStorage.getItem(recentKey)||"[]"));}catch{setRecentClients([]);}
   },[recentKey]);
+
+  useEffect(()=>{
+    try{setReadNotifIds(new Set(JSON.parse(localStorage.getItem(notifKey)||"[]")));}catch{setReadNotifIds(new Set());}
+  },[notifKey]);
 
   const trackRecent=useCallback((c)=>{
     if(!c)return;
@@ -3157,8 +3163,8 @@ export default function App(){
   const handleLogout=async()=>{
     await supabase.auth.signOut();
     // Clear all PHI and session data from localStorage on every logout
-    ["cm-read-notifs","cm-dash-note","cm-email-prefs"].forEach(k=>localStorage.removeItem(k));
-    Object.keys(localStorage).filter(k=>k.startsWith("cm-recent-")).forEach(k=>localStorage.removeItem(k));
+    ["cm-dash-note","cm-email-prefs"].forEach(k=>localStorage.removeItem(k));
+    Object.keys(localStorage).filter(k=>k.startsWith("cm-recent-")||k.startsWith("cm-notifs-")).forEach(k=>localStorage.removeItem(k));
     setCurrentUser(null);
   };
 
@@ -3269,7 +3275,7 @@ export default function App(){
           {/* ── Switch Company ── */}
           {(currentUser?.allRoles||[]).length>1&&(
             <div style={{padding:"8px 14px",borderBottom:"1px solid var(--color-border)"}}>
-              <button onClick={()=>{setSelectedCompany(null);setCompany(null);setClients([]);setSelected(null);setView("dashboard");}}
+              <button onClick={()=>{setSelectedCompany(null);setCompany(null);setClients([]);setSelected(null);setView("dashboard");setSearch("");setStatusFilter("Active");setClientFilter("all");setSearchMode("clients");}}
                 style={{width:"100%",padding:"6px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-secondary)",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"left"}}>
                 ↔ Switch Company
               </button>
@@ -4374,7 +4380,7 @@ export default function App(){
         const markAllRead=()=>{
           const all=new Set([...readNotifIds,...notifs.map(n=>n.id)]);
           setReadNotifIds(all);
-          localStorage.setItem("cm-read-notifs",JSON.stringify([...all]));
+          localStorage.setItem(notifKey,JSON.stringify([...all]));
         };
         const urgColor={high:"#ef4444",medium:"#f59e0b",low:"#6366f1"};
         const EPREF_LABELS=[["doc_expiry","Document expiry alerts"],["fall_risk","High fall risk alerts"],["incidents","New incident reports"],["appointments","Appointment reminders"]];
@@ -4401,7 +4407,7 @@ export default function App(){
                 </div>
               ):notifs.map(n=>{
                 const isRead=readNotifIds.has(n.id);
-                const markRead=()=>{const s=new Set([...readNotifIds,n.id]);setReadNotifIds(s);localStorage.setItem("cm-read-notifs",JSON.stringify([...s]));};
+                const markRead=()=>{const s=new Set([...readNotifIds,n.id]);setReadNotifIds(s);localStorage.setItem(notifKey,JSON.stringify([...s]));};
                 return(
                   <div key={n.id} onClick={()=>{markRead();if(n.clientId){const c=clients.find(x=>x.id===n.clientId);if(c){setSelected(c);setView("detail");trackRecent(c);setNotifOpen(false);}}}}
                     style={{padding:"14px 20px",borderBottom:"1px solid rgba(255,255,255,0.05)",cursor:n.clientId?"pointer":"default",background:isRead?"transparent":"rgba(99,102,241,0.04)",display:"flex",gap:12,alignItems:"flex-start"}}>
