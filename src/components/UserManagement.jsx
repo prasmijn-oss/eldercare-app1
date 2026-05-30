@@ -301,10 +301,11 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
       showToast("error","Only a superadmin can grant superadmin role");return;
     }
     // Update all rows for this user so role is consistent across companies
-    const {error}=await supabase.from("user_roles").update({role:newRole}).eq("user_id",userId);
-    if(error){showToast("error","Failed to update role");return;}
-    setUsers(u=>u.map(x=>x.user_id===userId?{...x,role:newRole}:x));
-    showToast("success","Role updated");
+    const {data:updated,error}=await supabase.from("user_roles").update({role:newRole}).eq("user_id",userId).select();
+    if(error){showToast("error","Failed to update role: "+error.message);return;}
+    if(!updated||updated.length===0){showToast("error","Role update failed — no rows matched. Check permissions.");return;}
+    await loadData();
+    showToast("success",`Role updated to ${newRole.replace(/_/g," ")}`);
     await logAudit("Role changed",target?.name||target?.email||userId,{section:"User Management",details:`Role changed from "${oldRole.replace(/_/g," ")}" → "${newRole.replace(/_/g," ")}" for ${target?.name||target?.email||userId} (all companies)`});
     // If reactivating (old role was inactive), unban in auth
     if(oldRole==="inactive"&&newRole!=="inactive"){
