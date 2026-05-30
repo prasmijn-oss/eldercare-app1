@@ -233,7 +233,7 @@ export const GCSS = [
   "  .overlay { display: none !important; }",
   "  .mob-hdr { display: none !important; }",
   "}",
-  ".mob-hdr { display: none; align-items: center; justify-content: space-between; padding: 12px 20px; padding-top: calc(12px + env(safe-area-inset-top)); background: #0c0f1f; border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 100; }",
+  ".mob-hdr { display: none; align-items: center; justify-content: space-between; padding: 12px 20px; padding-top: calc(12px + env(safe-area-inset-top)); background: var(--color-bg-surface); border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 100; }",
   ".overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 199; }",
   ".overlay.show { display: block; }",
   "@media print {",
@@ -294,6 +294,7 @@ export const GCSS = [
   "html.cm-light .card-hover:hover { border-color: #d1d5db !important; box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important; }",
   /* Notification unread dot border matches light bg */
   "html.cm-light .notif-unread-dot { border-color: #f9fafb !important; }",
+  "@media (max-width: 600px) { .missed-row { flex-wrap: wrap !important; align-items: flex-start !important; } .missed-row-actions { width: 100% !important; justify-content: flex-end !important; margin-top: 6px !important; } }",
 ].join("\n");
 
 // ── Translations ───────────────────────────────────────────────────────────
