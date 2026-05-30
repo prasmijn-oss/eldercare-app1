@@ -3540,7 +3540,7 @@ export default function App(){
             </div>
           ):!loading&&view==="dashboard"&&(
             <>
-              {recentClients.length>0&&(
+              {recentClients.filter(rc=>!clients.find(c=>c.id===rc.id)?.archived).length>0&&(
                 <div style={{marginBottom:24}}>
                   <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-muted)",letterSpacing:0.5,textTransform:"uppercase",marginBottom:8}}>⏱ Recently Viewed</div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -3568,7 +3568,7 @@ export default function App(){
                     <div style={{fontSize:9,fontWeight:700,fontFamily:"'DM Mono',monospace",textTransform:"uppercase",letterSpacing:"0.9px",color:"var(--color-text-muted)"}}>Recently Viewed</div>
                     <button onClick={()=>{setView("clients");setSelected(null);}} style={{background:"none",border:"none",fontSize:11,fontWeight:500,color:"#6366f1",cursor:"pointer",padding:0}}>View all →</button>
                   </div>
-                  {recentClients.length===0?<div style={{color:"var(--color-text-muted)",fontSize:12,padding:"12px 0"}}>No recently viewed clients</div>:recentClients.map(rc=>{
+                  {recentClients.filter(rc=>!clients.find(c=>c.id===rc.id)?.archived).length===0?<div style={{color:"var(--color-text-muted)",fontSize:12,padding:"12px 0"}}>No recently viewed clients</div>:recentClients.map(rc=>{
                     const full=clients.find(c=>c.id===rc.id);
                     if(full?.archived)return null;
                     const fr=full?calcFallRisk(full):null;
