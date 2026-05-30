@@ -78,7 +78,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     const {data:ud}=activeCompanyId?await uq.eq("company_id",activeCompanyId):await uq;
     setUsers(ud||[]);
     const {data:cd}=await supabase.from("companies").select("*").order("name");
-    setCompanies(cd||[]);
+    setCompanies((cd||[]).filter(c=>!c.archived_at));
     // Load ALL users across all companies for existing user picker + stats
     const {data:au}=await supabase.from("user_roles").select("user_id,name,company_id,role,email").order("name");
     setAllUserRoles(au||[]);
@@ -650,24 +650,27 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                         </td>
                         {/* Role cell */}
                         <td style={{padding:"10px 16px"}}>
-                          <select value={u.role} onChange={e=>{
-                              const nr=e.target.value;if(nr===u.role)return;
-                              // Ceiling: only superadmin can grant superadmin
-                              if(nr==="superadmin"&&currentUser.role!=="superadmin"){showToast("error","Only a superadmin can grant the superadmin role");return;}
-                              // Cannot act on a user of equal or higher role (unless superadmin)
-                              const RORD={superadmin:1,admin:2,power_user:3,nurse:4,care_assistant:5,user:6,inactive:7};
-                              if(currentUser.role!=="superadmin"&&(RORD[u.role]??9)<=(RORD[currentUser.role]??9)){showToast("error","You cannot change the role of a user with an equal or higher role");return;}
-                              setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});
-                            }}
-                            style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"var(--color-text-muted)",border:"1px solid "+(roleColor[u.role]||"rgba(255,255,255,0.1)"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer",appearance:"none",WebkitAppearance:"none",MozAppearance:"none",width:"fit-content"}}>
-                            <option value="care_assistant">Care Assistant</option>
-                            <option value="user">User</option>
-                            <option value="nurse">Nurse</option>
-                            <option value="power_user">Power User</option>
-                            <option value="admin">Admin</option>
-                            {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
-                            <option value="inactive">Inactive</option>
-                          </select>
+                          <div style={{position:"relative",display:"inline-block"}}>
+                            <div style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"var(--color-text-muted)",border:"1px solid "+(roleColor[u.role]||"rgba(255,255,255,0.1)"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,pointerEvents:"none",whiteSpace:"nowrap"}}>
+                              {u.role==="superadmin"?"Super Admin":u.role==="power_user"?"Power User":u.role==="care_assistant"?"Care Assistant":u.role.charAt(0).toUpperCase()+u.role.slice(1)}
+                            </div>
+                            <select value={u.role} onChange={e=>{
+                                const nr=e.target.value;if(nr===u.role)return;
+                                if(nr==="superadmin"&&currentUser.role!=="superadmin"){showToast("error","Only a superadmin can grant the superadmin role");return;}
+                                const RORD={superadmin:1,admin:2,power_user:3,nurse:4,care_assistant:5,user:6,inactive:7};
+                                if(currentUser.role!=="superadmin"&&(RORD[u.role]??9)<=(RORD[currentUser.role]??9)){showToast("error","You cannot change the role of a user with an equal or higher role");return;}
+                                setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});
+                              }}
+                              style={{position:"absolute",inset:0,opacity:0,cursor:"pointer",width:"100%"}}>
+                              <option value="care_assistant">Care Assistant</option>
+                              <option value="user">User</option>
+                              <option value="nurse">Nurse</option>
+                              <option value="power_user">Power User</option>
+                              <option value="admin">Admin</option>
+                              {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
+                              <option value="inactive">Inactive</option>
+                            </select>
+                          </div>
                         </td>
                         {/* Companies cell */}
                         <td style={{padding:"10px 16px"}}>
