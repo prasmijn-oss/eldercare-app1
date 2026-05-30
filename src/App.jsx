@@ -10,7 +10,7 @@ import {
   WOUND_HEALING_COLOR,
   ADL_ITEMS, ADL_LABELS, ADL_LEVELS, ADL_LEVEL_SCORE, ADL_LEVEL_COLOR,
   IDLE_TIMEOUT_MS, IDLE_WARN_SECS,
-  DEFAULT_PERMS, DEFAULT_INTAKE_ITEMS,
+  DEFAULT_PERMS, DEFAULT_INTAKE_ITEMS, PERMISSION_GROUPS,
   PW_LEVELS, INP, LBL, ABTN, IBTN, GCSS,
   LANG_OPTIONS, T,
 } from "./lib/constants.js";
@@ -898,6 +898,8 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser,cfSchema,logAud
   const s=(f,v)=>setD(prev=>({...prev,[f]:v}));
   const valid=(d.name||"").trim().length>0;
   const scols={Active:"#10b981",Inactive:"#f59e0b",Discharged:"#8b5cf6"};
+  const perms=useContext(PermissionsContext);
+  const role=currentUser?.role||"user";
   return(
     <div style={{paddingBottom:40}}>
       <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
@@ -930,25 +932,25 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser,cfSchema,logAud
       <Sec icon="💊" title={t.medications} accent="#ef4444"><MedList items={d.medications||[]} onChange={v=>s("medications",v)} t={t}/></Sec>
       <Sec icon="⚠️" title={t.allergies} accent="#f59e0b"><TagList items={d.allergies||[]} onChange={v=>s("allergies",v)} placeholder="e.g. Penicillin..." addLabel={t.add}/></Sec>
       <Sec icon="📦" title={t.inventory} accent="#10b981" defaultOpen={false}><Inventory items={d.inventory||[]} onChange={v=>s("inventory",v)} t={t}/></Sec>
-      <Sec icon="📄" title={t.documents} accent="#06b6d4" defaultOpen={false}><DocTracker items={d.documents||[]} onChange={v=>s("documents",v)} t={t}/></Sec>
-      <Sec icon="📋" title={t.carePlan} accent="#8b5cf6" defaultOpen={false}><CarePlan items={d.care_plan||[]} onChange={v=>s("care_plan",v)} t={t}/></Sec>
-      <Sec icon="📊" title={t.vitals} accent="#6366f1" defaultOpen={false}><VitalsTracker vitals={d.vitals||[]} onChange={v=>s("vitals",v)} t={t}/></Sec>
-      <Sec icon="📝" title={t.notes} accent="#7c3aed"><NotesList items={d.session_notes||[]} onChange={v=>s("session_notes",v)} t={t}/></Sec>
+      {can(role,"documents",perms)&&<Sec icon="📄" title={t.documents} accent="#06b6d4" defaultOpen={false}><DocTracker items={d.documents||[]} onChange={v=>s("documents",v)} t={t}/></Sec>}
+      {can(role,"care_plan",perms)&&<Sec icon="📋" title={t.carePlan} accent="#8b5cf6" defaultOpen={false}><CarePlan items={d.care_plan||[]} onChange={v=>s("care_plan",v)} t={t}/></Sec>}
+      {can(role,"vitals",perms)&&<Sec icon="📊" title={t.vitals} accent="#6366f1" defaultOpen={false}><VitalsTracker vitals={d.vitals||[]} onChange={v=>s("vitals",v)} t={t}/></Sec>}
+      {can(role,"notes",perms)&&<Sec icon="📝" title={t.notes} accent="#7c3aed"><NotesList items={d.session_notes||[]} onChange={v=>s("session_notes",v)} t={t}/></Sec>}
       <Sec icon="👨‍👩‍👧" title="Family Contacts" accent="#ec4899" defaultOpen={false}><FamilyContacts items={d.family_contacts||[]} onChange={v=>s("family_contacts",v)}/></Sec>
       <Sec icon="📅" title="Appointments & Transport" accent="#06b6d4" defaultOpen={false}><AppointmentLog items={d.appointments||[]} onChange={v=>s("appointments",v)}/></Sec>
       <Sec icon="⚠️" title="Incident Reports" accent="#ef4444" defaultOpen={false}><IncidentReports items={d.incidents||[]} onChange={v=>s("incidents",v)} currentUser={currentUser}/></Sec>
       <Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
-      <Sec icon="💊" title="MAR — Daily Medication Log" accent="#16a34a" defaultOpen={true}><MARTracker marLog={d.mar_log||[]} medications={d.medications||[]} onChange={v=>s("mar_log",v)} currentUser={currentUser}/></Sec>
-      <Sec icon="⚡" title="PRN — As-Needed Medication Log" accent="#f59e0b" defaultOpen={false}><PRNLog prnLog={d.prn_log||[]} medications={d.medications||[]} onChange={v=>s("prn_log",v)} currentUser={currentUser}/></Sec>
+      {can(role,"mar",perms)&&<Sec icon="💊" title="MAR — Daily Medication Log" accent="#16a34a" defaultOpen={true}><MARTracker marLog={d.mar_log||[]} medications={d.medications||[]} onChange={v=>s("mar_log",v)} currentUser={currentUser}/></Sec>}
+      {can(role,"prn",perms)&&<Sec icon="⚡" title="PRN — As-Needed Medication Log" accent="#f59e0b" defaultOpen={false}><PRNLog prnLog={d.prn_log||[]} medications={d.medications||[]} onChange={v=>s("prn_log",v)} currentUser={currentUser}/></Sec>}
       <Sec icon="🏥" title="Hospitalisation Log" accent="#ef4444" defaultOpen={false}><HospLog items={d.hospitalizations||[]} onChange={v=>s("hospitalizations",v)}/></Sec>
-      <Sec icon="🛡" title="Preventive Care — Vaccines & Screenings" accent="#10b981" defaultOpen={false}><PreventiveCare items={d.preventive_care||[]} onChange={v=>s("preventive_care",v)}/></Sec>
-      <Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>
-      <Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>
-      <Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>
-      <Sec icon="🛏" title="Braden Scale (Pressure Ulcer Risk)" accent="#8b5cf6" defaultOpen={false}><BradenScale items={d.braden_assessments||[]} onChange={v=>s("braden_assessments",v)}/></Sec>
-      <Sec icon="🧠" title="Cognitive Screening (MMSE / MoCA)" accent="#a78bfa" defaultOpen={false}><CognitiveScreening items={d.cognitive_assessments||[]} onChange={v=>s("cognitive_assessments",v)}/></Sec>
-      <Sec icon="💧" title="Continence Monitoring" accent="#06b6d4" defaultOpen={false}><ContinenceLog items={d.continence_logs||[]} onChange={v=>s("continence_logs",v)}/></Sec>
-      <Sec icon="🥗" title="Nutritional Risk Screening (MUST)" accent="#10b981" defaultOpen={false}><NutritionScreening items={d.nutrition_assessments||[]} onChange={v=>s("nutrition_assessments",v)}/></Sec>
+      {can(role,"clinical",perms)&&<Sec icon="🛡" title="Preventive Care — Vaccines & Screenings" accent="#10b981" defaultOpen={false}><PreventiveCare items={d.preventive_care||[]} onChange={v=>s("preventive_care",v)}/></Sec>}
+      {can(role,"clinical",perms)&&<Sec icon="🧍" title="ADL Tracking" accent="#06b6d4" defaultOpen={false}><ADLTracker items={d.adl_logs||[]} onChange={v=>s("adl_logs",v)}/></Sec>}
+      {can(role,"clinical",perms)&&<Sec icon="🩹" title="Pain Assessment" accent="#f59e0b" defaultOpen={false}><PainAssessment items={d.pain_assessments||[]} onChange={v=>s("pain_assessments",v)}/></Sec>}
+      {can(role,"clinical",perms)&&<Sec icon="🩺" title="Wound & Skin Assessment" accent="#06b6d4" defaultOpen={false}><WoundAssessment items={d.wound_assessments||[]} onChange={v=>s("wound_assessments",v)}/></Sec>}
+      {can(role,"clinical",perms)&&<Sec icon="🛏" title="Braden Scale (Pressure Ulcer Risk)" accent="#8b5cf6" defaultOpen={false}><BradenScale items={d.braden_assessments||[]} onChange={v=>s("braden_assessments",v)}/></Sec>}
+      {can(role,"clinical",perms)&&<Sec icon="🧠" title="Cognitive Screening (MMSE / MoCA)" accent="#a78bfa" defaultOpen={false}><CognitiveScreening items={d.cognitive_assessments||[]} onChange={v=>s("cognitive_assessments",v)}/></Sec>}
+      {can(role,"clinical",perms)&&<Sec icon="💧" title="Continence Monitoring" accent="#06b6d4" defaultOpen={false}><ContinenceLog items={d.continence_logs||[]} onChange={v=>s("continence_logs",v)}/></Sec>}
+      {can(role,"clinical",perms)&&<Sec icon="🥗" title="Nutritional Risk Screening (MUST)" accent="#10b981" defaultOpen={false}><NutritionScreening items={d.nutrition_assessments||[]} onChange={v=>s("nutrition_assessments",v)}/></Sec>}
       {(()=>{const cfs=cfSchema?JSON.parse(cfSchema||"[]"):[];return cfs.length>0&&(<Sec icon="🧩" title="Additional Information" accent="#6366f1" defaultOpen={true}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{cfs.map(f=>{const val=d.custom_fields?.[f.id]??"";const setVal=v=>s("custom_fields",{...(d.custom_fields||{}),[f.id]:v});return(<div key={f.id} style={f.type==="textarea"?{gridColumn:"1/-1"}:{}}><label style={{...LBL,marginBottom:4}}>{f.label}{f.required&&<span style={{color:"#f87171",marginLeft:3}}>*</span>}</label>{f.type==="textarea"?<textarea value={val} onChange={e=>setVal(e.target.value)} rows={3} style={{...INP,marginBottom:0,resize:"vertical"}}/>:f.type==="select"?<select value={val} onChange={e=>setVal(e.target.value)} style={{...INP,marginBottom:0,padding:"7px 10px"}}><option value="">— Select —</option>{(f.options||"").split(",").map(o=>o.trim()).filter(Boolean).map(o=><option key={o} value={o}>{o}</option>)}</select>:f.type==="checkbox"?<label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,color:"var(--color-text-secondary)"}}><input type="checkbox" checked={!!val} onChange={e=>setVal(e.target.checked)} style={{accentColor:"#6366f1",width:16,height:16}}/>{f.label}</label>:<input type={f.type} value={val} onChange={e=>setVal(e.target.value)} style={{...INP,marginBottom:0}}/> }</div>);})}</div></Sec>);})()}
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
         <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600}}>{t.cancel}</button>
@@ -1231,7 +1233,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
             </div>
           </div>
         )}
-        {(client.documents||[]).length>0&&(
+        {can(role,"documents",perms)&&(client.documents||[]).length>0&&(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>DOCUMENTS</div>
             {(client.documents||[]).map(doc=>{
@@ -1249,7 +1251,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
             })}
           </div>
         )}
-        {(client.care_plan||[]).length>0&&(
+        {can(role,"care_plan",perms)&&(client.care_plan||[]).length>0&&(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>CARE PLAN</div>
             {(client.care_plan||[]).map(item=>{
@@ -1266,12 +1268,12 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
             })}
           </div>
         )}
-        {(client.vitals||[]).length>0&&(
+        {can(role,"vitals",perms)&&(client.vitals||[]).length>0&&(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <VitalsTracker vitals={client.vitals||[]} onChange={()=>{}} t={t}/>
           </div>
         )}
-        {fn.length>0&&(
+        {can(role,"notes",perms)&&fn.length>0&&(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:12}}>SESSION NOTES</div>
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -1326,8 +1328,8 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
             <IntakeChecklist items={ic} onChange={onInlineUpdate?v=>onInlineUpdate("intake_checklist",v):()=>{}} currentUser={currentUser}/>
           </div>
         );})()}
-        {/* Clinical assessments — Professional+ plan */}
-        {planCan(companyPlan,"clinical")?(
+        {/* Clinical assessments — Professional+ plan + permission */}
+        {planCan(companyPlan,"clinical")&&can(role,"clinical",perms)?(
           <>
             {/* ADL Tracking */}
             <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
@@ -1880,20 +1882,28 @@ function CompanyPicker({onSelect,currentUser,t}){
 }
 
 const ACTIONS=[
-  {key:"view",       label:"View Clients",       icon:"👁",  desc:"Browse and read client profiles"},
-  {key:"add",        label:"Add Clients",         icon:"➕",  desc:"Create new client records"},
-  {key:"edit",       label:"Edit Clients",        icon:"✏️", desc:"Modify client data and assessments"},
-  {key:"delete",     label:"Delete Clients",      icon:"🗑",  desc:"Permanently delete client records"},
-  {key:"audit",      label:"Audit Trail",         icon:"📋", desc:"Access the full system audit log"},
-  {key:"company",    label:"Company Settings",    icon:"🏢", desc:"Edit company profile and settings"},
-  {key:"users",      label:"User Management",     icon:"👥", desc:"Create, edit and deactivate staff accounts"},
-  {key:"permissions",label:"Permissions Panel",   icon:"🔐", desc:"Edit what each role can do"},
-  {key:"rooms",           label:"Rooms Board",          icon:"🛏", desc:"View room assignments and isolation flags"},
-  {key:"readmission",     label:"Readmission Risk",     icon:"🏥", desc:"View hospitalisation history and readmission risk dashboard"},
-  {key:"medications_view",label:"Medications View",     icon:"💊", desc:"Access the aggregate medications list across all clients"},
-  {key:"incidents_view",  label:"Incidents View",       icon:"⚠️", desc:"Access the aggregate incidents list across all clients"},
-  {key:"reports",         label:"Reports",              icon:"📄", desc:"Generate census, MAR and other reports"},
-  {key:"handover",        label:"Handover Notes",       icon:"📝", desc:"Access shift handover notes"},
+  {key:"view",          label:"View Clients",         icon:"👁",  desc:"Browse and read client profiles"},
+  {key:"add",           label:"Add Clients",           icon:"➕",  desc:"Create new client records"},
+  {key:"edit",          label:"Edit Clients",          icon:"✏️", desc:"Modify client data and assessments"},
+  {key:"delete",        label:"Delete Clients",        icon:"🗑",  desc:"Permanently delete client records"},
+  {key:"audit",         label:"Audit Trail",           icon:"📋", desc:"Access the full system audit log"},
+  {key:"company",       label:"Company Settings",      icon:"🏢", desc:"Edit company profile and settings"},
+  {key:"users",         label:"User Management",       icon:"👥", desc:"Create, edit and deactivate staff accounts"},
+  {key:"permissions",   label:"Permissions Panel",     icon:"🔐", desc:"Edit what each role can do"},
+  {key:"rooms",         label:"Rooms Board",           icon:"🛏", desc:"View room assignments and isolation flags"},
+  {key:"readmission",   label:"Readmission Risk",      icon:"🏥", desc:"View hospitalisation history and readmission risk dashboard"},
+  {key:"medications_view",label:"Medications View",   icon:"💊", desc:"Access the aggregate medications list across all clients"},
+  {key:"incidents_view",label:"Incidents View",        icon:"⚠️", desc:"Access the aggregate incidents list across all clients"},
+  {key:"reports",       label:"Reports",               icon:"📄", desc:"Generate census, MAR and other reports"},
+  {key:"handover",      label:"Handover Notes",        icon:"📝", desc:"Access shift handover notes"},
+  {key:"clinical",      label:"Clinical Assessments",  icon:"🩺", desc:"ADL, pain, wound, Braden, cognitive, continence, nutrition"},
+  {key:"vitals",        label:"Vitals",                icon:"❤️", desc:"View and record vital signs"},
+  {key:"notes",         label:"Session Notes",         icon:"🗒", desc:"Read and write session notes"},
+  {key:"care_plan",     label:"Care Plan",             icon:"📌", desc:"View and edit care plans"},
+  {key:"documents",     label:"Documents",             icon:"📁", desc:"Upload and manage client documents"},
+  {key:"mar",           label:"MAR Tracker",           icon:"💉", desc:"Medication administration record and export"},
+  {key:"prn",           label:"PRN Log",               icon:"⚗️", desc:"As-needed medication justification log"},
+  {key:"controlled_sub",label:"Controlled Substances", icon:"🔒", desc:"Controlled substance audit log with witness signatures"},
 ];
 const ROLES=["superadmin","admin","power_user","nurse","care_assistant","user"];
 const ROLE_LABELS={superadmin:"Super Admin",admin:"Admin",power_user:"Power User",nurse:"Nurse",care_assistant:"Care Assistant",user:"User"};
@@ -1907,7 +1917,7 @@ const ROLE_DESC={
   user:"Read-only care staff — can view clients and log assessments.",
 };
 
-function PermissionsPanel({activeCompanyId,currentUser,t}){
+function PermissionsPanel({activeCompanyId,currentUser,t,refreshPerms}){
   const [globalPerms,setGlobalPerms]=useState([]);
   const [companyPerms,setCompanyPerms]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -1915,6 +1925,8 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
   const [toast,setToast]=useState(null);
   const [tab,setTab]=useState(currentUser.role==="superadmin"?"global":"company");
   const [pendingChanges,setPendingChanges]=useState({});
+  const [selectedRole,setSelectedRole]=useState("admin");
+  const [collapsedGroups,setCollapsedGroups]=useState(new Set());
 
   const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
 
@@ -1931,13 +1943,15 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
 
   useEffect(()=>{loadPerms();},[activeCompanyId]);
 
-  const getPermValue=(role,action,isCompany=false)=>{
-    const key=`${isCompany?"c":"g"}_${role}_${action}`;
+  const isCompanyTab=tab==="company";
+  const useCompany=isCompanyTab&&!!activeCompanyId;
+
+  const getPermValue=(role,action)=>{
+    const key=`${useCompany?"c":"g"}_${role}_${action}`;
     if(pendingChanges[key]!==undefined)return pendingChanges[key];
-    if(isCompany){
+    if(useCompany){
       const override=companyPerms.find(p=>p.role===role&&p.action===action);
       if(override)return override.allowed;
-      // Fall back to global
       const global=globalPerms.find(p=>p.role===role&&p.action===action);
       return global?.allowed??false;
     }
@@ -1945,10 +1959,20 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
     return global?.allowed??false;
   };
 
-  const togglePerm=(role,action,isCompany=false)=>{
-    const key=`${isCompany?"c":"g"}_${role}_${action}`;
-    const current=getPermValue(role,action,isCompany);
+  const togglePerm=(role,action)=>{
+    const key=`${useCompany?"c":"g"}_${role}_${action}`;
+    const current=getPermValue(role,action);
     setPendingChanges(p=>({...p,[key]:!current}));
+  };
+
+  const setGroupAll=(role,groupActions,val)=>{
+    const updates={};
+    groupActions.forEach(action=>{
+      if(role==="superadmin")return;
+      const key=`${useCompany?"c":"g"}_${role}_${action}`;
+      updates[key]=val;
+    });
+    setPendingChanges(p=>({...p,...updates}));
   };
 
   const saveChanges=async()=>{
@@ -1969,7 +1993,6 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
           await supabase.from("permissions").update({allowed,updated_at:new Date().toISOString()}).eq("role",role).eq("action",action);
         }
       }
-      // Audit log
       await supabase.from("audit_log").insert({
         action:"Permissions updated",client_name:"",
         performed_by:currentUser?.displayName||currentUser?.email||"",
@@ -1979,11 +2002,10 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
         details:`Changed ${changeCount} permission${changeCount!==1?"s":""} (${tab==="company"?"company override":"global defaults"})`,
         device:navigator.userAgent.slice(0,220),
       }).then(()=>{});
-      // Reload permissions cache
-      if(applyMode==="now")await refreshPerms(activeCompanyId);
+      await refreshPerms(activeCompanyId);
       setPendingChanges({});
       await loadPerms();
-      showToast("success",applyMode==="now"?"Permissions saved and applied immediately!":"Permissions saved — will apply on next login");
+      showToast("success","Permissions saved and applied!");
     }catch(err){
       showToast("error","Failed to save: "+err.message);
     }
@@ -1991,26 +2013,27 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
   };
 
   const hasPending=Object.keys(pendingChanges).length>0;
-  const isCompanyTab=tab==="company";
 
-  // Toggle switch component (inline)
   const Toggle=({val,onClick,locked,pending})=>(
     <button onClick={locked?undefined:onClick} disabled={locked} aria-checked={val} role="switch"
-      style={{width:48,height:26,borderRadius:13,border:"none",flexShrink:0,
+      style={{width:44,height:24,borderRadius:12,border:"none",flexShrink:0,
         background:val?"#10b981":"var(--color-border)",
         position:"relative",cursor:locked?"not-allowed":"pointer",
         transition:"background 200ms ease",
         outline:pending?"2px solid #f59e0b":"none",outlineOffset:2,
         opacity:locked?0.5:1,touchAction:"manipulation"}}>
-      <span style={{position:"absolute",top:3,left:val?25:3,
+      <span style={{position:"absolute",top:2,left:val?22:2,
         width:20,height:20,borderRadius:"50%",background:"#fff",
         transition:"left 200ms ease",boxShadow:"0 1px 4px rgba(0,0,0,0.25)"}}/>
     </button>
   );
 
+  const roleColor=ROLE_COLORS[selectedRole]||"var(--color-accent)";
+  const totalEnabled=ACTIONS.filter(a=>getPermValue(selectedRole,a.key)).length;
+  const pendingCount=Object.keys(pendingChanges).length;
+
   return(
-    <div style={{maxWidth:960}}>
-      {/* Toast */}
+    <div style={{maxWidth:1100}}>
       {toast&&(
         <div style={{position:"fixed",top:24,right:24,zIndex:1100,padding:"12px 20px",borderRadius:10,
           background:toast.type==="success"?"#059669":"#dc2626",color:"#fff",fontSize:14,fontWeight:600,
@@ -2029,7 +2052,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
           {hasPending&&(
             <button onClick={()=>setPendingChanges({})}
               style={{padding:"7px 14px",borderRadius:8,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",fontSize:12,fontWeight:600,cursor:"pointer"}}>
-              Discard changes
+              Discard ({pendingCount})
             </button>
           )}
           <button onClick={saveChanges} disabled={saving||!hasPending}
@@ -2037,7 +2060,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
               background:hasPending?"#10b981":"var(--color-bg-hover)",
               color:hasPending?"#fff":"var(--color-text-muted)",
               fontWeight:700,fontSize:13,cursor:hasPending?"pointer":"not-allowed",transition:"background 150ms"}}>
-            {saving?"Saving…":`Save${hasPending?` (${Object.keys(pendingChanges).length})`:""}` }
+            {saving?"Saving…":`Save${hasPending?` (${pendingCount})`:""}` }
           </button>
         </div>
       </div>
@@ -2059,101 +2082,131 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
         ))}
       </div>
 
-      {tab==="company"&&(
+      {isCompanyTab&&(
         <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",borderRadius:9,
           background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",marginBottom:16}}>
           <span style={{fontSize:14}}>ℹ️</span>
           <span style={{fontSize:12,color:"#f59e0b",lineHeight:1.5}}>
-            Company overrides apply <strong>on top of</strong> global defaults — only changed permissions are stored here. Unset overrides fall back to global.
-            {!activeCompanyId&&<strong> Select a company first to use this tab.</strong>}
+            Company overrides apply <strong>on top of</strong> global defaults — only changed permissions are stored here.
+            {!activeCompanyId&&<strong> Select a company first.</strong>}
           </span>
         </div>
       )}
 
-      {tab==="company"&&!activeCompanyId?(
+      {isCompanyTab&&!activeCompanyId?(
         <div style={{padding:40,textAlign:"center",color:"var(--color-text-muted)"}}>
           <div style={{fontSize:32,marginBottom:10}}>🏢</div>
           <div style={{fontSize:15,fontWeight:600}}>No company selected</div>
-          <div style={{fontSize:13,marginTop:4}}>Switch to a company from the sidebar to manage overrides.</div>
+          <div style={{fontSize:13,marginTop:4}}>Switch to a company from the sidebar.</div>
         </div>
       ):loading?(
         <div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"40px 0",fontFamily:"'DM Mono',monospace",fontSize:13}}>Loading permissions…</div>
       ):(
-        <>
-          {/* Pending banner */}
-          {hasPending&&(
-            <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.3)",
-              borderRadius:10,padding:"10px 16px",marginBottom:16,
-              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:13,color:"#f59e0b",fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
-                ⚠️ {Object.keys(pendingChanges).length} unsaved change{Object.keys(pendingChanges).length!==1?"s":""}  — will apply immediately on save
-              </span>
-            </div>
-          )}
-
-          {/* Role cards */}
-          <div className="perms-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:16,alignItems:"start"}}>
+          {/* Role sidebar */}
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {ROLES.map(role=>{
-              const enabledCount=ACTIONS.filter(a=>getPermValue(role,a.key,isCompanyTab&&!!activeCompanyId)).length;
-              const roleColor=ROLE_COLORS[role];
-              const pendingForRole=ACTIONS.filter(a=>pendingChanges[`${isCompanyTab?"c":"g"}_${role}_${a.key}`]!==undefined).length;
+              const rc=ROLE_COLORS[role];
+              const en=ACTIONS.filter(a=>getPermValue(role,a.key)).length;
+              const pend=ACTIONS.filter(a=>pendingChanges[`${useCompany?"c":"g"}_${role}_${a.key}`]!==undefined).length;
+              const isSelected=selectedRole===role;
               return(
-                <div key={role} style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",
-                  borderRadius:14,overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,0.08)"}}>
-                  {/* Card header */}
-                  <div style={{padding:"14px 18px",borderBottom:"1px solid var(--color-border)",
-                    background:"var(--color-bg-hover)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <div>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
-                        <span style={{fontSize:13,fontWeight:800,color:roleColor,textTransform:"uppercase",letterSpacing:"0.4px"}}>{ROLE_LABELS[role]}</span>
-                        <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,
-                          background:roleColor+"18",color:roleColor,fontFamily:"'DM Mono',monospace"}}>
-                          {enabledCount}/{ACTIONS.length}
-                        </span>
-                        {pendingForRole>0&&<span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b"}}>{pendingForRole} pending</span>}
-                      </div>
-                      <div style={{fontSize:11,color:"var(--color-text-dim)",lineHeight:1.4}}>{ROLE_DESC[role]}</div>
-                    </div>
-                    {/* Enable all / none quick actions — skip superadmin */}
-                    {role!=="superadmin"&&(
-                      <div style={{display:"flex",gap:4,flexShrink:0}}>
-                        <button onClick={()=>{ACTIONS.forEach(a=>{if(!getPermValue(role,a.key,isCompanyTab&&!!activeCompanyId)){const k=`${isCompanyTab?"c":"g"}_${role}_${a.key}`;setPendingChanges(p=>({...p,[k]:true}));}});}}
-                          style={{fontSize:10,padding:"3px 8px",borderRadius:5,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>All</button>
-                        <button onClick={()=>{ACTIONS.forEach(a=>{if(getPermValue(role,a.key,isCompanyTab&&!!activeCompanyId)){const k=`${isCompanyTab?"c":"g"}_${role}_${a.key}`;setPendingChanges(p=>({...p,[k]:false}));}});}}
-                          style={{fontSize:10,padding:"3px 8px",borderRadius:5,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>None</button>
+                <button key={role} onClick={()=>setSelectedRole(role)}
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,border:"none",
+                    background:isSelected?rc+"22":"var(--color-bg-card)",
+                    cursor:"pointer",textAlign:"left",
+                    outline:isSelected?`2px solid ${rc}40`:"none",
+                    outlineOffset:0,transition:"background 120ms"}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:rc,flexShrink:0}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:700,color:isSelected?rc:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ROLE_LABELS[role]}</div>
+                    <div style={{fontSize:10,color:"var(--color-text-muted)",fontFamily:"'DM Mono',monospace",marginTop:1}}>{en}/{ACTIONS.length}{pend>0&&<span style={{color:"#f59e0b",marginLeft:4}}> +{pend}</span>}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Permission tree */}
+          <div>
+            {/* Role header */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",
+              background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,marginBottom:12}}>
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:14,fontWeight:800,color:roleColor,textTransform:"uppercase",letterSpacing:"0.5px"}}>{ROLE_LABELS[selectedRole]}</span>
+                  <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:roleColor+"18",color:roleColor,fontFamily:"'DM Mono',monospace"}}>{totalEnabled}/{ACTIONS.length} enabled</span>
+                  {pendingCount>0&&<span style={{fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b"}}>{pendingCount} pending</span>}
+                </div>
+                <div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:4}}>{ROLE_DESC[selectedRole]}</div>
+              </div>
+              {selectedRole!=="superadmin"&&(
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>ACTIONS.forEach(a=>setPendingChanges(p=>({...p,[`${useCompany?"c":"g"}_${selectedRole}_${a.key}`]:true})))}
+                    style={{fontSize:11,padding:"5px 12px",borderRadius:7,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>All</button>
+                  <button onClick={()=>ACTIONS.forEach(a=>setPendingChanges(p=>({...p,[`${useCompany?"c":"g"}_${selectedRole}_${a.key}`]:false})))}
+                    style={{fontSize:11,padding:"5px 12px",borderRadius:7,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>None</button>
+                </div>
+              )}
+            </div>
+
+            {/* Groups */}
+            {PERMISSION_GROUPS.map(group=>{
+              const groupActionsInPanel=group.actions.filter(ak=>ACTIONS.some(a=>a.key===ak));
+              const isCollapsed=collapsedGroups.has(group.key);
+              const groupEnabled=groupActionsInPanel.filter(ak=>getPermValue(selectedRole,ak)).length;
+              const groupPending=groupActionsInPanel.filter(ak=>pendingChanges[`${useCompany?"c":"g"}_${selectedRole}_${ak}`]!==undefined).length;
+              return(
+                <div key={group.key} style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
+                  {/* Group header */}
+                  <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",
+                    background:"var(--color-bg-hover)",borderBottom:isCollapsed?"none":"1px solid var(--color-border)",
+                    cursor:"pointer"}}
+                    onClick={()=>setCollapsedGroups(s=>{const n=new Set(s);n.has(group.key)?n.delete(group.key):n.add(group.key);return n;})}>
+                    <span style={{fontSize:15}}>{group.icon}</span>
+                    <span style={{flex:1,fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{group.label}</span>
+                    <span style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginRight:4}}>{groupEnabled}/{groupActionsInPanel.length}</span>
+                    {groupPending>0&&<span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",marginRight:4}}>{groupPending}⚑</span>}
+                    {selectedRole!=="superadmin"&&!isCollapsed&&(
+                      <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
+                        <button onClick={()=>setGroupAll(selectedRole,groupActionsInPanel,true)}
+                          style={{fontSize:10,padding:"2px 7px",borderRadius:5,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>All</button>
+                        <button onClick={()=>setGroupAll(selectedRole,groupActionsInPanel,false)}
+                          style={{fontSize:10,padding:"2px 7px",borderRadius:5,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>None</button>
                       </div>
                     )}
+                    <span style={{fontSize:10,color:"var(--color-text-muted)",marginLeft:4,fontFamily:"'DM Mono',monospace"}}>{isCollapsed?"▸":"▾"}</span>
                   </div>
-                  {/* Permission rows */}
-                  <div>
-                    {ACTIONS.map((action,i)=>{
-                      const val=getPermValue(role,action.key,isCompanyTab&&!!activeCompanyId);
-                      const key=`${isCompanyTab?"c":"g"}_${role}_${action.key}`;
-                      const isPending=pendingChanges[key]!==undefined;
-                      const isLocked=role==="superadmin";
-                      return(
-                        <div key={action.key}
-                          onClick={()=>!isLocked&&togglePerm(role,action.key,isCompanyTab&&!!activeCompanyId)}
-                          style={{display:"flex",alignItems:"center",gap:12,padding:"11px 18px",
-                            borderBottom:i<ACTIONS.length-1?"1px solid var(--color-border)":"none",
-                            cursor:isLocked?"default":"pointer",
-                            background:isPending?"rgba(245,158,11,0.05)":"transparent",
-                            transition:"background 80ms"}}>
-                          <span style={{fontSize:16,flexShrink:0,width:22,textAlign:"center"}}>{action.icon}</span>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:13,fontWeight:600,color:val?"var(--color-text-primary)":"var(--color-text-dim)"}}>{action.label}</div>
-                            <div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:1}}>{action.desc}</div>
-                          </div>
-                          <Toggle val={val} onClick={()=>togglePerm(role,action.key,isCompanyTab&&!!activeCompanyId)} locked={isLocked} pending={isPending}/>
+                  {/* Group actions */}
+                  {!isCollapsed&&groupActionsInPanel.map((ak,i)=>{
+                    const action=ACTIONS.find(a=>a.key===ak);
+                    if(!action)return null;
+                    const val=getPermValue(selectedRole,ak);
+                    const key=`${useCompany?"c":"g"}_${selectedRole}_${ak}`;
+                    const isPending=pendingChanges[key]!==undefined;
+                    const isLocked=selectedRole==="superadmin";
+                    return(
+                      <div key={ak}
+                        onClick={()=>!isLocked&&togglePerm(selectedRole,ak)}
+                        style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",
+                          borderBottom:i<groupActionsInPanel.length-1?"1px solid var(--color-border)":"none",
+                          cursor:isLocked?"default":"pointer",
+                          background:isPending?"rgba(245,158,11,0.04)":"transparent",
+                          transition:"background 80ms"}}>
+                        <span style={{fontSize:15,flexShrink:0,width:22,textAlign:"center"}}>{action.icon}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:600,color:val?"var(--color-text-primary)":"var(--color-text-dim)"}}>{action.label}</div>
+                          <div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:1}}>{action.desc}</div>
                         </div>
-                      );
-                    })}
-                  </div>
+                        <Toggle val={val} onClick={()=>togglePerm(selectedRole,ak)} locked={isLocked} pending={isPending}/>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -3644,7 +3697,7 @@ export default function App(){
             <UserManagement currentUser={currentUser} onRoleChange={refreshCurrentUser} activeCompanyId={activeCompanyId} t={t} logAudit={logAudit}/>
           )}
           {!loading&&view==="permissions"&&can(currentUser.role,"permissions",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"permissions"))&&(
-            <PermissionsPanel activeCompanyId={activeCompanyId} currentUser={currentUser} t={t}/>
+            <PermissionsPanel activeCompanyId={activeCompanyId} currentUser={currentUser} t={t} refreshPerms={refreshPerms}/>
           )}
           {!loading&&view!=="audit"&&searchMode==="notes"&&search.trim().length>1?(
             <div>
