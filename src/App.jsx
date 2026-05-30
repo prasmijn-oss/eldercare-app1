@@ -3632,9 +3632,9 @@ export default function App(){
               <div style={{padding:"24px 20px",maxWidth:1100,margin:"0 auto"}}>
                 <div style={{marginBottom:20}}>
                   <div style={{fontSize:20,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",marginBottom:4}}>🏥 Readmission Risk Dashboard</div>
-                  <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:10}}>
+                  <div className="readmission-stats" style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginTop:10}}>
                     {[["Very High","#ef4444",vhCount],["High","#f97316",hCount],["Admissions (30d)","#6366f1",recentAdmits.length],["Readmissions","#f59e0b",readmits.length]].map(([lbl,col,n])=>(
-                      <div key={lbl} style={{background:"var(--color-bg-card)",border:"1px solid "+col+"40",borderRadius:10,padding:"12px 18px",minWidth:120,textAlign:"center"}}>
+                      <div key={lbl} style={{background:"var(--color-bg-card)",border:"1px solid "+col+"40",borderRadius:10,padding:"12px 18px",textAlign:"center"}}>
                         <div style={{fontSize:26,fontWeight:800,color:col,fontFamily:"'DM Mono',monospace"}}>{n}</div>
                         <div style={{fontSize:11,color:"var(--color-text-muted)",marginTop:2}}>{lbl}</div>
                       </div>
