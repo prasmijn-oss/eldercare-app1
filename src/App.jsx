@@ -3575,7 +3575,22 @@ export default function App(){
               <div className="main-topbar" style={{background:"var(--color-bg-surface)",borderBottom:"1px solid var(--color-border)",padding:"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,position:"sticky",top:0,zIndex:50}}>
                 <div>
                   <div style={{fontSize:17,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>{greeting}, {firstName}.</div>
-                  <div className="topbar-meta" style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginTop:3}}>{dateStr} · {activeCount} ACTIVE CLIENTS{company?.name?" · "+company.name.toUpperCase():""}</div>
+                  <div className="topbar-meta" style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginTop:3}}>
+                    {dateStr} · {activeCount} ACTIVE CLIENTS{company?.name?" · "+company.name.toUpperCase():""}
+                    {company&&(()=>{
+                      const plan=(company.plan||"standard").toUpperCase();
+                      const status=(company.subscription_status||"active").toUpperCase();
+                      const exp=company.subscription_expires_at?new Date(company.subscription_expires_at):null;
+                      const daysLeft=exp?Math.ceil((exp-new Date())/(1000*60*60*24)):null;
+                      let countdownText="",countdownColor="inherit";
+                      if(daysLeft===null){}
+                      else if(daysLeft<0){countdownText=" · EXPIRED";countdownColor="#ef4444";}
+                      else if(daysLeft===0){countdownText=" · EXPIRES TODAY";countdownColor="#ef4444";}
+                      else if(daysLeft<=30){countdownText=" · "+daysLeft+"D LEFT";countdownColor="#f59e0b";}
+                      else{countdownText=" · "+daysLeft+"D";}
+                      return <span> · {plan} · {status}<span style={{color:countdownColor}}>{countdownText}</span></span>;
+                    })()}
+                  </div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <input id="cm-search" aria-label="Search clients" style={{height:34,width:160,padding:"0 12px",background:"rgba(255,255,255,0.04)",border:"1px solid var(--color-border)",borderRadius:8,fontSize:12,color:"var(--color-text-secondary)",fontFamily:"'DM Sans',sans-serif",outline:"none"}} placeholder={t.search||"Search…"} value={search} onChange={e=>{setSearch(e.target.value);if(view!=="clients"&&e.target.value){setView("clients");setSelected(null);}}} onFocus={()=>{if(view!=="clients"){setView("clients");setSelected(null);}}}/>
