@@ -1779,8 +1779,12 @@ const ACTIONS=[
   {key:"company",    label:"Company Settings",    icon:"🏢", desc:"Edit company profile and settings"},
   {key:"users",      label:"User Management",     icon:"👥", desc:"Create, edit and deactivate staff accounts"},
   {key:"permissions",label:"Permissions Panel",   icon:"🔐", desc:"Edit what each role can do"},
-  {key:"rooms",      label:"Rooms Board",          icon:"🛏", desc:"View room assignments and isolation flags"},
-  {key:"readmission",label:"Readmission Risk",      icon:"🏥", desc:"View hospitalisation history and readmission risk dashboard"},
+  {key:"rooms",           label:"Rooms Board",          icon:"🛏", desc:"View room assignments and isolation flags"},
+  {key:"readmission",     label:"Readmission Risk",     icon:"🏥", desc:"View hospitalisation history and readmission risk dashboard"},
+  {key:"medications_view",label:"Medications View",     icon:"💊", desc:"Access the aggregate medications list across all clients"},
+  {key:"incidents_view",  label:"Incidents View",       icon:"⚠️", desc:"Access the aggregate incidents list across all clients"},
+  {key:"reports",         label:"Reports",              icon:"📄", desc:"Generate census, MAR and other reports"},
+  {key:"handover",        label:"Handover Notes",       icon:"📝", desc:"Access shift handover notes"},
 ];
 const ROLES=["superadmin","admin","power_user","nurse","care_assistant","user"];
 const ROLE_LABELS={superadmin:"Super Admin",admin:"Admin",power_user:"Power User",nurse:"Nurse",care_assistant:"Care Assistant",user:"User"};
@@ -3313,7 +3317,7 @@ export default function App(){
               );
               // Incidents nav
               const incActive=view==="incidents";
-              const incBtn=(
+              const incBtn=can(currentUser.role,"incidents_view",perms)?(
                 <button onClick={()=>{setView("incidents");setSelected(null);setSidebarOpen(false);}}
                   className={incActive?"nav-item nav-active":"nav-item"} style={NAV_STYLE(incActive)}>
                   {incActive&&ACCENT_BAR}
@@ -3321,7 +3325,7 @@ export default function App(){
                   <span style={{flex:1}}>Incidents</span>
                   {recentIncidentCount>0&&<span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"rgba(239,68,68,0.15)",color:"#f87171",borderRadius:5,padding:"1px 6px",fontWeight:700,border:"1px solid rgba(239,68,68,0.2)"}}>{recentIncidentCount}</span>}
                 </button>
-              );
+              ):null;
               // Appointments nav
               const apptActive=view==="appointments";
               const apptBtn=(
@@ -3335,7 +3339,7 @@ export default function App(){
               );
               // Medications nav
               const medActive=view==="medications";
-              const medBtn=(
+              const medBtn=can(currentUser.role,"medications_view",perms)?(
                 <button onClick={()=>{setView("medications");setSelected(null);setSidebarOpen(false);}}
                   className={medActive?"nav-item nav-active":"nav-item"} style={NAV_STYLE(medActive)}>
                   {medActive&&ACCENT_BAR}
@@ -3343,7 +3347,7 @@ export default function App(){
                   <span style={{flex:1}}>Medications</span>
                   {medFlagCount>0&&<span style={{fontSize:10,fontFamily:"'DM Mono',monospace",background:"rgba(245,158,11,0.15)",color:"#fbbf24",borderRadius:5,padding:"1px 6px",fontWeight:700,border:"1px solid rgba(245,158,11,0.2)"}}>{medFlagCount}</span>}
                 </button>
-              );
+              ):null;
               const roomsActive=view==="rooms";
               const roomsBtn=can(currentUser.role,"rooms",perms)?(
                 <button onClick={()=>{setView("rooms");setSelected(null);setSidebarOpen(false);}}
@@ -3373,9 +3377,9 @@ export default function App(){
                 );
               };
               return(<>
-                {navBtn("handover","Handovers",'<rect x="1" y="3" width="13" height="10" rx="1.5"/><line x1="4" y1="7" x2="11" y2="7"/><line x1="4" y1="10" x2="8" y2="10"/><circle cx="11" cy="10" r="2" fill="currentColor" stroke="none"/>')}
+                {navBtn("handover","Handovers",'<rect x="1" y="3" width="13" height="10" rx="1.5"/><line x1="4" y1="7" x2="11" y2="7"/><line x1="4" y1="10" x2="8" y2="10"/><circle cx="11" cy="10" r="2" fill="currentColor" stroke="none"/>',can(currentUser.role,"handover",perms))}
                 {navBtn("readmission","Readmission Risk",'<path d="M7.5 2a5.5 5.5 0 100 11A5.5 5.5 0 007.5 2z"/><line x1="7.5" y1="5" x2="7.5" y2="7.5"/><line x1="7.5" y1="7.5" x2="9.5" y2="9.5"/><path d="M12.5 12.5l2 2"/>',can(currentUser.role,"readmission",perms))}
-                {navBtn("reports","Reports",'<rect x="2" y="1" width="11" height="13" rx="1.5"/><line x1="4.5" y1="5" x2="10.5" y2="5"/><line x1="4.5" y1="8" x2="10.5" y2="8"/><line x1="4.5" y1="11" x2="8" y2="11"/>')}
+                {navBtn("reports","Reports",'<rect x="2" y="1" width="11" height="13" rx="1.5"/><line x1="4.5" y1="5" x2="10.5" y2="5"/><line x1="4.5" y1="8" x2="10.5" y2="8"/><line x1="4.5" y1="11" x2="8" y2="11"/>',can(currentUser.role,"reports",perms))}
                 {navBtn("users","Staff / Users",'<circle cx="6" cy="5" r="3"/><path d="M1 13c0-2.8 2.2-5 5-5"/><circle cx="11.5" cy="9" r="2.5"/><line x1="11.5" y1="11.5" x2="11.5" y2="14"/><line x1="10" y1="12.5" x2="13" y2="12.5"/>',can(currentUser.role,"users",perms))}
                 {navBtn("audit",t.auditTrail,'<circle cx="7.5" cy="7.5" r="6"/><polyline points="7.5,4.5 7.5,7.5 9.5,9.5"/>',can(currentUser.role,"audit",perms))}
               </>);
@@ -3484,9 +3488,9 @@ export default function App(){
             {error}
           </div>}
           {loading&&view==="dashboard"&&<div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"60px 0",fontFamily:"'DM Mono',monospace",fontSize:13}}>Loading...</div>}
-          {!loading&&view==="handover"&&<HandoverNotes supabase={supabase} companyId={activeCompanyId} currentUser={currentUser} clients={clients}/>}
+          {!loading&&view==="handover"&&can(currentUser.role,"handover",perms)&&<HandoverNotes supabase={supabase} companyId={activeCompanyId} currentUser={currentUser} clients={clients}/>}
           {!loading&&view==="audit"&&can(currentUser.role,"audit",perms)&&<AuditTrail t={t} companyId={activeCompanyId} currentUser={currentUser}/>}
-          {!loading&&view==="reports"&&<ReportsView clients={clients} company={company} currentUser={currentUser} t={t} logAudit={logAudit}/>}
+          {!loading&&view==="reports"&&can(currentUser.role,"reports",perms)&&<ReportsView clients={clients} company={company} currentUser={currentUser} t={t} logAudit={logAudit}/>}
           {!loading&&view==="company"&&can(currentUser.role,"company",perms)&&(
             <CompanyView company={company} onUpdate={updated=>{setCompany(updated);}} currentUser={currentUser} t={t}/>
           )}
@@ -3778,7 +3782,7 @@ export default function App(){
               </div>
             );
           })()}
-          {!loading&&view==="incidents"&&(()=>{
+          {!loading&&view==="incidents"&&can(currentUser.role,"incidents_view",perms)&&(()=>{
             const SEVCOLS={Low:"#34d399",Moderate:"#f59e0b",High:"#ef4444",Critical:"#ef4444"};
             const allInc=clients.flatMap(c=>(c.incidents||[]).map(i=>({...i,clientName:c.name,client:c}))).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
             const ago7=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
@@ -4036,7 +4040,7 @@ export default function App(){
               </div>
             );
           })()}
-          {!loading&&view==="medications"&&(()=>{
+          {!loading&&view==="medications"&&can(currentUser.role,"medications_view",perms)&&(()=>{
             const activeWithFlags=clients.filter(c=>!c.archived).map(c=>({c,flags:getMedFlags(c)}));
             const allMeds=activeWithFlags.flatMap(({c,flags})=>(c.medications||[]).filter(m=>m.name&&m.name.trim()).map(m=>({...m,clientName:c.name,client:c,isHighRisk:flags.highRisk.some(h=>h.name===m.name),polypharmacy:flags.polypharmacy,medCount:flags.medCount})));
             const flaggedClients=activeWithFlags.filter(({flags})=>flags.polypharmacy||flags.highRisk.length>0).map(({c,flags})=>({...c,_flags:flags}));

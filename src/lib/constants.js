@@ -149,10 +149,10 @@ export const IDLE_WARN_SECS  = 60;              // countdown before auto-logout
 
 // ── RBAC ───────────────────────────────────────────────────────────────────
 export const DEFAULT_PERMS = {
-  superadmin: ["view","add","edit","delete","audit","users","company","permissions"],
-  admin:      ["view","add","edit","delete","audit","company"],
-  power_user: ["view","add","edit"],
-  user:       ["view"],
+  superadmin: ["view","add","edit","delete","audit","users","company","permissions","rooms","readmission","medications_view","incidents_view","reports","handover"],
+  admin:      ["view","add","edit","delete","audit","company","rooms","readmission","medications_view","incidents_view","reports","handover"],
+  power_user: ["view","add","edit","medications_view","incidents_view","reports","handover"],
+  user:       ["view","medications_view","incidents_view","handover"],
   inactive:   [],
 };
 
