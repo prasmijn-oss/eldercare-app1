@@ -1913,7 +1913,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [toast,setToast]=useState(null);
-  const [tab,setTab]=useState("global");
+  const [tab,setTab]=useState(currentUser.role==="superadmin"?"global":"company");
   const [pendingChanges,setPendingChanges]=useState({});
 
   const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
@@ -2044,9 +2044,11 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
 
       {/* Tabs */}
       <div style={{display:"flex",gap:2,borderBottom:"1px solid var(--color-border)",marginBottom:20}}>
-        {[["global","🌐 Global Defaults","Sets the default permissions for all companies"],
-          ["company","🏢 Company Override","Override global defaults for this specific company"]
-        ].map(([id,label,hint])=>(
+        {(currentUser.role==="superadmin"
+          ?[["global","🌐 Global Defaults","Sets the default permissions for all companies"],
+            ["company","🏢 Company Override","Override global defaults for this specific company"]]
+          :[["company","🏢 Company Override","Override global defaults for this specific company"]]
+        ).map(([id,label,hint])=>(
           <button key={id} onClick={()=>{setTab(id);setPendingChanges({});}}
             title={hint}
             style={{padding:"9px 20px",border:"none",borderBottom:tab===id?"2px solid var(--color-accent)":"2px solid transparent",
@@ -3017,7 +3019,7 @@ export default function App(){
 
   // Lazy-fetch full clinical detail for a single client (session_notes + clinical assessments)
   const loadClientDetail=useCallback(async(clientId)=>{
-    const {data,error}=await supabase.from("clients").select("*").eq("id",clientId).single();
+    const {data,error}=await supabase.from("clients").select("*").eq("id",clientId).eq("company_id",activeCompanyId).single();
     if(error||!data)return;
     const full={...fromDb(data),_detailLoaded:true};
     setClients(prev=>prev.map(c=>c.id===clientId?full:c));
