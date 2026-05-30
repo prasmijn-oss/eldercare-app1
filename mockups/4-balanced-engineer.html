@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 4 — Balanced Senior Engineer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0F1117;color:#E8EAF2;font-family:'DM Sans',sans-serif;display:flex;height:100vh;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.sidebar{width:264px;min-width:264px;background:#161B27;border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;height:100vh;position:relative;z-index:1;}
+.sidebar-logo{padding:22px 18px 14px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.logo-name{font-size:16px;font-weight:700;color:#E8EAF2;}
+.logo-company{font-size:12px;color:rgba(232,234,242,0.45);margin-top:2px;}
+.sidebar-nav{flex:1;overflow-y:auto;padding:12px 0;}
+.nav-group-label{font-size:10px;font-weight:600;color:rgba(232,234,242,0.3);text-transform:uppercase;letter-spacing:0.1em;padding:10px 18px 4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:0 18px;height:44px;cursor:pointer;position:relative;color:rgba(232,234,242,0.5);font-size:14px;font-weight:400;transition:all 0.15s;}
+.nav-item:hover{color:#E8EAF2;background:rgba(255,255,255,0.03);}
+.nav-item.active{color:#E8EAF2;font-weight:600;background:rgba(99,102,241,0.1);}
+.nav-item.active::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;background:#6366F1;border-radius:0 2px 2px 0;}
+.nav-icon{width:18px;text-align:center;font-size:15px;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:#6366F1;color:#fff;font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:10px;}
+.nav-badge.warn{background:rgba(245,158,11,0.2);color:#FCD34D;}
+.nav-badge.danger{background:rgba(239,68,68,0.2);color:#F87171;}
+.sidebar-footer{padding:12px 18px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:8px;}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#4F46E5,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+.footer-name{font-size:13px;font-weight:400;color:rgba(232,234,242,0.7);flex:1;}
+.footer-btn{width:32px;height:32px;border:none;background:none;color:rgba(232,234,242,0.4);cursor:pointer;font-size:15px;transition:color 0.15s;}
+.footer-btn:hover{color:#E8EAF2;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;}
+.topbar{height:64px;background:#161B27;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;padding:0 28px;gap:16px;flex-shrink:0;}
+.topbar-status{display:flex;align-items:center;gap:16px;flex:1;}
+.status-chip{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:14px;font-weight:600;}
+.status-chip .dot{width:8px;height:8px;border-radius:50%;}
+.status-chip .dot.green{background:#10B981;}
+.status-chip .dot.amber{background:#F59E0B;}
+.topbar-date{font-family:'DM Mono',monospace;font-size:12px;color:rgba(232,234,242,0.35);}
+.topbar-search{width:180px;height:36px;background:#0F1117;border:1px solid rgba(255,255,255,0.08);border-radius:8px;display:flex;align-items:center;padding:0 10px;gap:6px;color:rgba(232,234,242,0.3);font-size:13px;}
+.new-btn{height:36px;padding:0 16px;background:#6366F1;border:none;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;}
+.new-btn:hover{background:#4F46E5;}
+.content{flex:1;overflow-y:auto;padding:24px 28px;}
+.stats-row{display:grid;grid-template-columns:2.2fr 1fr 1fr 1.4fr;gap:12px;margin-bottom:18px;}
+.stat-card{background:#161B27;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:18px 20px;transition:box-shadow 0.2s;}
+.stat-card:hover{box-shadow:0 8px 24px rgba(0,0,0,0.3);}
+.stat-num{font-family:'DM Mono',monospace;font-weight:700;font-size:34px;color:#E8EAF2;line-height:1;letter-spacing:-0.02em;}
+.stat-label{font-size:12px;color:rgba(232,234,242,0.45);margin-top:4px;}
+.stat-delta{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:4px;margin-top:10px;font-family:'DM Mono',monospace;}
+.stat-delta.up{background:rgba(16,185,129,0.12);color:#6EE7B7;}
+.stat-delta.warn{background:rgba(245,158,11,0.12);color:#FCD34D;}
+.stat-delta.danger{background:rgba(239,68,68,0.12);color:#F87171;}
+.sparkline-mini{margin-top:12px;display:flex;align-items:flex-end;gap:2px;height:24px;}
+.sparkline-mini span{flex:1;background:rgba(99,102,241,0.5);border-radius:1px;}
+.mid-row{display:grid;grid-template-columns:3fr 2fr;gap:12px;}
+.card{background:#161B27;border:1px solid rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.card-title{font-size:13px;font-weight:600;color:#E8EAF2;}
+.filter-tabs{display:flex;gap:2px;background:rgba(255,255,255,0.05);border-radius:6px;padding:2px;}
+.filter-tab{font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;color:rgba(232,234,242,0.4);font-family:'DM Mono',monospace;}
+.filter-tab.active{background:rgba(99,102,241,0.15);color:#6366F1;}
+.client-row{display:flex;align-items:center;gap:12px;padding:10px 18px;cursor:pointer;transition:background 0.15s;border-bottom:1px solid rgba(255,255,255,0.03);}
+.client-row:last-child{border-bottom:none;}
+.client-row:hover{background:rgba(255,255,255,0.03);}
+.client-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#4F46E5,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+.client-name{font-size:13px;font-weight:500;flex:1;}
+.client-room{font-size:11px;color:rgba(232,234,242,0.35);margin-right:8px;}
+.risk-pill{font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;}
+.risk-pill.high{background:rgba(239,68,68,0.15);color:#F87171;}
+.risk-pill.med{background:rgba(245,158,11,0.15);color:#FCD34D;}
+.risk-pill.low{background:rgba(16,185,129,0.15);color:#6EE7B7;}
+.chevron{color:rgba(232,234,242,0.2);font-size:12px;opacity:0;transition:opacity 0.15s;}
+.client-row:hover .chevron{opacity:1;}
+.alert-row{display:flex;align-items:flex-start;gap:10px;padding:10px 18px;border-left:3px solid transparent;border-bottom:1px solid rgba(255,255,255,0.03);}
+.alert-row:last-child{border-bottom:none;}
+.alert-row.crit{border-left-color:#EF4444;background:rgba(239,68,68,0.05);}
+.alert-row.warn{border-left-color:#F59E0B;background:rgba(245,158,11,0.04);}
+.alert-row.info{border-left-color:#6366F1;}
+.alert-text-main{font-size:13px;color:#E8EAF2;flex:1;}
+.alert-text-sub{font-size:11px;color:rgba(232,234,242,0.35);margin-top:2px;}
+.alert-time{font-family:'DM Mono',monospace;font-size:10px;color:rgba(232,234,242,0.3);white-space:nowrap;margin-left:auto;}
+/* Engineering corner marks */
+.main::after{content:'';position:absolute;bottom:20px;right:20px;width:20px;height:20px;border-right:1px solid rgba(99,102,241,0.15);border-bottom:1px solid rgba(99,102,241,0.15);pointer-events:none;}
+.main::before{content:'';position:absolute;bottom:20px;right:20px;width:20px;height:20px;border-right:1px solid rgba(99,102,241,0.15);border-bottom:1px solid rgba(99,102,241,0.15);pointer-events:none;}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-name">CareManager</div>
+    <div class="logo-company">Residential Care System</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group-label">Main</div>
+    <div class="nav-item active"><span class="nav-icon">🏠</span> Dashboard</div>
+    <div class="nav-item"><span class="nav-icon">👥</span> Clients <span class="nav-badge">12</span></div>
+    <div class="nav-item"><span class="nav-icon">💊</span> Medications <span class="nav-badge warn">4</span></div>
+    <div class="nav-item"><span class="nav-icon">⚠️</span> Incidents <span class="nav-badge danger">3</span></div>
+    <div class="nav-group-label">Management</div>
+    <div class="nav-item"><span class="nav-icon">👤</span> User Management</div>
+    <div class="nav-group-label">Admin</div>
+    <div class="nav-item"><span class="nav-icon">📋</span> Audit Trail</div>
+    <div class="nav-item"><span class="nav-icon">🏢</span> Company Settings</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="avatar">PR</div>
+    <span class="footer-name">P. Rasmijn</span>
+    <button class="footer-btn">🔔</button>
+    <button class="footer-btn">☀️</button>
+    <button class="footer-btn">⏻</button>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-status">
+      <span class="status-chip"><span class="dot green"></span> 12 active</span>
+      <span class="status-chip"><span class="dot amber"></span> 3 alerts</span>
+    </div>
+    <span class="topbar-date">2026-05-30</span>
+    <div class="topbar-search">🔍 Search clients</div>
+    <button class="new-btn">＋ New Client</button>
+  </div>
+
+  <div class="content">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num">124</div>
+        <div class="stat-label">Total Clients</div>
+        <div class="stat-delta up">↑ +2 this week</div>
+        <div class="sparkline-mini">
+          <span style="height:40%"></span><span style="height:55%"></span><span style="height:50%"></span><span style="height:65%"></span><span style="height:60%"></span><span style="height:75%"></span><span style="height:100%"></span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">12</div>
+        <div class="stat-label">Active Today</div>
+        <div class="stat-delta up">↑ +1</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">8</div>
+        <div class="stat-label">High Fall Risk</div>
+        <div class="stat-delta warn">→ stable</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:#F87171">5</div>
+        <div class="stat-label">Open Alerts</div>
+        <div class="stat-delta danger">↑ +2</div>
+      </div>
+    </div>
+
+    <div class="mid-row">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Recent Clients</span>
+          <div class="filter-tabs">
+            <span class="filter-tab active">All</span>
+            <span class="filter-tab">HFR</span>
+            <span class="filter-tab">MFR</span>
+          </div>
+        </div>
+        <div class="client-row">
+          <div class="client-avatar">JS</div>
+          <div style="flex:1"><div class="client-name">John Smith</div></div>
+          <span class="client-room">Rm 204</span>
+          <span class="risk-pill high">HFR</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="client-row">
+          <div class="client-avatar" style="background:linear-gradient(135deg,#0891B2,#0E7490)">MM</div>
+          <div style="flex:1"><div class="client-name">Maria Martinez</div></div>
+          <span class="client-room">Rm 118</span>
+          <span class="risk-pill med">MFR</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="client-row">
+          <div class="client-avatar" style="background:linear-gradient(135deg,#059669,#047857)">RB</div>
+          <div style="flex:1"><div class="client-name">Robert Brown</div></div>
+          <span class="client-room">Rm 312</span>
+          <span class="risk-pill low">LFR</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="client-row">
+          <div class="client-avatar" style="background:linear-gradient(135deg,#D97706,#B45309)">EJ</div>
+          <div style="flex:1"><div class="client-name">Eleanor Johnson</div></div>
+          <span class="client-room">Rm 205</span>
+          <span class="risk-pill high">HFR</span>
+          <span class="chevron">›</span>
+        </div>
+        <div class="client-row">
+          <div class="client-avatar" style="background:linear-gradient(135deg,#7C3AED,#6D28D9)">TW</div>
+          <div style="flex:1"><div class="client-name">Thomas Wilson</div></div>
+          <span class="client-room">Rm 401</span>
+          <span class="risk-pill med">MFR</span>
+          <span class="chevron">›</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Active Alerts</span>
+          <span style="font-family:'DM Mono',monospace;font-size:11px;color:#F87171;">5 open</span>
+        </div>
+        <div class="alert-row crit">
+          <div style="flex:1"><div class="alert-text-main">Doc expiry: Martinez</div><div class="alert-text-sub">Insurance expires in 3 days</div></div>
+          <span class="alert-time">09:42</span>
+        </div>
+        <div class="alert-row warn">
+          <div style="flex:1"><div class="alert-text-main">Fall risk: Smith</div><div class="alert-text-sub">Score increased to 18</div></div>
+          <span class="alert-time">08:15</span>
+        </div>
+        <div class="alert-row info">
+          <div style="flex:1"><div class="alert-text-main">Appt: Johnson</div><div class="alert-text-sub">Cardiology — tomorrow 14:00</div></div>
+          <span class="alert-time">07:00</span>
+        </div>
+        <div class="alert-row warn">
+          <div style="flex:1"><div class="alert-text-main">Polypharmacy: Brown</div><div class="alert-text-sub">8 active medications</div></div>
+          <span class="alert-time">06:30</span>
+        </div>
+        <div class="alert-row crit">
+          <div style="flex:1"><div class="alert-text-main">Incident: Wilson</div><div class="alert-text-sub">Fall event — requires review</div></div>
+          <span class="alert-time">05:50</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
