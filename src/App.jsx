@@ -1727,34 +1727,39 @@ function CompanyView({company,onUpdate,currentUser,t}){
                   const statusColors={active:"#10b981",trial:"#f59e0b",expired:"#ef4444",suspended:"#6b7280"};
                   const sc=statusColors[c.subscription_status]||"#6b7280";
                   return(
-                    <div key={c.id} style={{background:"var(--color-bg-surface)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",display:"flex",flexWrap:"wrap",gap:10,alignItems:"center"}}>
-                      <div style={{flex:"1 1 150px",fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{c.name}</div>
-                      <div style={{display:"flex",alignItems:"center",gap:6,flex:"0 0 auto"}}>
-                        <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40",textTransform:"capitalize"}}>{c.subscription_status||"active"}</span>
-                        {expired&&<span style={{fontSize:10,color:"#ef4444"}}>⚠ Expired</span>}
+                    <div key={c.id} style={{background:"var(--color-bg-surface)",border:"1px solid var(--color-border)",borderRadius:10,padding:"14px"}}>
+                      {/* Row 1: name + status badge */}
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
+                        <div style={{fontSize:14,fontWeight:700,color:"var(--color-text-primary)",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+                        <span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40",textTransform:"capitalize",flexShrink:0,whiteSpace:"nowrap"}}>{c.subscription_status||"active"}</span>
                       </div>
-                      <div style={{display:"flex",alignItems:"center",gap:6,flex:"0 0 auto"}}>
-                        <select value={c.plan||"standard"} onChange={e=>updateSubscription(c.id,{plan:e.target.value})}
-                          style={{...INP,marginBottom:0,fontSize:11,padding:"4px 8px",width:"auto"}}>
-                          <option value="standard">Standard</option>
-                          <option value="professional">Professional</option>
-                          <option value="enterprise">Enterprise</option>
-                        </select>
+                      {/* Row 2: plan + expires side by side */}
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                        <div>
+                          <div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:600,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>Plan</div>
+                          <select value={c.plan||"standard"} onChange={e=>updateSubscription(c.id,{plan:e.target.value})}
+                            style={{...INP,marginBottom:0,fontSize:12,padding:"6px 10px",width:"100%"}}>
+                            <option value="standard">Standard</option>
+                            <option value="professional">Professional</option>
+                            <option value="enterprise">Enterprise</option>
+                          </select>
+                        </div>
+                        <div>
+                          <div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:600,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>Expires</div>
+                          <input type="date" value={c.subscription_expires_at||""} onChange={e=>updateSubscription(c.id,{subscription_expires_at:e.target.value||null})}
+                            style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:8,color:"var(--color-text-primary)",fontSize:12,padding:"6px 10px",width:"100%",boxSizing:"border-box",outline:"none"}}/>
+                        </div>
                       </div>
-                      <div style={{display:"flex",alignItems:"center",gap:6,flex:"0 0 auto"}}>
-                        <label style={{fontSize:11,color:"var(--color-text-dim)"}}>Expires</label>
-                        <input type="date" value={c.subscription_expires_at||""} onChange={e=>updateSubscription(c.id,{subscription_expires_at:e.target.value||null})}
-                          style={{...INP,marginBottom:0,fontSize:11,padding:"4px 8px",width:130}}/>
-                      </div>
-                      <div style={{display:"flex",gap:6,flex:"0 0 auto",flexWrap:"wrap"}}>
+                      {/* Row 3: action buttons */}
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
                         <button type="button" disabled={subSaving===c.id} onClick={()=>updateSubscription(c.id,{subscription_status:"active"})}
-                          style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(16,185,129,0.15)",color:"#10b981",fontSize:11,fontWeight:700,cursor:"pointer"}}>Activate</button>
+                          style={{padding:"6px 4px",borderRadius:6,border:"none",background:"rgba(16,185,129,0.15)",color:"#10b981",fontSize:11,fontWeight:700,cursor:"pointer"}}>Activate</button>
                         <button type="button" disabled={subSaving===c.id} onClick={()=>setTrial(c.id,30)}
-                          style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(245,158,11,0.15)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Trial 30d</button>
+                          style={{padding:"6px 4px",borderRadius:6,border:"none",background:"rgba(245,158,11,0.15)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Trial 30d</button>
                         <button type="button" disabled={subSaving===c.id} onClick={()=>setTrial(c.id,90)}
-                          style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(245,158,11,0.15)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Trial 90d</button>
+                          style={{padding:"6px 4px",borderRadius:6,border:"none",background:"rgba(245,158,11,0.15)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Trial 90d</button>
                         <button type="button" disabled={subSaving===c.id} onClick={()=>updateSubscription(c.id,{subscription_status:"suspended"})}
-                          style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(107,114,128,0.15)",color:"#9ca3af",fontSize:11,fontWeight:700,cursor:"pointer"}}>Suspend</button>
+                          style={{padding:"6px 4px",borderRadius:6,border:"none",background:"rgba(107,114,128,0.15)",color:"#9ca3af",fontSize:11,fontWeight:700,cursor:"pointer"}}>Suspend</button>
                       </div>
                     </div>
                   );
