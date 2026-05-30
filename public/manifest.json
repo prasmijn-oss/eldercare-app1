@@ -1,7 +1,7 @@
 {
-  "name": "CareManager",
-  "short_name": "CareManager",
-  "description": "Elder Care Client Management Platform",
+  "name": "GoldenCare System",
+  "short_name": "GoldenCare",
+  "description": "GoldenCare — Care Facility Client Management Platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#07091c",
