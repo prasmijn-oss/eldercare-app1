@@ -887,7 +887,7 @@ function HospLog({items,onChange}){
   );
 }
 
-function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
+function ClientForm({client,onSave,onCancel,saving,t,currentUser,cfSchema}){
   const [d,setD]=useState(()=>JSON.parse(JSON.stringify(client)));
   const s=(f,v)=>setD(prev=>({...prev,[f]:v}));
   const valid=(d.name||"").trim().length>0;
@@ -942,6 +942,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser}){
       <Sec icon="🧠" title="Cognitive Screening (MMSE / MoCA)" accent="#a78bfa" defaultOpen={false}><CognitiveScreening items={d.cognitive_assessments||[]} onChange={v=>s("cognitive_assessments",v)}/></Sec>
       <Sec icon="💧" title="Continence Monitoring" accent="#06b6d4" defaultOpen={false}><ContinenceLog items={d.continence_logs||[]} onChange={v=>s("continence_logs",v)}/></Sec>
       <Sec icon="🥗" title="Nutritional Risk Screening (MUST)" accent="#10b981" defaultOpen={false}><NutritionScreening items={d.nutrition_assessments||[]} onChange={v=>s("nutrition_assessments",v)}/></Sec>
+      {(()=>{const cfs=cfSchema?JSON.parse(cfSchema||"[]"):[];return cfs.length>0&&(<Sec icon="🧩" title="Additional Information" accent="#6366f1" defaultOpen={true}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{cfs.map(f=>{const val=d.custom_fields?.[f.id]??"";const setVal=v=>s("custom_fields",{...(d.custom_fields||{}),[f.id]:v});return(<div key={f.id} style={f.type==="textarea"?{gridColumn:"1/-1"}:{}}><label style={{...LBL,marginBottom:4}}>{f.label}{f.required&&<span style={{color:"#f87171",marginLeft:3}}>*</span>}</label>{f.type==="textarea"?<textarea value={val} onChange={e=>setVal(e.target.value)} rows={3} style={{...INP,marginBottom:0,resize:"vertical"}}/>:f.type==="select"?<select value={val} onChange={e=>setVal(e.target.value)} style={{...INP,marginBottom:0,padding:"7px 10px"}}><option value="">— Select —</option>{(f.options||"").split(",").map(o=>o.trim()).filter(Boolean).map(o=><option key={o} value={o}>{o}</option>)}</select>:f.type==="checkbox"?<label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,color:"var(--color-text-secondary)"}}><input type="checkbox" checked={!!val} onChange={e=>setVal(e.target.checked)} style={{accentColor:"#6366f1",width:16,height:16}}/>{f.label}</label>:<input type={f.type} value={val} onChange={e=>setVal(e.target.value)} style={{...INP,marginBottom:0}}/> }</div>);})}</div></Sec>);})()}
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
         <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600}}>{t.cancel}</button>
         <button onClick={()=>valid&&!saving&&onSave(d)} disabled={!valid||saving}
@@ -1039,7 +1040,7 @@ function EmergCard({client,onClose,t}){
   );
 }
 
-function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,currentUser}){
+function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,currentUser,cfSchema}){
   const perms=useContext(PermissionsContext);
   const role=currentUser?.role||"user";
   const canEdit=can(role,"edit",perms);
@@ -1352,6 +1353,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>🥗 NUTRITIONAL RISK SCREENING — MUST</div>
           <NutritionScreening items={client.nutrition_assessments||[]} onChange={onInlineUpdate?v=>onInlineUpdate("nutrition_assessments",v):()=>{}}/>
         </div>
+      {(()=>{const cfs=cfSchema?JSON.parse(cfSchema||"[]"):[];const vals=client.custom_fields||{};const filled=cfs.filter(f=>f.type==="checkbox"?vals[f.id]!==undefined:vals[f.id]);if(!cfs.length||!filled.length)return null;return(<div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}><div style={{fontWeight:700,color:"#6366f1",fontSize:13,marginBottom:12}}>🧩 ADDITIONAL INFORMATION</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px 16px"}}>{cfs.map(f=>{const v=vals[f.id];if(v===undefined||v==="")return null;return(<div key={f.id}><div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:700,letterSpacing:"0.5px",marginBottom:2}}>{f.label.toUpperCase()}</div><div style={{fontSize:13,color:"var(--color-text-secondary)"}}>{f.type==="checkbox"?(v?"Yes":"No"):String(v)}</div></div>);})}</div></div>);})()}
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
     </div>
   );
@@ -1465,6 +1467,8 @@ function CompanyView({company,onUpdate,currentUser,t}){
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(false);
   const [toast,setToast]=useState(null);
+  const [cfSchema,setCfSchema]=useState(()=>{try{return JSON.parse(company?.custom_fields_schema||"[]");}catch{return [];}});
+  const [cfSaving,setCfSaving]=useState(false);
 
   const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
   const onChange=e=>setForm(p=>({...p,[e.target.name]:e.target.value}));
@@ -1504,7 +1508,21 @@ function CompanyView({company,onUpdate,currentUser,t}){
     setSaving(false);
   };
 
-  const TABS=[{id:"info",label:"Company Info"},{id:"hours",label:"Hours"},{id:"emergency",label:"Emergency"}];
+  const TABS=[{id:"info",label:"Company Info"},{id:"hours",label:"Hours"},{id:"emergency",label:"Emergency"},{id:"fields",label:"Custom Fields"}];
+
+  const saveCfSchema=async()=>{
+    if(!company)return;
+    setCfSaving(true);
+    const schema=JSON.stringify(cfSchema);
+    const {data,error}=await supabase.from("companies").update({custom_fields_schema:schema}).eq("id",company.id).select().single();
+    if(error)showToast("error","Save failed: "+error.message);
+    else{onUpdate(data);showToast("success","Custom fields saved!");}
+    setCfSaving(false);
+  };
+  const addCfField=()=>setCfSchema(s=>[...s,{id:uid(),label:"",type:"text",required:false,options:""}]);
+  const updateCfField=(id,key,val)=>setCfSchema(s=>s.map(f=>f.id===id?{...f,[key]:val}:f));
+  const removeCfField=id=>setCfSchema(s=>s.filter(f=>f.id!==id));
+  const moveCfField=(id,dir)=>setCfSchema(s=>{const i=s.findIndex(f=>f.id===id);if(i<0)return s;const n=[...s];const t=n[i];n.splice(i,1);n.splice(i+dir,0,t);return n;});
   const inp={...INP,marginBottom:0};
   const lbl={...LBL,marginBottom:4};
   const fld=(label,name,type="text",placeholder="")=>(
@@ -1608,12 +1626,63 @@ function CompanyView({company,onUpdate,currentUser,t}){
             </div>
           </div>
         )}
-        <div style={{marginTop:20}}>
+        {tab==="fields"&&(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16}}>
+            <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.8px"}}>🧩 Custom Client Fields</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginBottom:16}}>Define extra fields that appear on every client record for this company.</div>
+            {cfSchema.length===0&&<div style={{fontSize:13,color:"var(--color-text-muted)",textAlign:"center",padding:"24px 0"}}>No custom fields yet. Click Add Field to get started.</div>}
+            {cfSchema.map((f,i)=>(
+              <div key={f.id} style={{background:"var(--color-bg-surface)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",marginBottom:10,display:"flex",gap:10,alignItems:"flex-start"}}>
+                <div style={{flex:1,display:"grid",gridTemplateColumns:"1fr 130px 80px",gap:8,alignItems:"center"}}>
+                  <div>
+                    <div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:600,marginBottom:3}}>LABEL</div>
+                    <input value={f.label} onChange={e=>updateCfField(f.id,"label",e.target.value)} placeholder="e.g. Insurance Number" style={{...INP,marginBottom:0,fontSize:12}}/>
+                  </div>
+                  <div>
+                    <div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:600,marginBottom:3}}>TYPE</div>
+                    <select value={f.type} onChange={e=>updateCfField(f.id,"type",e.target.value)} style={{...INP,marginBottom:0,fontSize:12,padding:"7px 10px"}}>
+                      <option value="text">Text</option>
+                      <option value="textarea">Long Text</option>
+                      <option value="number">Number</option>
+                      <option value="date">Date</option>
+                      <option value="select">Dropdown</option>
+                      <option value="checkbox">Checkbox</option>
+                    </select>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,paddingTop:18}}>
+                    <label style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"var(--color-text-secondary)",cursor:"pointer"}}>
+                      <input type="checkbox" checked={f.required} onChange={e=>updateCfField(f.id,"required",e.target.checked)} style={{accentColor:"#6366f1"}}/>
+                      Required
+                    </label>
+                  </div>
+                </div>
+                {f.type==="select"&&(
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:600,marginBottom:3}}>OPTIONS (comma-separated)</div>
+                    <input value={f.options||""} onChange={e=>updateCfField(f.id,"options",e.target.value)} placeholder="Option A, Option B, Option C" style={{...INP,marginBottom:0,fontSize:12}}/>
+                  </div>
+                )}
+                <div style={{display:"flex",flexDirection:"column",gap:4,paddingTop:18}}>
+                  <button type="button" onClick={()=>moveCfField(f.id,-1)} disabled={i===0} style={{background:"transparent",border:"1px solid var(--color-border)",borderRadius:6,padding:"2px 7px",color:"var(--color-text-dim)",cursor:i===0?"default":"pointer",fontSize:12}}>↑</button>
+                  <button type="button" onClick={()=>moveCfField(f.id,1)} disabled={i===cfSchema.length-1} style={{background:"transparent",border:"1px solid var(--color-border)",borderRadius:6,padding:"2px 7px",color:"var(--color-text-dim)",cursor:i===cfSchema.length-1?"default":"pointer",fontSize:12}}>↓</button>
+                  <button type="button" onClick={()=>removeCfField(f.id)} style={{background:"rgba(220,38,38,0.1)",border:"1px solid rgba(220,38,38,0.25)",borderRadius:6,padding:"2px 7px",color:"#f87171",cursor:"pointer",fontSize:12}}>✕</button>
+                </div>
+              </div>
+            ))}
+            <div style={{display:"flex",gap:10,marginTop:12}}>
+              <button type="button" onClick={addCfField} style={{padding:"8px 16px",borderRadius:8,border:"1px dashed var(--color-border)",background:"transparent",color:"var(--color-text-secondary)",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Add Field</button>
+              <button type="button" onClick={saveCfSchema} disabled={cfSaving} style={{padding:"8px 20px",borderRadius:8,border:"none",background:cfSaving?"rgba(255,255,255,0.1)":"#6366f1",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                {cfSaving?"Saving…":"Save Fields"}
+              </button>
+            </div>
+          </div>
+        )}
+        {tab!=="fields"&&<div style={{marginTop:20}}>
           <button type="submit" disabled={saving||uploading}
             style={{padding:"11px 28px",borderRadius:10,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:14}}>
             {saving?"Saving...":"Save Company Information"}
           </button>
-        </div>
+        </div>}
       </form>
     </div>
   );
@@ -4116,7 +4185,7 @@ export default function App(){
           {view==="add"&&can(currentUser.role,"add",perms)&&(
             <div>
               <div style={{fontSize:17,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",marginBottom:20}}>{t.newClient}</div>
-              <ClientForm client={emptyClient()} onSave={saveClient} onCancel={()=>setView(selected?"detail":"clients")} saving={saving} t={t} currentUser={currentUser}/>
+              <ClientForm client={emptyClient()} onSave={saveClient} onCancel={()=>setView(selected?"detail":"clients")} saving={saving} t={t} currentUser={currentUser} cfSchema={company?.custom_fields_schema}/>
             </div>
           )}
           {view==="edit"&&selected&&can(currentUser.role,"edit",perms)&&(()=>{
@@ -4134,7 +4203,7 @@ export default function App(){
                   </div>
                 </div>
               )}
-              <ClientForm client={editClient} onSave={saveClient} onCancel={()=>setView("detail")} saving={saving} t={t} currentUser={currentUser}/>
+              <ClientForm client={editClient} onSave={saveClient} onCancel={()=>setView("detail")} saving={saving} t={t} currentUser={currentUser} cfSchema={company?.custom_fields_schema}/>
             </div>
             );
           })()}
@@ -4144,7 +4213,7 @@ export default function App(){
             return(
               <>
                 {(()=>{const editors=(editPresence[fresh.id]||[]).filter(p=>p.userId!==currentUser.id);return editors.length>0&&(<div style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",borderRadius:9,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.25)",marginBottom:14}}><span style={{fontSize:15}}>✏️</span><span style={{fontSize:12,color:"#818cf8",fontWeight:600}}>{editors.map(p=>p.userName).join(", ")} {editors.length===1?"is":"are"} currently editing this record</span></div>);})()}
-                <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser}/>
+                <ClientDetail client={fresh} onEdit={()=>{setSelected(fresh);setView("edit");}} onDelete={()=>setDeleteConfirm(true)} onRestore={()=>restoreClient(fresh)} onInlineUpdate={inlineUpdate} t={t} currentUser={currentUser} cfSchema={company?.custom_fields_schema}/>
                 {deleteConfirm&&(
                   <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400}}>
                     <div style={{background:"var(--color-bg-card)",borderRadius:16,padding:32,maxWidth:400,width:"90%",border:"1px solid rgba(255,255,255,0.08)"}}>

@@ -554,6 +554,7 @@ export function toDb(d) {
     prn_log:                JSON.stringify(d.prn_log || []),
     hospitalizations:       JSON.stringify(d.hospitalizations || []),
     isolation_type:         d.isolation_type || "None",
+    custom_fields:          JSON.stringify(d.custom_fields || {}),
   };
 }
 
@@ -584,6 +585,7 @@ export function fromDb(row) {
     prn_log:               p(row.prn_log,               []),
     hospitalizations:      p(row.hospitalizations,      []),
     isolation_type:        row.isolation_type || "None",
+    custom_fields:         p(row.custom_fields,         {}),
   };
 }
 
@@ -600,7 +602,7 @@ export function emptyClient() {
     family_contacts: [], appointments: [], incidents: [],
     adl_logs: [], pain_assessments: [], wound_assessments: [], braden_assessments: [],
     cognitive_assessments: [], continence_logs: [], nutrition_assessments: [],
-    mar_log: [], prn_log: [], hospitalizations: [], isolation_type: "None",
+    mar_log: [], prn_log: [], hospitalizations: [], isolation_type: "None", custom_fields: {},
     intake_checklist: DEFAULT_INTAKE_ITEMS.map(i => ({
       id: uid(), key: i.key, label: i.label, done: false, completed_by: "", completed_at: "",
     })),
