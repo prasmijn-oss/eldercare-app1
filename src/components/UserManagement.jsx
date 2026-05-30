@@ -309,7 +309,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const deactivateUser=async(userId)=>{
     const target=users.find(x=>x.user_id===userId);
     // Prevent acting on equal or higher role (admin cannot deactivate admin/superadmin)
-    const RORD={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+    const RORD={superadmin:1,admin:2,power_user:3,nurse:4,care_assistant:5,user:6,inactive:7};
     if((RORD[target?.role]??9)<=(RORD[currentUser.role]??9)&&currentUser.role!=="superadmin"){
       showToast("error","You cannot deactivate a user with an equal or higher role");return;
     }
@@ -337,7 +337,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const addToCompany=async(userId,companyId)=>{
     const existingRows=allUserRoles.filter(r=>r.user_id===userId);
     // Use top role so the new company row matches the user's global role
-    const RORDER={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+    const RORDER={superadmin:1,admin:2,power_user:3,nurse:4,care_assistant:5,user:6,inactive:7};
     const topRow=existingRows.slice().sort((a,b)=>(RORDER[a.role]??9)-(RORDER[b.role]??9))[0];
     const emailRow=existingRows.find(r=>r.email)||topRow;
     const {error}=await supabase.from("user_roles").insert({
@@ -420,8 +420,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     }catch{return"—";}
   };
 
-  const roleColor={superadmin:"#f59e0b",admin:"var(--color-accent)",power_user:"#06b6d4",user:"#10b981",inactive:"var(--color-text-muted)"};
-  const roleBg={superadmin:"rgba(245,158,11,0.1)",admin:"var(--color-bg-active)",power_user:"rgba(6,182,212,0.1)",user:"rgba(16,185,129,0.1)",inactive:"rgba(71,85,105,0.1)"};
+  const roleColor={superadmin:"#f59e0b",admin:"var(--color-accent)",power_user:"#06b6d4",nurse:"#8b5cf6",care_assistant:"#ec4899",user:"#10b981",inactive:"var(--color-text-muted)"};
+  const roleBg={superadmin:"rgba(245,158,11,0.1)",admin:"var(--color-bg-active)",power_user:"rgba(6,182,212,0.1)",nurse:"rgba(139,92,246,0.1)",care_assistant:"rgba(236,72,153,0.1)",user:"rgba(16,185,129,0.1)",inactive:"rgba(71,85,105,0.1)"};
   const companyName=id=>companies.find(c=>c.id===id)?.name||"—";
 
 
@@ -518,7 +518,9 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   <div>
                     <label style={LBL}>Role *</label>
                     <select name="role" value={existingForm.role} onChange={onChangeExisting} style={{...INP,marginBottom:0,cursor:"pointer"}}>
+                      <option value="care_assistant">Care Assistant</option>
                       <option value="user">User</option>
+                      <option value="nurse">Nurse</option>
                       <option value="power_user">Power User</option>
                       <option value="admin">Admin</option>
                       {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
@@ -556,7 +558,9 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                   <div><label style={LBL}>Username <span style={{color:"var(--color-text-muted)",fontWeight:400}}>(optional)</span></label><input name="username" value={userForm.username} onChange={onChangeUser} placeholder="e.g. maria.j" style={INP2}/></div>
                   <div><label style={LBL}>Role *</label>
                     <select name="role" value={userForm.role} onChange={onChangeUser} style={{...INP2,cursor:"pointer"}}>
+                      <option value="care_assistant">Care Assistant</option>
                       <option value="user">User</option>
+                      <option value="nurse">Nurse</option>
                       <option value="power_user">Power User</option>
                       <option value="admin">Admin</option>
                       {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
@@ -651,12 +655,14 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                               // Ceiling: only superadmin can grant superadmin
                               if(nr==="superadmin"&&currentUser.role!=="superadmin"){showToast("error","Only a superadmin can grant the superadmin role");return;}
                               // Cannot act on a user of equal or higher role (unless superadmin)
-                              const RORD={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+                              const RORD={superadmin:1,admin:2,power_user:3,nurse:4,care_assistant:5,user:6,inactive:7};
                               if(currentUser.role!=="superadmin"&&(RORD[u.role]??9)<=(RORD[currentUser.role]??9)){showToast("error","You cannot change the role of a user with an equal or higher role");return;}
                               setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});
                             }}
                             style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"var(--color-text-muted)",border:"1px solid "+(roleColor[u.role]||"rgba(255,255,255,0.1)"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                            <option value="care_assistant">Care Assistant</option>
                             <option value="user">User</option>
+                            <option value="nurse">Nurse</option>
                             <option value="power_user">Power User</option>
                             <option value="admin">Admin</option>
                             {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
@@ -730,7 +736,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                     </button>
                                   )}
                                   {(()=>{
-                                    const RORD={superadmin:1,admin:2,power_user:3,user:4,inactive:5};
+                                    const RORD={superadmin:1,admin:2,power_user:3,nurse:4,care_assistant:5,user:6,inactive:7};
                                     const canDeactivate=u.role!=="inactive"&&(currentUser.role==="superadmin"||(RORD[u.role]??9)>(RORD[currentUser.role]??9));
                                     return canDeactivate?(
                                       <button onClick={()=>setPendingAction({type:"deactivate",userId:u.user_id,userName:u.name||u.email,meta:{}})}

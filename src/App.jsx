@@ -1628,13 +1628,15 @@ const ACTIONS=[
   {key:"users",      label:"User Management",     icon:"👥", desc:"Create, edit and deactivate staff accounts"},
   {key:"permissions",label:"Permissions Panel",   icon:"🔐", desc:"Edit what each role can do"},
 ];
-const ROLES=["superadmin","admin","power_user","user"];
-const ROLE_LABELS={superadmin:"Super Admin",admin:"Admin",power_user:"Power User",user:"User"};
-const ROLE_COLORS={superadmin:"#f59e0b",admin:"var(--color-accent)",power_user:"#06b6d4",user:"#10b981"};
+const ROLES=["superadmin","admin","power_user","nurse","care_assistant","user"];
+const ROLE_LABELS={superadmin:"Super Admin",admin:"Admin",power_user:"Power User",nurse:"Nurse",care_assistant:"Care Assistant",user:"User"};
+const ROLE_COLORS={superadmin:"#f59e0b",admin:"var(--color-accent)",power_user:"#06b6d4",nurse:"#8b5cf6",care_assistant:"#ec4899",user:"#10b981"};
 const ROLE_DESC={
   superadmin:"Full unrestricted access to all features and all companies.",
   admin:"Manages users, clients, and company settings within their company.",
   power_user:"Clinical staff — can view, add, and edit clients but not manage users.",
+  nurse:"Can view and edit clients, log clinical assessments, administer MAR, and run reports.",
+  care_assistant:"Can view clients and log clinical assessments and MAR doses. Cannot edit the client record.",
   user:"Read-only care staff — can view clients and log assessments.",
 };
 
@@ -1690,7 +1692,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t}){
       for(const [key,allowed] of Object.entries(pendingChanges)){
         const isCompany=key.startsWith("c_");
         const withoutPrefix=key.slice(2);
-        const PARSE_ROLES=["superadmin","admin","power_user","user","inactive"];
+        const PARSE_ROLES=["superadmin","admin","power_user","care_assistant","nurse","user","inactive"];
         const matchedRole=PARSE_ROLES.find(r=>withoutPrefix.startsWith(r+"_"));
         const role=matchedRole||withoutPrefix.split("_")[0];
         const action=withoutPrefix.slice(role.length+1);
