@@ -659,7 +659,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                               if(currentUser.role!=="superadmin"&&(RORD[u.role]??9)<=(RORD[currentUser.role]??9)){showToast("error","You cannot change the role of a user with an equal or higher role");return;}
                               setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});
                             }}
-                            style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"var(--color-text-muted)",border:"1px solid "+(roleColor[u.role]||"rgba(255,255,255,0.1)"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                            style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"var(--color-text-muted)",border:"1px solid "+(roleColor[u.role]||"rgba(255,255,255,0.1)"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,cursor:"pointer",appearance:"none",WebkitAppearance:"none",MozAppearance:"none",width:"fit-content"}}>
                             <option value="care_assistant">Care Assistant</option>
                             <option value="user">User</option>
                             <option value="nurse">Nurse</option>
