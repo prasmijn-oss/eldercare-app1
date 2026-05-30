@@ -37,6 +37,15 @@ export const HIGH_RISK = [
   "Donepezil","Memantine","Levodopa",
 ];
 
+export const CONTROLLED_SUBSTANCES = [
+  "Morphine","Oxycodone","Hydrocodone","Fentanyl","Hydromorphone","Codeine",
+  "Tramadol","Methadone","Buprenorphine","Tapentadol",
+  "Diazepam","Lorazepam","Alprazolam","Clonazepam","Midazolam","Temazepam","Oxazepam",
+  "Zolpidem","Zopiclone","Zaleplon",
+  "Methylphenidate","Dextroamphetamine","Lisdexamfetamine",
+  "Ketamine","Phenobarbital","Gabapentin","Pregabalin",
+];
+
 // ── Fall risk weights ──────────────────────────────────────────────────────
 export const FALL_RISK_DIAG={
   "Falls Risk":3,"Parkinson's Disease":2,"Dementia":2,"Alzheimer's Disease":2,

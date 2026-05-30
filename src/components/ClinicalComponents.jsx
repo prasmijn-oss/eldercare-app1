@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { uid, tod, painLevel, calcPainSummary, bradenScore, bradenRisk, calcBradenSummary, cognitiveLevel, calcCognitiveSummary, calcContinenceSummary, mustScore, mustRisk, calcNutritionSummary, calcWoundSummary, calcAdlSummary, adlScore, adlDepLevel } from "../lib/utils.js";
-import { INP, LBL, ABTN, IBTN, BRADEN_SUBSCALES, BRADEN_MAX, MMSE_DOMAINS, CONTINENCE_TYPES, CONTINENCE_PRODUCTS, CONTINENCE_VOLUME, CONTINENCE_SKIN, WOUND_HEALING_COLOR, ADL_ITEMS, ADL_LABELS, ADL_LEVELS, ADL_LEVEL_COLOR, DEFAULT_INTAKE_ITEMS } from "../lib/constants.js";
+import { INP, LBL, ABTN, IBTN, BRADEN_SUBSCALES, BRADEN_MAX, MMSE_DOMAINS, CONTINENCE_TYPES, CONTINENCE_PRODUCTS, CONTINENCE_VOLUME, CONTINENCE_SKIN, WOUND_HEALING_COLOR, ADL_ITEMS, ADL_LABELS, ADL_LEVELS, ADL_LEVEL_COLOR, DEFAULT_INTAKE_ITEMS, CONTROLLED_SUBSTANCES } from "../lib/constants.js";
 
 // ─── Pain Assessment ──────────────────────────────────────────────────────────
 const PAIN_CHARACTERS=["Sharp","Dull","Burning","Aching","Throbbing","Stabbing","Cramping","Pressure"];
@@ -1909,4 +1909,154 @@ function PreventiveCare({items,onChange}){
   );
 }
 
-export { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, PRNLog, HandoverNotes, PreventiveCare };
+// ─── Controlled Substance Audit Log ──────────────────────────────────────────
+const CS_ROUTES=["Oral","IV","IM","Subcutaneous","Sublingual","Transdermal","Rectal","Inhaled"];
+
+function isControlled(medName){
+  if(!medName)return false;
+  const n=medName.toLowerCase();
+  return CONTROLLED_SUBSTANCES.some(cs=>n.includes(cs.toLowerCase()));
+}
+
+function ControlledSubLog({items,medications,onChange,currentUser,logAudit,clientName}){
+  const controlledMeds=(medications||[]).filter(m=>m.name&&isControlled(m.name));
+  const blankEntry=()=>({id:uid(),date:tod(),time:new Date().toTimeString().slice(0,5),medication:"",dose_given:"",dose_wasted:"0",route:"Oral",count_before:"",count_after:"",administered_by:currentUser?.displayName||"",witness:"",witness_confirmed:false,notes:""});
+  const [showForm,setShowForm]=useState(false);
+  const [entry,setEntry]=useState(null);
+  const [filterMed,setFilterMed]=useState("All");
+  const [page,setPage]=useState(0);
+  const PAGE=15;
+
+  const set=k=>v=>setEntry(p=>({...p,[k]:v}));
+  const openNew=()=>{setEntry(blankEntry());setShowForm(true);};
+  const save=()=>{
+    if(!entry.medication||!entry.dose_given||!entry.administered_by)return;
+    const updated=[...items.filter(i=>i.id!==entry.id),entry].sort((a,b)=>b.date===a.date?b.time.localeCompare(a.time):b.date.localeCompare(a.date));
+    onChange(updated);
+    if(logAudit)logAudit("Controlled substance administered",clientName||"",{section:"Controlled Substance Log",details:`${entry.medication} ${entry.dose_given} — by ${entry.administered_by}${entry.witness?" witnessed by "+entry.witness:""}`});
+    setShowForm(false);setEntry(null);
+  };
+  const confirmWitness=(id)=>{
+    onChange(items.map(i=>i.id===id?{...i,witness_confirmed:true,witness:i.witness||(currentUser?.displayName||"")}:i));
+  };
+
+  const sorted=[...items].sort((a,b)=>b.date===a.date?b.time.localeCompare(a.time):b.date.localeCompare(a.date));
+  const filtered=filterMed==="All"?sorted:sorted.filter(i=>i.medication===filterMed);
+  const paged=filtered.slice(page*PAGE,(page+1)*PAGE);
+  const unwitnessed=items.filter(i=>!i.witness_confirmed&&i.administered_by!==currentUser?.displayName);
+
+  return(
+    <div>
+      {/* Pending witness alert */}
+      {unwitnessed.length>0&&(
+        <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:9,padding:"10px 14px",marginBottom:12}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#f87171",marginBottom:6}}>⚠️ {unwitnessed.length} administration{unwitnessed.length!==1?"s":""} awaiting your witness signature</div>
+          {unwitnessed.slice(0,3).map(i=>(
+            <div key={i.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(239,68,68,0.06)",borderRadius:7,padding:"6px 10px",marginBottom:4}}>
+              <span style={{fontSize:12,color:"var(--color-text-secondary)"}}><strong>{i.medication}</strong> {i.dose_given} — by {i.administered_by} on {new Date(i.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
+              <button onClick={()=>confirmWitness(i.id)} style={{padding:"4px 12px",borderRadius:7,border:"none",background:"#ef4444",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>✓ Witness & Sign</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap:"wrap"}}>
+        <select value={filterMed} onChange={e=>{setFilterMed(e.target.value);setPage(0);}} style={{...INP,marginBottom:0,fontSize:12,padding:"5px 8px",width:"auto",minWidth:140}}>
+          <option value="All">All medications</option>
+          {[...new Set(items.map(i=>i.medication).filter(Boolean))].map(m=><option key={m} value={m}>{m}</option>)}
+        </select>
+        <span style={{fontSize:12,color:"var(--color-text-muted)",marginLeft:"auto"}}>{filtered.length} record{filtered.length!==1?"s":""}</span>
+        <button onClick={openNew} style={{padding:"6px 14px",borderRadius:8,border:"none",background:"#7c3aed",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Log Administration</button>
+      </div>
+
+      {controlledMeds.length===0&&items.length===0&&(
+        <div style={{fontSize:12,color:"var(--color-text-muted)",textAlign:"center",padding:"16px 0"}}>No controlled substances found in this client's medication list. Add controlled medications first.</div>
+      )}
+
+      {/* Entry form */}
+      {showForm&&entry&&(
+        <div style={{background:"rgba(124,58,237,0.06)",border:"1px solid rgba(124,58,237,0.25)",borderRadius:10,padding:14,marginBottom:14}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#a78bfa",marginBottom:12,letterSpacing:"0.4px"}}>🔐 NEW CONTROLLED SUBSTANCE ADMINISTRATION</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={{...LBL,marginBottom:2}}>Date</label><input type="date" value={entry.date} onChange={e=>set("date")(e.target.value)} style={{...INP,marginBottom:0,fontSize:12}}/></div>
+            <div><label style={{...LBL,marginBottom:2}}>Time</label><input type="time" value={entry.time} onChange={e=>set("time")(e.target.value)} style={{...INP,marginBottom:0,fontSize:12}}/></div>
+            <div><label style={{...LBL,marginBottom:2}}>Route</label>
+              <select value={entry.route} onChange={e=>set("route")(e.target.value)} style={{...INP,marginBottom:0,fontSize:12,padding:"7px 8px"}}>
+                {CS_ROUTES.map(r=><option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={{...LBL,marginBottom:2}}>Medication <span style={{color:"#f87171"}}>*</span></label>
+              {controlledMeds.length>0
+                ?<select value={entry.medication} onChange={e=>set("medication")(e.target.value)} style={{...INP,marginBottom:0,fontSize:12,padding:"7px 8px"}}>
+                    <option value="">— Select —</option>
+                    {controlledMeds.map(m=><option key={m.id} value={m.name}>{m.name}{m.dosage?" ("+m.dosage+")":""}</option>)}
+                  </select>
+                :<input value={entry.medication} onChange={e=>set("medication")(e.target.value)} placeholder="Medication name" style={{...INP,marginBottom:0,fontSize:12}}/>
+              }
+            </div>
+            <div><label style={{...LBL,marginBottom:2}}>Dose Given <span style={{color:"#f87171"}}>*</span></label><input value={entry.dose_given} onChange={e=>set("dose_given")(e.target.value)} placeholder="e.g. 5mg" style={{...INP,marginBottom:0,fontSize:12}}/></div>
+            <div><label style={{...LBL,marginBottom:2}}>Dose Wasted</label><input value={entry.dose_wasted} onChange={e=>set("dose_wasted")(e.target.value)} placeholder="0" style={{...INP,marginBottom:0,fontSize:12}}/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:10}}>
+            <div><label style={{...LBL,marginBottom:2}}>Count Before</label><input type="number" value={entry.count_before} onChange={e=>set("count_before")(e.target.value)} placeholder="e.g. 20" style={{...INP,marginBottom:0,fontSize:12}}/></div>
+            <div><label style={{...LBL,marginBottom:2}}>Count After</label><input type="number" value={entry.count_after} onChange={e=>set("count_after")(e.target.value)} placeholder="e.g. 18" style={{...INP,marginBottom:0,fontSize:12}}/></div>
+            <div><label style={{...LBL,marginBottom:2}}>Administered By <span style={{color:"#f87171"}}>*</span></label><input value={entry.administered_by} onChange={e=>set("administered_by")(e.target.value)} style={{...INP,marginBottom:0,fontSize:12}}/></div>
+            <div><label style={{...LBL,marginBottom:2}}>Witness</label><input value={entry.witness} onChange={e=>set("witness")(e.target.value)} placeholder="Witness name" style={{...INP,marginBottom:0,fontSize:12}}/></div>
+          </div>
+          <div style={{marginBottom:10}}><label style={{...LBL,marginBottom:2}}>Notes</label><input value={entry.notes} onChange={e=>set("notes")(e.target.value)} placeholder="Reason, patient response, etc." style={{...INP,marginBottom:0,fontSize:12}}/></div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button onClick={()=>{setShowForm(false);setEntry(null);}} style={{...ABTN,borderStyle:"solid",fontSize:12,padding:"5px 14px"}}>Cancel</button>
+            <button onClick={save} disabled={!entry.medication||!entry.dose_given||!entry.administered_by} style={{padding:"6px 18px",borderRadius:8,border:"none",background:entry.medication&&entry.dose_given&&entry.administered_by?"#7c3aed":"rgba(255,255,255,0.1)",color:entry.medication&&entry.dose_given&&entry.administered_by?"#fff":"rgba(240,242,250,0.3)",fontWeight:700,fontSize:12,cursor:"pointer"}}>Save Entry</button>
+          </div>
+        </div>
+      )}
+
+      {/* Log table */}
+      {paged.length===0&&!showForm&&<div style={{fontSize:12,color:"var(--color-text-muted)",textAlign:"center",padding:"20px 0"}}>No records yet.</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {paged.map(i=>{
+          const canWitness=!i.witness_confirmed&&i.administered_by!==currentUser?.displayName;
+          return(
+            <div key={i.id} style={{background:"var(--color-bg-hover)",border:"1px solid var(--color-border)",borderRadius:9,padding:"10px 14px",borderLeft:"3px solid "+(i.witness_confirmed?"#10b981":"#f59e0b")}}>
+              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8}}>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+                    <span style={{fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{i.medication}</span>
+                    <span style={{fontSize:11,color:"var(--color-text-dim)"}}>{i.dose_given}{i.route?" · "+i.route:""}</span>
+                    {i.dose_wasted&&i.dose_wasted!=="0"&&<span style={{fontSize:11,color:"#f87171"}}>Wasted: {i.dose_wasted}</span>}
+                    {i.count_before&&i.count_after&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>Count: {i.count_before}→{i.count_after}</span>}
+                  </div>
+                  <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                    <span style={{fontSize:11,color:"var(--color-text-dim)"}}>{new Date(i.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{i.time?" "+i.time:""}</span>
+                    <span style={{fontSize:11,color:"var(--color-text-muted)"}}>By: {i.administered_by}</span>
+                    {i.notes&&<span style={{fontSize:11,color:"var(--color-text-muted)",fontStyle:"italic"}}>{i.notes}</span>}
+                  </div>
+                </div>
+                <div style={{flexShrink:0,display:"flex",alignItems:"center",gap:6}}>
+                  {i.witness_confirmed
+                    ?<span style={{fontSize:11,fontWeight:700,color:"#10b981",background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:20,padding:"2px 8px"}}>✓ Witnessed: {i.witness}</span>
+                    :i.witness
+                      ?<span style={{fontSize:11,color:"#f59e0b",background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:20,padding:"2px 8px"}}>⏳ {i.witness} (pending)</span>
+                      :<span style={{fontSize:11,color:"#ef4444",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:20,padding:"2px 8px"}}>No witness</span>
+                  }
+                  {canWitness&&<button onClick={()=>confirmWitness(i.id)} style={{padding:"3px 10px",borderRadius:7,border:"none",background:"#7c3aed",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Sign</button>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {filtered.length>PAGE&&(
+        <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:10}}>
+          <button disabled={page===0} onClick={()=>setPage(p=>p-1)} style={{...ABTN,borderStyle:"solid",fontSize:11,padding:"3px 10px",opacity:page===0?0.4:1}}>← Prev</button>
+          <span style={{fontSize:11,color:"var(--color-text-muted)",alignSelf:"center"}}>{page+1}/{Math.ceil(filtered.length/PAGE)}</span>
+          <button disabled={(page+1)*PAGE>=filtered.length} onClick={()=>setPage(p=>p+1)} style={{...ABTN,borderStyle:"solid",fontSize:11,padding:"3px 10px",opacity:(page+1)*PAGE>=filtered.length?0.4:1}}>Next →</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export { PainAssessment, BradenScale, CognitiveScreening, ContinenceLog, NutritionScreening, WoundAssessment, ADLTracker, IncidentReports, IntakeChecklist, MARTracker, PRNLog, HandoverNotes, PreventiveCare, ControlledSubLog };
