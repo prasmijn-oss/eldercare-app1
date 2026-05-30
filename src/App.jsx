@@ -988,7 +988,7 @@ function EmergCard({client,onClose,t}){
       +"</div>"
       +(fm.length>0?sec("ALL MEDICATIONS","#10b981",mHTML):"")
       +(fd.length>0?sec("DIAGNOSES","#6366f1",dHTML):"")
-      +"<div style='text-align:center;font-size:10px;color:#999;margin-top:16px;border-top:1px solid #eee;padding-top:10px'>CareManager - Printed "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})+"</div>"
+      +"<div style='text-align:center;font-size:10px;color:#999;margin-top:16px;border-top:1px solid #eee;padding-top:10px'>GoldenCare System - Printed "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})+"</div>"
       +"</body></html>";
     const blob=new Blob([h],{type:"text/html"});
     const url=URL.createObjectURL(blob);
@@ -1086,8 +1086,8 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
       rows.push("<h3 style='color:#7c3aed;border-bottom:1px solid #eee;padding-bottom:4px;margin-top:16px'>Session Notes</h3>");
       fn.slice(0,10).forEach(n=>rows.push("<div style='border-left:3px solid #7c3aed;padding-left:12px;margin-bottom:10px'><strong style='font-size:11px;color:#7c3aed'>"+n.date+(n.role?" - "+n.role:"")+(n.staff_name?" - "+n.staff_name:"")+"</strong><p style='margin:4px 0;font-size:13px;color:#374151'>"+n.text+"</p></div>"));
     }
-    rows.push("<hr style='margin-top:24px;border:none;border-top:1px solid #e5e7eb'><p style='text-align:center;font-size:10px;color:#9ca3af'>CareManager - Exported "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})+"</p>");
-    const html="<!DOCTYPE html><html><head><title>"+client.name+" - CareManager</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#374151;font-size:13px}@page{margin:1.5cm;size:A4}</style></head><body>"+rows.join("")+"</body></html>";
+    rows.push("<hr style='margin-top:24px;border:none;border-top:1px solid #e5e7eb'><p style='text-align:center;font-size:10px;color:#9ca3af'>GoldenCare System - Exported "+new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})+"</p>");
+    const html="<!DOCTYPE html><html><head><title>"+client.name+" - GoldenCare System</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#374151;font-size:13px}@page{margin:1.5cm;size:A4}</style></head><body>"+rows.join("")+"</body></html>";
     const blob=new Blob([html],{type:"text/html"});
     const url=URL.createObjectURL(blob);
     const w=window.open(url,"_blank");
@@ -1118,7 +1118,7 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
       </div>
       <div id="pz">
         <div className="ph" style={{textAlign:"center",borderBottom:"2px solid #6366f1",paddingBottom:12,marginBottom:20}}>
-          <div style={{fontSize:22,fontWeight:700,color:"#111",fontFamily:"serif"}}>CareManager - Client Profile</div>
+          <div style={{fontSize:22,fontWeight:700,color:"#111",fontFamily:"serif"}}>GoldenCare System - Client Profile</div>
           <div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:4}}>Printed on {new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</div>
         </div>
         <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,marginBottom:16}}>
@@ -1381,7 +1381,7 @@ function LangPicker({onSelect}){
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
         </div>
-        <div style={{fontSize:24,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px",marginBottom:6}}>CareManager</div>
+        <div style={{fontSize:24,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px",marginBottom:6}}>GoldenCare System</div>
         <div style={{fontSize:13,color:"var(--color-text-dim)",marginBottom:32}}>Select your language / Selecta bo idioma</div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {LANG_OPTIONS.map(l=>(
@@ -1447,7 +1447,7 @@ function Login({onLogin,t}){
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
           </div>
-          <div style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px",marginBottom:4}}>CareManager</div>
+          <div style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px",marginBottom:4}}>GoldenCare System</div>
           <div style={{fontSize:13,color:"var(--color-text-dim)"}}>{t.signIn}</div>
         </div>
         {error&&<div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:16,color:"#ef4444",fontSize:13}}>{error}</div>}
@@ -1731,8 +1731,8 @@ function CompanyPicker({onSelect,currentUser,t}){
       <div style={{maxWidth:600,width:"100%"}}>
         <div style={{textAlign:"center",marginBottom:32}}>
           <div style={{fontSize:48,marginBottom:12}}>🏢</div>
-          <div style={{fontSize:24,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px",marginBottom:6}}>Select Company</div>
-          <div style={{fontSize:13,color:"var(--color-text-dim)"}}>Choose which company to manage</div>
+          <div style={{fontSize:24,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px",marginBottom:6}}>Select Care Facility</div>
+          <div style={{fontSize:13,color:"var(--color-text-dim)"}}>Choose which care facility to manage</div>
         </div>
         {loading?(
           <div style={{textAlign:"center",color:"var(--color-text-muted)",padding:"40px 0"}}>Loading companies...</div>
@@ -2063,7 +2063,7 @@ function ReportsView({clients,company,currentUser,logAudit}){
   const MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];
   const monthName=MONTH_NAMES[month-1];
   const daysInMonth=new Date(year,month,0).getDate();
-  const companyName=company?.name||"CareManager";
+  const companyName=company?.name||"GoldenCare System";
   const generatedOn=new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
   const inMonth=d=>d&&d.startsWith(`${year}-${String(month).padStart(2,"0")}`);
   const fmtDate=d=>d?new Date(d+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"—";
@@ -2177,7 +2177,7 @@ function ReportsView({clients,company,currentUser,logAudit}){
       h+=`</tbody></table>`;
     }
 
-    h+=`<div class="footer">CONFIDENTIAL — CareManager &nbsp;·&nbsp; ${he(companyName)} &nbsp;·&nbsp; ${he(client.name)} — Monthly Summary ${he(monthName)} ${he(year)} &nbsp;·&nbsp; Generated ${he(generatedOn)}</div></div></body></html>`;
+    h+=`<div class="footer">CONFIDENTIAL — GoldenCare System &nbsp;·&nbsp; ${he(companyName)} &nbsp;·&nbsp; ${he(client.name)} — Monthly Summary ${he(monthName)} ${he(year)} &nbsp;·&nbsp; Generated ${he(generatedOn)}</div></div></body></html>`;
     openPrint(h);
     logAudit?.("Generated Monthly Summary PDF",client.name,{section:"Reports",details:`Monthly summary for ${client.name} — ${monthName} ${year}`});
     setGenerating(false);
@@ -2307,7 +2307,7 @@ function ReportsView({clients,company,currentUser,logAudit}){
     if(topStaff.length>0){h+=`<div style="margin-top:6px;font-size:9px;color:#64748b;font-weight:700">Top staff:</div>`;topStaff.forEach(([st,n])=>{h+=`<div class="fr"><span>${st}</span><span style="font-size:11px;font-weight:700">${n}</span></div>`;});}
     h+=`</div></div>`;
 
-    h+=`<div class="footer">CONFIDENTIAL — CareManager &nbsp;·&nbsp; ${he(companyName)} &nbsp;·&nbsp; Census Report ${he(monthName)} ${he(year)} &nbsp;·&nbsp; Generated ${he(generatedOn)}</div></div></body></html>`;
+    h+=`<div class="footer">CONFIDENTIAL — GoldenCare System &nbsp;·&nbsp; ${he(companyName)} &nbsp;·&nbsp; Census Report ${he(monthName)} ${he(year)} &nbsp;·&nbsp; Generated ${he(generatedOn)}</div></div></body></html>`;
     openPrint(h);
     logAudit?.("Generated Census PDF","",{section:"Reports",details:`Census report — ${monthName} ${year} — ${all.length} clients`});
     setGenerating(false);
@@ -3126,7 +3126,7 @@ export default function App(){
   };
 
   const exportPDF=()=>{
-    const companyLabel=searchAllCompanies?"All Companies":he(company?.name||"CareManager");
+    const companyLabel=searchAllCompanies?"All Companies":he(company?.name||"GoldenCare System");
     const rowsHtml=filtered.map(c=>`
       <tr>
         <td>${he(c.name)}</td>
@@ -3241,7 +3241,7 @@ export default function App(){
         ):(
           <>
             <button onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" style={{background:"rgba(128,128,128,0.12)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:16,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center"}}>☰</button>
-            <span style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>CareManager</span>
+            <span style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px"}}>GoldenCare</span>
             {can(currentUser.role,"add",perms)&&<button onClick={()=>{setSelected(null);setView("add");setSidebarOpen(false);}} aria-label="Add new client" className="btn-new-client" style={{background:"linear-gradient(135deg,var(--btn-primary-from),var(--btn-primary-to))",border:"none",color:"#fff",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700}}>+ New</button>}
           </>
         )}
@@ -3257,7 +3257,7 @@ export default function App(){
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2.5v11M3 7.5h10" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
               </div>
               <div>
-                <div style={{fontSize:14,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",lineHeight:1.2}}>CareManager</div>
+                <div style={{fontSize:14,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",lineHeight:1.2}}>GoldenCare System</div>
                 <div style={{fontSize:10,fontFamily:"'DM Mono',monospace",color:"var(--color-text-muted)",marginTop:1}}>{SUPABASE_URL.includes("kpwzeawgrqdsezflvjkm")?"staging":"production"}</div>
               </div>
             </div>
@@ -3282,7 +3282,7 @@ export default function App(){
             <div style={{padding:"8px 14px",borderBottom:"1px solid var(--color-border)"}}>
               <button onClick={()=>{setSelectedCompany(null);setCompany(null);setClients([]);setSelected(null);setView("dashboard");setSearch("");setStatusFilter("Active");setClientFilter("all");setSearchMode("clients");}}
                 style={{width:"100%",padding:"6px 10px",borderRadius:8,border:"1px solid var(--color-border)",background:"var(--color-bg-hover)",color:"var(--color-text-secondary)",fontSize:11,fontWeight:600,cursor:"pointer",textAlign:"left"}}>
-                ↔ Switch Company
+                ↔ Switch Care Facility
               </button>
             </div>
           )}
