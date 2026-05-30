@@ -4298,7 +4298,7 @@ export default function App(){
         const urgColor={high:"#ef4444",medium:"#f59e0b",low:"#6366f1"};
         const EPREF_LABELS=[["doc_expiry","Document expiry alerts"],["fall_risk","High fall risk alerts"],["incidents","New incident reports"],["appointments","Appointment reminders"]];
         return(
-          <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:"min(360px,100vw)",height:"100vh",background:"var(--color-bg-card)",borderLeft:"1px solid rgba(255,255,255,0.1)",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
+          <div className="notif-panel" style={{position:"fixed",top:0,right:0,width:"min(360px,100vw)",height:"100vh",height:"100dvh",background:"var(--color-bg-card)",borderLeft:"1px solid rgba(255,255,255,0.1)",zIndex:300,display:"flex",flexDirection:"column",boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
             <div style={{padding:"18px 20px",borderBottom:"1px solid var(--color-border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{fontSize:15,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.2px"}}>🔔 Notifications</div>

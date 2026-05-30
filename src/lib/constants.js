@@ -204,7 +204,7 @@ export const GCSS = [
   ".card-hover:hover { transform: translateY(-2px) !important; border-color: rgba(255,255,255,0.12) !important; box-shadow: 0 12px 32px rgba(0,0,0,0.4) !important; }",
   ".sidebar { transition: transform 0.25s ease; }",
   "@media (max-width: 768px) {",
-  "  .sidebar { position: fixed !important; left: 0; top: 0; height: 100vh; z-index: 200; transform: translateX(-100%); }",
+  "  .sidebar { position: fixed !important; left: 0; top: 0; height: 100vh; height: 100dvh; z-index: 200; transform: translateX(-100%); }",
   "  .sidebar.open { transform: translateX(0) !important; }",
   "  .main-pad { padding: 16px !important; }",
   "  .g4 { grid-template-columns: 1fr 1fr !important; }",
