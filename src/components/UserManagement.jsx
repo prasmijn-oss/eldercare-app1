@@ -52,6 +52,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const [search,setSearch]=useState("");
   const [expandedUser,setExpandedUser]=useState(null);
   const [editingUser,setEditingUser]=useState(null);
+  const [roleDropdownOpen,setRoleDropdownOpen]=useState(null); // user_id of open dropdown
   const [editForm,setEditForm]=useState({name:"",email:"",username:""});
   const [deleteConfirmUser,setDeleteConfirmUser]=useState(null);
   const [pendingAction,setPendingAction]=useState(null);
@@ -113,6 +114,12 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   };
 
   useEffect(()=>{loadData();},[activeCompanyId]);
+  useEffect(()=>{
+    if(!roleDropdownOpen)return;
+    const handler=()=>setRoleDropdownOpen(null);
+    document.addEventListener("click",handler,true);
+    return()=>document.removeEventListener("click",handler,true);
+  },[roleDropdownOpen]);
 
   const loadActivity=async(from,to)=>{
     setActivityLoading(true);
@@ -650,27 +657,35 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                         </td>
                         {/* Role cell */}
                         <td style={{padding:"10px 16px"}}>
-                          <div style={{position:"relative",display:"inline-block"}}>
-                            <div style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"var(--color-text-muted)",border:"1px solid "+(roleColor[u.role]||"rgba(255,255,255,0.1)"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,pointerEvents:"none",whiteSpace:"nowrap"}}>
-                              {u.role==="superadmin"?"Super Admin":u.role==="power_user"?"Power User":u.role==="care_assistant"?"Care Assistant":u.role.charAt(0).toUpperCase()+u.role.slice(1)}
-                            </div>
-                            <select value={u.role} onChange={e=>{
-                                const nr=e.target.value;if(nr===u.role)return;
-                                if(nr==="superadmin"&&currentUser.role!=="superadmin"){showToast("error","Only a superadmin can grant the superadmin role");return;}
-                                const RORD={superadmin:1,admin:2,power_user:3,nurse:4,care_assistant:5,user:6,inactive:7};
-                                if(currentUser.role!=="superadmin"&&(RORD[u.role]??9)<=(RORD[currentUser.role]??9)){showToast("error","You cannot change the role of a user with an equal or higher role");return;}
-                                setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:nr,oldRole:u.role}});
-                              }}
-                              style={{position:"absolute",inset:0,opacity:0,cursor:"pointer",width:"100%"}}>
-                              <option value="care_assistant">Care Assistant</option>
-                              <option value="user">User</option>
-                              <option value="nurse">Nurse</option>
-                              <option value="power_user">Power User</option>
-                              <option value="admin">Admin</option>
-                              {currentUser.role==="superadmin"&&<option value="superadmin">Super Admin</option>}
-                              <option value="inactive">Inactive</option>
-                            </select>
-                          </div>
+                          {(()=>{
+                            const ROLE_OPTS=[{v:"care_assistant",l:"Care Assistant"},{v:"user",l:"User"},{v:"nurse",l:"Nurse"},{v:"power_user",l:"Power User"},{v:"admin",l:"Admin"},...(currentUser.role==="superadmin"?[{v:"superadmin",l:"Super Admin"}]:[]),{v:"inactive",l:"Inactive"}];
+                            const RORD={superadmin:1,admin:2,power_user:3,nurse:4,care_assistant:5,user:6,inactive:7};
+                            const canChange=!isMe&&(currentUser.role==="superadmin"||(RORD[u.role]??9)>(RORD[currentUser.role]??9));
+                            const roleLabel=u.role==="superadmin"?"Super Admin":u.role==="power_user"?"Power User":u.role==="care_assistant"?"Care Assistant":(u.role||"").charAt(0).toUpperCase()+(u.role||"").slice(1);
+                            return(
+                              <div style={{position:"relative",display:"inline-block"}}>
+                                <div onClick={()=>canChange&&setRoleDropdownOpen(p=>p===u.user_id?null:u.user_id)}
+                                  style={{background:roleBg[u.role]||"transparent",color:roleColor[u.role]||"var(--color-text-muted)",border:"1px solid "+(roleColor[u.role]||"rgba(255,255,255,0.1)"),borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,whiteSpace:"nowrap",cursor:canChange?"pointer":"default",userSelect:"none",display:"flex",alignItems:"center",gap:4}}>
+                                  {roleLabel}{canChange&&<span style={{fontSize:9,opacity:0.6}}>▾</span>}
+                                </div>
+                                {roleDropdownOpen===u.user_id&&(
+                                  <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:200,background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:8,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",minWidth:140,overflow:"hidden"}}>
+                                    {ROLE_OPTS.map(opt=>(
+                                      <div key={opt.v} onClick={()=>{
+                                        setRoleDropdownOpen(null);
+                                        if(opt.v===u.role)return;
+                                        if(opt.v==="superadmin"&&currentUser.role!=="superadmin"){showToast("error","Only a superadmin can grant the superadmin role");return;}
+                                        setPendingAction({type:"role_change",userId:u.user_id,userName:u.name||u.email,meta:{newRole:opt.v,oldRole:u.role}});
+                                      }}
+                                        style={{padding:"8px 14px",fontSize:12,fontWeight:opt.v===u.role?700:400,color:opt.v===u.role?(roleColor[opt.v]||"var(--color-text-primary)"):"var(--color-text-secondary)",background:opt.v===u.role?(roleBg[opt.v]||"transparent"):"transparent",cursor:"pointer",borderBottom:"1px solid var(--color-border)"}}>
+                                        {opt.l}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         {/* Companies cell */}
                         <td style={{padding:"10px 16px"}}>
