@@ -1521,7 +1521,33 @@ function CompanyView({company,onUpdate,currentUser,t}){
     setSaving(false);
   };
 
-  const TABS=[{id:"info",label:"Company Info"},{id:"hours",label:"Hours"},{id:"emergency",label:"Emergency"},{id:"fields",label:"Custom Fields"}];
+  const isSuperAdmin=currentUser?.role==="superadmin";
+  const TABS=[{id:"info",label:"Company Info"},{id:"hours",label:"Hours"},{id:"emergency",label:"Emergency"},{id:"fields",label:"Custom Fields"},...(isSuperAdmin?[{id:"subscription",label:"Subscriptions"}]:[])];
+
+  // Subscription management (superadmin tab)
+  const [allCompanies,setAllCompanies]=useState([]);
+  const [subLoading,setSubLoading]=useState(false);
+  const [subSaving,setSubSaving]=useState(null);
+  const loadAllCompanies=async()=>{
+    setSubLoading(true);
+    const {data}=await supabase.from("companies").select("id,name,plan,subscription_status,subscription_expires_at").is("archived_at",null).order("name");
+    setAllCompanies(data||[]);
+    setSubLoading(false);
+  };
+  useEffect(()=>{if(tab==="subscription")loadAllCompanies();},[tab]);
+
+  const updateSubscription=async(companyId,patch)=>{
+    setSubSaving(companyId);
+    const {error}=await supabase.from("companies").update(patch).eq("id",companyId);
+    if(error)showToast("error","Save failed: "+error.message);
+    else{setAllCompanies(cs=>cs.map(c=>c.id===companyId?{...c,...patch}:c));showToast("success","Subscription updated");}
+    setSubSaving(null);
+  };
+
+  const setTrial=(companyId,days)=>{
+    const d=new Date();d.setDate(d.getDate()+days);
+    updateSubscription(companyId,{subscription_status:"trial",subscription_expires_at:d.toISOString().slice(0,10)});
+  };
 
   const saveCfSchema=async()=>{
     if(!company)return;
@@ -1690,7 +1716,54 @@ function CompanyView({company,onUpdate,currentUser,t}){
             </div>
           </div>
         )}
-        {tab!=="fields"&&<div style={{marginTop:20}}>
+        {tab==="subscription"&&(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16}}>
+            <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.8px"}}>💳 Subscription Management</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginBottom:16}}>Manage subscription status and expiry for all care facilities.</div>
+            {subLoading?<div style={{color:"var(--color-text-muted)",fontSize:13,padding:"20px 0",textAlign:"center"}}>Loading…</div>:(
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {allCompanies.map(c=>{
+                  const expired=c.subscription_status==="expired"||c.subscription_status==="suspended"||(c.subscription_expires_at&&new Date(c.subscription_expires_at)<new Date());
+                  const statusColors={active:"#10b981",trial:"#f59e0b",expired:"#ef4444",suspended:"#6b7280"};
+                  const sc=statusColors[c.subscription_status]||"#6b7280";
+                  return(
+                    <div key={c.id} style={{background:"var(--color-bg-surface)",border:"1px solid var(--color-border)",borderRadius:10,padding:"12px 14px",display:"flex",flexWrap:"wrap",gap:10,alignItems:"center"}}>
+                      <div style={{flex:"1 1 150px",fontSize:13,fontWeight:700,color:"var(--color-text-primary)"}}>{c.name}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:6,flex:"0 0 auto"}}>
+                        <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:sc+"20",color:sc,border:"1px solid "+sc+"40",textTransform:"capitalize"}}>{c.subscription_status||"active"}</span>
+                        {expired&&<span style={{fontSize:10,color:"#ef4444"}}>⚠ Expired</span>}
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:6,flex:"0 0 auto"}}>
+                        <select value={c.plan||"standard"} onChange={e=>updateSubscription(c.id,{plan:e.target.value})}
+                          style={{...INP,marginBottom:0,fontSize:11,padding:"4px 8px",width:"auto"}}>
+                          <option value="standard">Standard</option>
+                          <option value="professional">Professional</option>
+                          <option value="enterprise">Enterprise</option>
+                        </select>
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:6,flex:"0 0 auto"}}>
+                        <label style={{fontSize:11,color:"var(--color-text-dim)"}}>Expires</label>
+                        <input type="date" value={c.subscription_expires_at||""} onChange={e=>updateSubscription(c.id,{subscription_expires_at:e.target.value||null})}
+                          style={{...INP,marginBottom:0,fontSize:11,padding:"4px 8px",width:130}}/>
+                      </div>
+                      <div style={{display:"flex",gap:6,flex:"0 0 auto",flexWrap:"wrap"}}>
+                        <button type="button" disabled={subSaving===c.id} onClick={()=>updateSubscription(c.id,{subscription_status:"active"})}
+                          style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(16,185,129,0.15)",color:"#10b981",fontSize:11,fontWeight:700,cursor:"pointer"}}>Activate</button>
+                        <button type="button" disabled={subSaving===c.id} onClick={()=>setTrial(c.id,30)}
+                          style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(245,158,11,0.15)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Trial 30d</button>
+                        <button type="button" disabled={subSaving===c.id} onClick={()=>setTrial(c.id,90)}
+                          style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(245,158,11,0.15)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Trial 90d</button>
+                        <button type="button" disabled={subSaving===c.id} onClick={()=>updateSubscription(c.id,{subscription_status:"suspended"})}
+                          style={{padding:"4px 10px",borderRadius:6,border:"none",background:"rgba(107,114,128,0.15)",color:"#9ca3af",fontSize:11,fontWeight:700,cursor:"pointer"}}>Suspend</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+        {tab!=="fields"&&tab!=="subscription"&&<div style={{marginTop:20}}>
           <button type="submit" disabled={saving||uploading}
             style={{padding:"11px 28px",borderRadius:10,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"rgba(240,242,250,0.3)":"#fff",fontWeight:700,fontSize:14}}>
             {saving?"Saving...":"Save Company Information"}
@@ -1720,10 +1793,21 @@ function CompanyPicker({onSelect,currentUser,t}){
     }
   },[currentUser]);
 
+  const isSuperAdmin=currentUser?.allRoles?.some(r=>r.role==="superadmin");
+
   const handleSelect=(companyId)=>{
-    // Find the role for this specific company
     const roleForCompany=currentUser?.allRoles?.find(r=>r.company_id===companyId);
     onSelect(companyId, roleForCompany?.role||"user");
+  };
+
+  const getSubState=(c)=>{
+    const now=new Date();
+    const exp=c.subscription_expires_at?new Date(c.subscription_expires_at):null;
+    const isExpired=c.subscription_status==="expired"||c.subscription_status==="suspended"||(exp&&exp<now);
+    const daysLeft=exp?Math.ceil((exp-now)/(1000*60*60*24)):null;
+    const isExpiringSoon=!isExpired&&daysLeft!==null&&daysLeft<=14;
+    const isTrial=c.subscription_status==="trial";
+    return{isExpired,isExpiringSoon,isTrial,daysLeft};
   };
 
   return(
@@ -1742,9 +1826,11 @@ function CompanyPicker({onSelect,currentUser,t}){
               const roleForCompany=currentUser?.allRoles?.find(r=>r.company_id===c.id);
               const roleColors={superadmin:"#f59e0b",admin:"#6366f1",power_user:"#06b6d4",user:"#10b981"};
               const rc=roleColors[roleForCompany?.role]||"rgba(240,242,250,0.3)";
+              const {isExpired,isExpiringSoon,isTrial,daysLeft}=getSubState(c);
+              const blocked=isExpired&&!isSuperAdmin;
               return(
-                <button key={c.id} onClick={()=>handleSelect(c.id)}
-                  style={{display:"flex",alignItems:"center",gap:16,padding:"20px 24px",borderRadius:16,border:"1px solid rgba(255,255,255,0.08)",background:"var(--color-bg-card)",cursor:"pointer",textAlign:"left",width:"100%"}}>
+                <button key={c.id} onClick={()=>!blocked&&handleSelect(c.id)} disabled={blocked}
+                  style={{display:"flex",alignItems:"center",gap:16,padding:"20px 24px",borderRadius:16,border:"1px solid "+(blocked?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.08)"),background:blocked?"rgba(17,20,39,0.5)":"var(--color-bg-card)",cursor:blocked?"not-allowed":"pointer",textAlign:"left",width:"100%",opacity:blocked?0.55:1}}>
                   {c.logo_url?(
                     <div style={{background:"#fff",borderRadius:10,padding:"6px 8px",flexShrink:0}}>
                       <img src={c.logo_url} alt={c.name} style={{height:48,maxWidth:120,objectFit:"contain",display:"block"}}/>
@@ -1755,12 +1841,15 @@ function CompanyPicker({onSelect,currentUser,t}){
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:16,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",marginBottom:4}}>{c.name}</div>
                     {c.mission_statement&&<div style={{fontSize:12,color:"var(--color-text-dim)",fontStyle:"italic",marginBottom:6}}>"{c.mission_statement}"</div>}
-                    <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                       {c.address&&<span style={{fontSize:11,color:"var(--color-text-muted)"}}>📍 {c.address}</span>}
                       {roleForCompany&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:rc+"20",color:rc,border:"1px solid "+rc+"40",textTransform:"capitalize"}}>{roleForCompany.role.replace("_"," ")}</span>}
+                      {blocked&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(239,68,68,0.15)",color:"#f87171",border:"1px solid rgba(239,68,68,0.3)"}}>Subscription expired — contact GoldenCare</span>}
+                      {!blocked&&isTrial&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>Trial{daysLeft!==null?" · "+daysLeft+"d left":""}</span>}
+                      {!blocked&&isExpiringSoon&&!isTrial&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(234,179,8,0.15)",color:"#eab308",border:"1px solid rgba(234,179,8,0.3)"}}>Expires in {daysLeft}d</span>}
                     </div>
                   </div>
-                  <div style={{color:"#6366f1",fontSize:20,flexShrink:0}}>→</div>
+                  {!blocked&&<div style={{color:"#6366f1",fontSize:20,flexShrink:0}}>→</div>}
                 </button>
               );
             })}
@@ -3229,6 +3318,18 @@ export default function App(){
           <span style={{fontSize:14}}>{appMsg.type==="success"?"✓":"✗"}</span>{appMsg.text}
         </div>
       )}
+      {(()=>{
+        if(!company||!company.subscription_expires_at)return null;
+        if(currentUser?.role!=="superadmin"&&currentUser?.role!=="admin")return null;
+        const exp=new Date(company.subscription_expires_at);
+        const daysLeft=Math.ceil((exp-new Date())/(1000*60*60*24));
+        if(daysLeft>14||daysLeft<0)return null;
+        return(
+          <div style={{position:"fixed",top:0,left:0,right:0,zIndex:1100,background:"linear-gradient(90deg,#92400e,#b45309)",color:"#fef3c7",fontSize:12,fontWeight:600,padding:"8px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,textAlign:"center"}}>
+            ⚠ Your subscription expires in {daysLeft} day{daysLeft!==1?"s":""} — contact GoldenCare to renew.
+          </div>
+        );
+      })()}
       <div className="mob-hdr">
         {(view==="detail"||view==="edit"||view==="add"||view==="profile")?(
           <>
