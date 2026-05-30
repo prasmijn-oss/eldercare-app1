@@ -427,8 +427,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     }catch{return"—";}
   };
 
-  const roleColor={superadmin:"#f59e0b",admin:"var(--color-accent)",power_user:"#06b6d4",nurse:"#8b5cf6",care_assistant:"#ec4899",user:"#10b981",inactive:"var(--color-text-muted)"};
-  const roleBg={superadmin:"rgba(245,158,11,0.1)",admin:"var(--color-bg-active)",power_user:"rgba(6,182,212,0.1)",nurse:"rgba(139,92,246,0.1)",care_assistant:"rgba(236,72,153,0.1)",user:"rgba(16,185,129,0.1)",inactive:"rgba(71,85,105,0.1)"};
+  const roleColor={superadmin:"#f59e0b",admin:"#6366f1",power_user:"#06b6d4",nurse:"#8b5cf6",care_assistant:"#ec4899",user:"#10b981",inactive:"#64748b"};
+  const roleBg={superadmin:"rgba(245,158,11,0.12)",admin:"rgba(99,102,241,0.12)",power_user:"rgba(6,182,212,0.12)",nurse:"rgba(139,92,246,0.12)",care_assistant:"rgba(236,72,153,0.12)",user:"rgba(16,185,129,0.12)",inactive:"rgba(100,116,139,0.12)"};
   const companyName=id=>companies.find(c=>c.id===id)?.name||"—";
 
 
