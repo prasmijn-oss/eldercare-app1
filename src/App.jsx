@@ -3333,7 +3333,7 @@ export default function App(){
     const cid=selectedCompany||currentUser?.company_id;
     const isSuperAdmin=currentUser?.role==="superadmin";
     // Omit heavy clinical JSONB fields from the list load — they are lazy-fetched in detail view
-    const LIST_COLS="id,name,date_of_birth,status,photo_url,company_id,archived,diagnoses,medications,allergies,documents,appointments,incidents,intake_checklist,vitals,care_plan,inventory,family_contacts";
+    const LIST_COLS="id,name,date_of_birth,status,photo_url,company_id,archived,room_or_address,azv_number,isolation_type,phone,emergency_contact,emergency_phone,dr_di_cas,dr_specialista,diagnoses,medications,allergies,documents,appointments,incidents,intake_checklist,vitals,care_plan,inventory,family_contacts";
     const q=supabase.from("clients").select(LIST_COLS).order("name");
     const {data,error:err}=(isSuperAdmin&&searchAllCompanies)?await q:(cid?await q.eq("company_id",cid):await q);
     if(err)setError(err.message);else setClients((data||[]).map(fromDb));
@@ -3477,9 +3477,11 @@ export default function App(){
     const row={...toDb(data),company_id:activeCompanyId||null};
     const {error:err}=exists?await supabase.from("clients").update(row).eq("id",data.id):await supabase.from("clients").insert(row);
     if(err){setError(err.message);setSaving(false);return;}
-    await logAudit(exists?"Edited client":"Added new client",data.name,{clientId:data.id,section:"Client Profile",details:exists?`Updated client record`:`New client added — DOB: ${data.date_of_birth||"—"}, Status: ${data.status||"Active"}`});
-    await loadClients();
-    setSelected(data);setView("detail");setSaving(false);trackRecent(data);
+    try{
+      await logAudit(exists?"Edited client":"Added new client",data.name,{clientId:data.id,section:"Client Profile",details:exists?`Updated client record`:`New client added — DOB: ${data.date_of_birth||"—"}, Status: ${data.status||"Active"}`});
+      await loadClients();
+      setSelected(data);setView("detail");trackRecent(data);
+    }finally{setSaving(false);}
   };
 
   const archiveClient=async()=>{
@@ -4399,13 +4401,15 @@ export default function App(){
             const markRescheduled=async(a,e)=>{
               e.stopPropagation();
               const updated=(a.client.appointments||[]).map(ap=>ap.id===a.id?{...ap,status:"Scheduled",date:"",notes:(ap.notes?ap.notes+" | ":"")+"Rescheduled from "+ap.date}:ap);
-              await supabase.from("clients").update({appointments:JSON.stringify(updated)}).eq("id",a.client.id);
+              const{error}=await supabase.from("clients").update({appointments:JSON.stringify(updated)}).eq("id",a.client.id);
+              if(error){showToast("error","Failed to update: "+error.message);return;}
               setClients(prev=>prev.map(c=>c.id===a.client.id?{...c,appointments:updated}:c));
             };
             const markNoShow=async(a,e)=>{
               e.stopPropagation();
               const updated=(a.client.appointments||[]).map(ap=>ap.id===a.id?{...ap,status:"No-Show"}:ap);
-              await supabase.from("clients").update({appointments:JSON.stringify(updated)}).eq("id",a.client.id);
+              const{error}=await supabase.from("clients").update({appointments:JSON.stringify(updated)}).eq("id",a.client.id);
+              if(error){showToast("error","Failed to update: "+error.message);return;}
               setClients(prev=>prev.map(c=>c.id===a.client.id?{...c,appointments:updated}:c));
             };
 
