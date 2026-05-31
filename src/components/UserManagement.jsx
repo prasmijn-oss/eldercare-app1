@@ -224,13 +224,24 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
       if(!res.ok){
         const msg=result.error||"Failed to create user";
         if(msg.toLowerCase().includes("already been registered")||msg.toLowerCase().includes("already registered")||msg.toLowerCase().includes("already exists")){
-          // Auth user exists but may not be in user_roles — look them up by email
+          const {data:{session}}=await supabase.auth.getSession();
           const {data:rows}=await supabase.from("user_roles").select("user_id,name,email,company_id").eq("email",userForm.email.toLowerCase().trim());
           const companyIds=[...new Set((rows||[]).map(r=>r.company_id).filter(Boolean))];
           const {data:companyRows}=companyIds.length?await supabase.from("companies").select("id,name").in("id",companyIds):{data:[]};
           const row=(rows||[])[0];
+          let resolvedUserId=row?.user_id||null;
+          // If not in user_roles, look up via edge function (orphaned auth user)
+          if(!resolvedUserId){
+            const lookupRes=await fetch(`${SUPABASE_URL}/functions/v1/manage-user`,{
+              method:"POST",
+              headers:{"Content-Type":"application/json","Authorization":`Bearer ${session.access_token}`,"apikey":ANON_KEY},
+              body:JSON.stringify({action:"find_by_email",email:userForm.email}),
+            });
+            const lookupData=await lookupRes.json();
+            resolvedUserId=lookupData.user_id||null;
+          }
           setEmailConflict({
-            user_id:row?.user_id||null,
+            user_id:resolvedUserId,
             name:row?.name||userForm.name,
             email:userForm.email,
             companies:(companyRows||[]).map(c=>c.name),
