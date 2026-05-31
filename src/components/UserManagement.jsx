@@ -251,6 +251,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
         throw new Error(msg);
       }
       if(result.anyFailed)showToast("warning","User created but some company assignments failed");
+      else if(result.repurposed)showToast("success","Account repurposed — password updated and user reassigned.");
       else showToast("success","User created successfully!");
       setUserForm({name:"",email:"",password:"",username:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
       setShowUserForm(false);
