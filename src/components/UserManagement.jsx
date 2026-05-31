@@ -421,12 +421,12 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
       )}
 
       {/* Header */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+      <div className="um-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
         <div>
           <div style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px"}}>👥 User Management</div>
           <div style={{fontSize:13,color:"var(--color-text-dim)",marginTop:4}}>{users.length} users</div>
         </div>
-        <div style={{display:"flex",gap:8}}>
+        <div className="um-header-btns" style={{display:"flex",gap:8}}>
           {mainTab==="users"&&(
             <>
               <button onClick={()=>{setShowExistingForm(s=>!s);setShowUserForm(false);}}
@@ -461,7 +461,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
               <div style={{fontSize:14,color:"var(--color-text-primary)",fontWeight:700,marginBottom:6,letterSpacing:"-0.2px"}}>Add Existing User to Care Facility</div>
               <div style={{fontSize:12,color:"var(--color-text-dim)",marginBottom:16}}>For users who already have an account — give them access to this company.</div>
               <form onSubmit={addExistingUser}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                <div className="um-form-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                   <div style={{gridColumn:"1/-1"}}>
                     <label style={LBL}>Select User *</label>
                     <select name="user_id" value={existingForm.user_id} onChange={onChangeExisting} style={{...INP,marginBottom:0,cursor:"pointer"}}>
@@ -510,7 +510,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
             <div style={{background:"var(--color-bg-card)",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
               <div style={{fontSize:14,color:"var(--color-text-primary)",fontWeight:700,marginBottom:16,letterSpacing:"-0.2px"}}>Create New User</div>
               <form onSubmit={createUser}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                <div className="um-form-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                   <div><label style={LBL}>Full Name *</label><input name="name" value={userForm.name} onChange={onChangeUser} placeholder="e.g. Maria Johnson" style={INP2}/></div>
                   <div><label style={LBL}>Email *</label><input name="email" type="email" value={userForm.email} onChange={onChangeUser} placeholder="user@company.aw" style={INP2}/></div>
                   <div><label style={LBL}>Temporary Password *</label><input name="password" type="password" value={userForm.password} onChange={onChangeUser} placeholder="Min. 10 characters" style={INP2}/><PasswordStrengthMeter password={userForm.password}/></div>
@@ -581,7 +581,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           )}
 
           {/* User filter tabs + search */}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div className="um-filter-bar" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <div style={{display:"flex",gap:2,borderBottom:"1px solid var(--color-border)"}}>
               {[["all","All"],["active","Active"],["inactive","Inactive"]].map(([id,label])=>(
                 <button key={id} onClick={()=>setUserTab(id)}
@@ -590,7 +590,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 </button>
               ))}
             </div>
-            <input style={{...INP2,width:200}} placeholder="Search users..." value={search} onChange={e=>setSearch(e.target.value)}/>
+            <input className="um-search" style={{...INP2,width:200}} placeholder="Search users..." value={search} onChange={e=>setSearch(e.target.value)}/>
           </div>
 
           {/* User List */}
@@ -602,8 +602,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
                   <thead>
                     <tr style={{borderBottom:"1px solid var(--color-border)"}}>
-                      {[["Name",160],["Email",160],["Role",110],["Care Facilities",null],["Actions",180]].map(([h,minW])=>(
-                        <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"var(--color-accent)",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
+                      {[["Name",160,false],["Email",160,true],["Role",110,false],["Care Facilities",null,true],["Actions",180,false]].map(([h,minW,hideOnMobile])=>(
+                        <th key={h} className={hideOnMobile?"um-hide-mobile":undefined} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"var(--color-accent)",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -633,7 +633,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                           )}
                         </td>
                         {/* Email cell */}
-                        <td style={{padding:"10px 16px",color:"var(--color-text-dim)",fontSize:13}}>
+                        <td className="um-hide-mobile" style={{padding:"10px 16px",color:"var(--color-text-dim)",fontSize:13}}>
                           {isEditing?(
                             <input value={editForm.email} onChange={e=>setEditForm(p=>({...p,email:e.target.value}))}
                               placeholder="Email" style={{background:"rgba(255,255,255,0.03)",border:"1px solid #6366f1",borderRadius:6,padding:"4px 8px",color:"var(--color-text-primary)",fontSize:12,width:160}}/>
@@ -657,7 +657,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                           })()}
                         </td>
                         {/* Companies cell */}
-                        <td style={{padding:"10px 16px"}}>
+                        <td className="um-hide-mobile" style={{padding:"10px 16px"}}>
                           <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}>
                             {allUserRoles.filter(r=>r.user_id===u.user_id).map(r=>(
                               <span key={r.company_id} style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(99,102,241,0.12)",border:"1px solid rgba(99,102,241,0.25)",borderRadius:12,padding:"2px 8px",fontSize:11,color:"#a5b4fc",whiteSpace:"nowrap"}}>
@@ -726,7 +726,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                     const RORD={superadmin:1,admin:2,power_user:3,nurse:4,care_assistant:5,user:6,inactive:7};
                                     const canDeactivate=u.role!=="inactive"&&(currentUser.role==="superadmin"||(RORD[u.role]??9)>(RORD[currentUser.role]??9));
                                     return canDeactivate?(
-                                      <button onClick={()=>setPendingAction({type:"deactivate",userId:u.user_id,userName:u.name||u.email,meta:{}})}
+                                      <button className="um-deactivate" onClick={()=>setPendingAction({type:"deactivate",userId:u.user_id,userName:u.name||u.email,meta:{}})}
                                         style={{padding:"4px 12px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-dim)",fontSize:11,fontWeight:600}}>
                                         Deactivate
                                       </button>

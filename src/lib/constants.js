@@ -320,6 +320,17 @@ export const GCSS = [
   /* Notification unread dot border matches light bg */
   "html.cm-light .notif-unread-dot { border-color: #f9fafb !important; }",
   "@media (max-width: 600px) { .missed-row { flex-wrap: wrap !important; align-items: flex-start !important; } .missed-row-actions { width: 100% !important; justify-content: flex-end !important; margin-top: 6px !important; } }",
+  /* User Management mobile */
+  "@media (max-width: 640px) {",
+  "  .um-header { flex-wrap: wrap; gap: 10px; }",
+  "  .um-header-btns { width: 100%; display: flex; gap: 8px; }",
+  "  .um-header-btns button { flex: 1; font-size: 13px !important; padding: 9px 10px !important; }",
+  "  .um-filter-bar { flex-direction: column; align-items: stretch; gap: 10px; }",
+  "  .um-filter-bar .um-search { width: 100% !important; box-sizing: border-box; }",
+  "  .um-hide-mobile { display: none !important; }",
+  "  .um-deactivate { display: none !important; }",
+  "  .um-form-grid { grid-template-columns: 1fr !important; }",
+  "}",
 ].join("\n");
 
 // ── Translations ───────────────────────────────────────────────────────────
