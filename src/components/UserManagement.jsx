@@ -429,11 +429,11 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
         <div style={{display:"flex",gap:8}}>
           {mainTab==="users"&&(
             <>
-              <button onClick={()=>{setShowExistingForm(s=>!s);setShowUserForm(false);setShowCompanyForm(false);}}
+              <button onClick={()=>{setShowExistingForm(s=>!s);setShowUserForm(false);}}
                 style={{padding:"10px 20px",borderRadius:10,border:"1px solid #6366f1",background:"transparent",color:"var(--color-accent)",fontWeight:700,fontSize:14}}>
                 {showExistingForm?"Cancel":"+ Existing User"}
               </button>
-              <button onClick={()=>{setShowUserForm(s=>!s);setShowExistingForm(false);setShowCompanyForm(false);}}
+              <button onClick={()=>{setShowUserForm(s=>!s);setShowExistingForm(false);}}
                 style={{padding:"10px 20px",borderRadius:10,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:14}}>
                 {showUserForm?"Cancel":"+ New User"}
               </button>
