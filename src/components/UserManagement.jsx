@@ -638,15 +638,26 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                     <div style={{fontSize:12,fontWeight:700,color:"#ef4444",marginBottom:6}}>⚠ Email already registered</div>
                     <div style={{fontSize:12,color:"var(--color-text-secondary)",marginBottom:8}}>
                       <strong style={{color:"var(--color-text-primary)"}}>{emailConflict.name}</strong> ({emailConflict.email}) already exists
-                      {emailConflict.companies.length>0&&<> — in <strong style={{color:"var(--color-text-primary)"}}>{emailConflict.companies.join(", ")}</strong></>}.
+                      {emailConflict.companies.length>0?<> — currently in <strong style={{color:"var(--color-text-primary)"}}>{emailConflict.companies.join(", ")}</strong></>:" — not assigned to any company"}.
                     </div>
                     <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                      <button type="button" onClick={()=>{
-                        setExistingForm(f=>({...f,user_id:emailConflict.user_id,name:emailConflict.name}));
-                        setShowExistingForm(true);setShowUserForm(false);setEmailConflict(null);
-                      }} style={{padding:"6px 14px",borderRadius:7,border:"none",background:"#6366f1",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                        + Add to this company
-                      </button>
+                      {emailConflict.user_id&&emailConflict.companies.length>0&&(
+                        <button type="button" onClick={()=>{
+                          setExistingForm(f=>({...f,user_id:emailConflict.user_id,name:emailConflict.name}));
+                          setShowExistingForm(true);setShowUserForm(false);setEmailConflict(null);
+                        }} style={{padding:"6px 14px",borderRadius:7,border:"none",background:"#6366f1",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                          + Add to this company
+                        </button>
+                      )}
+                      {emailConflict.user_id&&(
+                        <button type="button" disabled={saving} onClick={async()=>{
+                          if(!window.confirm(`Permanently delete ${emailConflict.name||emailConflict.email}? This cannot be undone.`))return;
+                          await deleteUser(emailConflict.user_id);
+                          setEmailConflict(null);
+                        }} style={{padding:"6px 14px",borderRadius:7,border:"none",background:"#ef4444",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                          🗑 Delete permanently
+                        </button>
+                      )}
                       <button type="button" onClick={()=>setEmailConflict(null)}
                         style={{padding:"6px 14px",borderRadius:7,border:"1px solid rgba(255,255,255,0.12)",background:"none",color:"var(--color-text-secondary)",fontSize:12,cursor:"pointer"}}>
                         Dismiss
