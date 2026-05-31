@@ -55,7 +55,7 @@ serve(async (req) => {
       });
     }
 
-    const { action, targetUserId } = await req.json();
+    const { action, targetUserId, newPassword } = await req.json();
 
     if (!action || !targetUserId) {
       return new Response(JSON.stringify({ error: "Missing action or targetUserId" }), {
@@ -115,6 +115,31 @@ serve(async (req) => {
           status: 400, headers: { ...CORS, "Content-Type": "application/json" },
         });
       }
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "set_password") {
+      if (!newPassword || newPassword.length < 10) {
+        return new Response(JSON.stringify({ error: "Password must be at least 10 characters" }), {
+          status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
+      // Update password in a separate call — combining password + user_metadata in one call
+      // causes Supabase to silently skip the password update while returning no error.
+      const { error: pwErr } = await adminClient.auth.admin.updateUserById(targetUserId, {
+        password: newPassword,
+      });
+      if (pwErr) {
+        return new Response(JSON.stringify({ error: pwErr.message }), {
+          status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
+      // Set force_password_change flag separately after password is confirmed updated
+      await adminClient.auth.admin.updateUserById(targetUserId, {
+        user_metadata: { force_password_change: true },
+      });
       return new Response(JSON.stringify({ ok: true }), {
         status: 200, headers: { ...CORS, "Content-Type": "application/json" },
       });

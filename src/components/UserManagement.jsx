@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Fragment } from "react";
-import { supabase, supabaseAdmin } from "../lib/supabase.js";
+import { supabase, supabaseAdmin, SUPABASE_URL, ANON_KEY } from "../lib/supabase.js";
 import { can, he, uid, tod, initials, avatarColor, scorePassword } from "../lib/utils.js";
 import { INP, LBL, ABTN, IBTN, PW_LEVELS } from "../lib/constants.js";
+import { usePermissions } from "../lib/PermissionsContext.jsx";
 
 function PasswordStrengthMeter({password}){
   if(!password)return null;
   const score=scorePassword(password);
   const level=PW_LEVELS[score];
   const checks=[
-    {ok:password.length>=10, label:"10+ characters"},
+    {ok:password.length>=5, label:"5+ characters"},
     {ok:/[A-Z]/.test(password), label:"Uppercase letter"},
     {ok:/[0-9]/.test(password), label:"Number"},
     {ok:/[^A-Za-z0-9]/.test(password), label:"Symbol"},
@@ -37,6 +38,7 @@ function PasswordStrengthMeter({password}){
 }
 
 function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
+  const {perms}=usePermissions();
   const [users,setUsers]=useState([]);
   const [companies,setCompanies]=useState([]);
   const [allAuthUsers,setAllAuthUsers]=useState([]);
@@ -45,7 +47,6 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const [mainTab,setMainTab]=useState("users");
   const [showUserForm,setShowUserForm]=useState(false);
   const [showExistingForm,setShowExistingForm]=useState(false);
-  const [showCompanyForm,setShowCompanyForm]=useState(false);
   const [saving,setSaving]=useState(false);
   const [toast,setToast]=useState(null);
   const [userTab,setUserTab]=useState("all");
@@ -58,20 +59,16 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const [pendingAction,setPendingAction]=useState(null);
   const [userForm,setUserForm]=useState({name:"",email:"",password:"",username:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
   const [existingForm,setExistingForm]=useState({user_id:"",name:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
-  const [companyForm,setCompanyForm]=useState({name:"",address:"",phone:"",email:"",website:"",mission_statement:""});
   const [activityData,setActivityData]=useState([]);
   const [activityLoading,setActivityLoading]=useState(false);
+  const [emailConflict,setEmailConflict]=useState(null); // {user_id,name,email,companies:[]}
   const [activityDateFrom,setActivityDateFrom]=useState("");
   const [activityDateTo,setActivityDateTo]=useState("");
   const [expandedStaff,setExpandedStaff]=useState(null);
-  const [showArchived,setShowArchived]=useState(false);
-  const [archiveConfirmCompany,setArchiveConfirmCompany]=useState(null);
-  const [deleteConfirmCompany,setDeleteConfirmCompany]=useState(null);
-  const [deleteCompanyInput,setDeleteCompanyInput]=useState("");
-
+  const [passwordModal,setPasswordModal]=useState(null); // {userId, userName}
+  const [newPassword,setNewPassword]=useState("");
+  const [passwordSaving,setPasswordSaving]=useState(false);
   const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
-
-  const [companyStats,setCompanyStats]=useState({});
 
   const loadData=async()=>{
     setLoading(true);
@@ -86,30 +83,6 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     const seen=new Set();
     const unique=(au||[]).filter(u=>{if(seen.has(u.user_id))return false;seen.add(u.user_id);return true;});
     setAllAuthUsers(unique);
-    // Load client counts per company
-    const {data:clientRows}=await supabase.from("clients").select("company_id,archived");
-    // Load last audit activity per company (most recent 1000 entries)
-    const {data:auditRows}=await supabase.from("audit_log").select("company_id,performed_at").order("performed_at",{ascending:false}).limit(1000);
-    // Build stats map
-    const stats={};
-    (cd||[]).forEach(c=>{stats[c.id]={clients:0,archivedClients:0,users:0,lastActivity:null};});
-    (clientRows||[]).forEach(r=>{
-      if(!stats[r.company_id])stats[r.company_id]={clients:0,archivedClients:0,users:0,lastActivity:null};
-      if(r.archived)stats[r.company_id].archivedClients++;
-      else stats[r.company_id].clients++;
-    });
-    // Unique users per company
-    const userSets={};
-    (au||[]).forEach(r=>{
-      if(!userSets[r.company_id])userSets[r.company_id]=new Set();
-      userSets[r.company_id].add(r.user_id);
-    });
-    Object.entries(userSets).forEach(([cid,s])=>{if(stats[cid])stats[cid].users=s.size;});
-    // Last activity (first entry per company since sorted desc)
-    (auditRows||[]).forEach(r=>{
-      if(stats[r.company_id]&&!stats[r.company_id].lastActivity)stats[r.company_id].lastActivity=r.performed_at;
-    });
-    setCompanyStats(stats);
     setLoading(false);
   };
 
@@ -117,8 +90,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   useEffect(()=>{
     if(!roleDropdown)return;
     const handler=()=>setRoleDropdown(null);
-    document.addEventListener("click",handler,true);
-    return()=>document.removeEventListener("click",handler,true);
+    document.addEventListener("click",handler);
+    return()=>document.removeEventListener("click",handler);
   },[roleDropdown]);
 
   const loadActivity=async(from,to)=>{
@@ -144,12 +117,10 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
 
   useEffect(()=>{if(mainTab==="activity")loadActivity(activityDateFrom,activityDateTo);},[mainTab,activeCompanyId,activityDateFrom,activityDateTo]);
 
-  const onChangeUser=e=>setUserForm(p=>({...p,[e.target.name]:e.target.value}));
+  const onChangeUser=e=>{setUserForm(p=>({...p,[e.target.name]:e.target.value}));if(e.target.name==="email")setEmailConflict(null);};
   const onChangeExisting=e=>setExistingForm(p=>({...p,[e.target.name]:e.target.value}));
   const onToggleCompany=id=>setExistingForm(p=>({...p,company_ids:p.company_ids.includes(id)?p.company_ids.filter(x=>x!==id):[...p.company_ids,id]}));
   const onToggleUserCompany=id=>setUserForm(p=>({...p,company_ids:p.company_ids.includes(id)?p.company_ids.filter(x=>x!==id):[...p.company_ids,id]}));
-  const onChangeCompany=e=>setCompanyForm(p=>({...p,[e.target.name]:e.target.value}));
-
   const addExistingUser=async e=>{
     e.preventDefault();
     if(!existingForm.user_id||!existingForm.role||existingForm.company_ids.length===0){
@@ -182,13 +153,21 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     if(!userForm.name||!userForm.email||!userForm.password||!userForm.role||userForm.company_ids.length===0){
       showToast("error","All fields are required — select at least one company");return;
     }
-    if(userForm.password.length<10){showToast("error","Temporary password must be at least 10 characters");return;}
+    if(userForm.password.length<5){showToast("error","Temporary password must be at least 5 characters");return;}
     if(scorePassword(userForm.password)<2){showToast("error","Temporary password is too weak — add uppercase letters, numbers, or symbols");return;}
     setSaving(true);
     try{
       // Pre-flight duplicate checks (fast, before hitting the edge function)
-      const {data:existingEmail}=await supabase.from("user_roles").select("user_id").eq("email",userForm.email.toLowerCase().trim()).limit(1).maybeSingle();
-      if(existingEmail){showToast("error","A user with this email already exists");setSaving(false);return;}
+      const {data:existingEmail}=await supabase.from("user_roles").select("user_id,name,email,company_id").eq("email",userForm.email.toLowerCase().trim());
+      if(existingEmail&&existingEmail.length>0){
+        const row=existingEmail[0];
+        // Fetch company names for the conflicting user
+        const companyIds=[...new Set(existingEmail.map(r=>r.company_id).filter(Boolean))];
+        const {data:companyRows}=await supabase.from("companies").select("id,name").in("id",companyIds);
+        const companyNames=(companyRows||[]).map(c=>c.name);
+        setEmailConflict({user_id:row.user_id,name:row.name,email:row.email,companies:companyNames});
+        setSaving(false);return;
+      }
       if(userForm.username.trim()){
         const {data:existingUsername}=await supabase.from("user_roles").select("user_id").eq("username",userForm.username.toLowerCase().trim()).limit(1).maybeSingle();
         if(existingUsername){showToast("error","This username is already taken");setSaving(false);return;}
@@ -212,8 +191,37 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
         }),
       });
       const result=await res.json();
-      if(!res.ok)throw new Error(result.error||"Failed to create user");
+      if(!res.ok){
+        const msg=result.error||"Failed to create user";
+        if(msg.toLowerCase().includes("already been registered")||msg.toLowerCase().includes("already registered")||msg.toLowerCase().includes("already exists")){
+          const {data:{session}}=await supabase.auth.getSession();
+          const {data:rows}=await supabase.from("user_roles").select("user_id,name,email,company_id").eq("email",userForm.email.toLowerCase().trim());
+          const companyIds=[...new Set((rows||[]).map(r=>r.company_id).filter(Boolean))];
+          const {data:companyRows}=companyIds.length?await supabase.from("companies").select("id,name").in("id",companyIds):{data:[]};
+          const row=(rows||[])[0];
+          let resolvedUserId=row?.user_id||null;
+          // If not in user_roles, look up via edge function (orphaned auth user)
+          if(!resolvedUserId){
+            const lookupRes=await fetch(`${SUPABASE_URL}/functions/v1/manage-user`,{
+              method:"POST",
+              headers:{"Content-Type":"application/json","Authorization":`Bearer ${session.access_token}`,"apikey":ANON_KEY},
+              body:JSON.stringify({action:"find_by_email",email:userForm.email}),
+            });
+            const lookupData=await lookupRes.json();
+            resolvedUserId=lookupData.user_id||null;
+          }
+          setEmailConflict({
+            user_id:resolvedUserId,
+            name:row?.name||userForm.name,
+            email:userForm.email,
+            companies:(companyRows||[]).map(c=>c.name),
+          });
+          setSaving(false);return;
+        }
+        throw new Error(msg);
+      }
       if(result.anyFailed)showToast("warning","User created but some company assignments failed");
+      else if(result.repurposed)showToast("success","Account repurposed — password updated and user reassigned.");
       else showToast("success","User created successfully!");
       setUserForm({name:"",email:"",password:"",username:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
       setShowUserForm(false);
@@ -224,73 +232,28 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     setSaving(false);
   };
 
-  const createCompany=async e=>{
-    e.preventDefault();
-    if(!companyForm.name){showToast("error","Company name is required");return;}
-    setSaving(true);
-    // Duplicate name check (case-insensitive)
-    const {data:existing}=await supabase.from("companies").select("id").ilike("name",companyForm.name.trim()).limit(1).maybeSingle();
-    if(existing){showToast("error","A company with this name already exists");setSaving(false);return;}
-    const {data,error}=await supabase.from("companies").insert({
-      ...companyForm,
-      hours_of_operation:{monday:"8:00 AM - 5:00 PM",tuesday:"8:00 AM - 5:00 PM",wednesday:"8:00 AM - 5:00 PM",thursday:"8:00 AM - 5:00 PM",friday:"8:00 AM - 5:00 PM",saturday:"10:00 AM - 2:00 PM",sunday:"Closed"},
-    }).select().single();
-    if(error){showToast("error","Failed to create company: "+error.message);}
-    else{
-      showToast("success","Company created! You can now assign users to it.");
-      setCompanyForm({name:"",address:"",phone:"",email:"",website:"",mission_statement:""});
-      setShowCompanyForm(false);
-      await loadData();
-    }
-    setSaving(false);
-  };
-
-  const archiveCompany=async(company)=>{
-    setSaving(true);
-    const {error}=await supabase.from("companies").update({archived_at:new Date().toISOString()}).eq("id",company.id);
-    if(error){showToast("error","Failed to archive: "+error.message);setSaving(false);return;}
-    setArchiveConfirmCompany(null);
-    showToast("success",`"${company.name}" archived`);
-    await logAudit("Company archived",company.name,{section:"User Management",details:`Company "${company.name}" archived`});
-    await loadData();
-    setSaving(false);
-  };
-
-  const unarchiveCompany=async(company)=>{
-    setSaving(true);
-    const {error}=await supabase.from("companies").update({archived_at:null}).eq("id",company.id);
-    if(error){showToast("error","Failed to restore: "+error.message);setSaving(false);return;}
-    showToast("success",`"${company.name}" restored`);
-    await loadData();
-    setSaving(false);
-  };
-
-  const deleteCompany=async(company)=>{
-    const st=companyStats[company.id]||{clients:0,archivedClients:0,users:0};
-    if((st.clients+st.archivedClients)>0||st.users>0){
-      showToast("error","Remove all clients and users before deleting");setSaving(false);return;
-    }
-    setSaving(true);
-    const {error}=await supabase.from("companies").delete().eq("id",company.id);
-    if(error){showToast("error","Failed to delete: "+error.message);setSaving(false);return;}
-    setDeleteConfirmCompany(null);setDeleteCompanyInput("");
-    showToast("success",`"${company.name}" permanently deleted`);
-    await logAudit("Company deleted",company.name,{section:"User Management",details:`Company "${company.name}" permanently deleted`});
-    await loadData();
-    setSaving(false);
-  };
-
   // Helper: call manage-user edge function
-  const callManageUser=async(action,targetUserId)=>{
+  const callManageUser=async(action,targetUserId,extra={})=>{
     const {data:{session}}=await supabase.auth.getSession();
     if(!session)return{ok:false,error:"No session"};
     const res=await fetch(`${SUPABASE_URL}/functions/v1/manage-user`,{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":`Bearer ${session.access_token}`,"apikey":ANON_KEY},
-      body:JSON.stringify({action,targetUserId}),
+      body:JSON.stringify({action,targetUserId,...extra}),
     });
     const json=await res.json();
     return res.ok?{ok:true}:{ok:false,error:json.error||"Edge function error"};
+  };
+
+  const changePassword=async()=>{
+    if(!newPassword||newPassword.length<5)return showToast("error","Password must be at least 5 characters");
+    setPasswordSaving(true);
+    const res=await callManageUser("set_password",passwordModal.userId,{newPassword});
+    setPasswordSaving(false);
+    if(res?.ok){
+      showToast("success",`Password changed for ${passwordModal.userName}. They will be prompted to change it on next login.`);
+      setPasswordModal(null);setNewPassword("");
+    }else showToast("error",res?.error||"Failed to change password");
   };
 
   const updateRole=async(userId,newRole)=>{
@@ -474,45 +437,31 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
       )}
 
       {/* Header */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+      <div className="um-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
         <div>
           <div style={{fontSize:22,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.5px"}}>👥 User Management</div>
-          <div style={{fontSize:13,color:"var(--color-text-dim)",marginTop:4}}>{users.length} users · {companies.length} companies</div>
+          <div style={{fontSize:13,color:"var(--color-text-dim)",marginTop:4}}>{users.length} users</div>
         </div>
-        <div style={{display:"flex",gap:8}}>
+        <div className="um-header-btns" style={{display:"flex",gap:8}}>
           {mainTab==="users"&&(
             <>
-              <button onClick={()=>{setShowExistingForm(s=>!s);setShowUserForm(false);setShowCompanyForm(false);}}
+              <button onClick={()=>{setShowExistingForm(s=>!s);setShowUserForm(false);}}
                 style={{padding:"10px 20px",borderRadius:10,border:"1px solid #6366f1",background:"transparent",color:"var(--color-accent)",fontWeight:700,fontSize:14}}>
                 {showExistingForm?"Cancel":"+ Existing User"}
               </button>
-              <button onClick={()=>{setShowUserForm(s=>!s);setShowExistingForm(false);setShowCompanyForm(false);}}
+              <button onClick={()=>{setShowUserForm(s=>!s);setShowExistingForm(false);}}
                 style={{padding:"10px 20px",borderRadius:10,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:14}}>
                 {showUserForm?"Cancel":"+ New User"}
               </button>
             </>
-          )}
-          {mainTab==="companies"&&(
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <button onClick={()=>setShowArchived(s=>!s)}
-                style={{padding:"10px 16px",borderRadius:10,border:"1px solid "+(showArchived?"#f59e0b":"rgba(255,255,255,0.1)"),background:showArchived?"rgba(245,158,11,0.12)":"transparent",color:showArchived?"#f59e0b":"var(--color-text-muted)",fontWeight:600,fontSize:13}}>
-                {showArchived?"Hide Archived":"Show Archived"}
-              </button>
-              {currentUser?.role==="superadmin"&&(
-                <button onClick={()=>{setShowCompanyForm(s=>!s);setShowUserForm(false);setShowExistingForm(false);}}
-                  style={{padding:"10px 20px",borderRadius:10,border:"none",background:"#10b981",color:"#fff",fontWeight:700,fontSize:14}}>
-                  {showCompanyForm?"Cancel":"+ New Company"}
-                </button>
-              )}
-            </div>
           )}
         </div>
       </div>
 
       {/* Main Tabs */}
       <div style={{display:"flex",gap:2,borderBottom:"1px solid var(--color-border)",marginBottom:20}}>
-        {[["users","👥 Users"],["companies","🏢 Companies"],["activity","📊 Activity"]].map(([id,label])=>(
-          <button key={id} onClick={()=>{setMainTab(id);setShowUserForm(false);setShowCompanyForm(false);setSearch("");}}
+        {[["users","👥 Users"],["activity","📊 Activity"]].map(([id,label])=>(
+          <button key={id} onClick={()=>{setMainTab(id);setShowUserForm(false);setSearch("");}}
             style={{padding:"9px 20px",border:"none",borderBottom:mainTab===id?"2px solid #6366f1":"2px solid transparent",background:"transparent",color:mainTab===id?"var(--color-accent)":"var(--color-text-muted)",fontWeight:600,fontSize:14,cursor:"pointer",marginBottom:-1}}>
             {label}
           </button>
@@ -525,10 +474,10 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           {/* Add Existing User Form */}
           {showExistingForm&&(
             <div style={{background:"var(--color-bg-card)",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
-              <div style={{fontSize:14,color:"var(--color-text-primary)",fontWeight:700,marginBottom:6,letterSpacing:"-0.2px"}}>Add Existing User to Company</div>
+              <div style={{fontSize:14,color:"var(--color-text-primary)",fontWeight:700,marginBottom:6,letterSpacing:"-0.2px"}}>Add Existing User to Care Facility</div>
               <div style={{fontSize:12,color:"var(--color-text-dim)",marginBottom:16}}>For users who already have an account — give them access to this company.</div>
               <form onSubmit={addExistingUser}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                <div className="um-form-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                   <div style={{gridColumn:"1/-1"}}>
                     <label style={LBL}>Select User *</label>
                     <select name="user_id" value={existingForm.user_id} onChange={onChangeExisting} style={{...INP,marginBottom:0,cursor:"pointer"}}>
@@ -553,7 +502,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                     </select>
                   </div>
                   <div style={{gridColumn:"1/-1"}}>
-                    <label style={LBL}>Companies * (select one or more)</label>
+                    <label style={LBL}>Care Facilities * (select one or more)</label>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"rgba(255,255,255,0.03)",borderRadius:8,padding:12,border:"1px solid rgba(255,255,255,0.08)"}}>
                       {companies.filter(c=>!c.archived_at).map(c=>(
                         <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"var(--color-text-primary)",cursor:"pointer"}}>
@@ -566,7 +515,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 </div>
                 <button type="submit" disabled={saving}
                   style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"var(--color-accent)",color:saving?"var(--color-text-muted)":"#fff",fontWeight:700,fontSize:14}}>
-                  {saving?"Adding...":"Add to Company"}
+                  {saving?"Adding...":"Add to Care Facility"}
                 </button>
               </form>
             </div>
@@ -577,10 +526,10 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
             <div style={{background:"var(--color-bg-card)",border:"1px solid #6366f1",borderRadius:12,padding:20,marginBottom:20}}>
               <div style={{fontSize:14,color:"var(--color-text-primary)",fontWeight:700,marginBottom:16,letterSpacing:"-0.2px"}}>Create New User</div>
               <form onSubmit={createUser}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                <div className="um-form-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                   <div><label style={LBL}>Full Name *</label><input name="name" value={userForm.name} onChange={onChangeUser} placeholder="e.g. Maria Johnson" style={INP2}/></div>
                   <div><label style={LBL}>Email *</label><input name="email" type="email" value={userForm.email} onChange={onChangeUser} placeholder="user@company.aw" style={INP2}/></div>
-                  <div><label style={LBL}>Temporary Password *</label><input name="password" type="password" value={userForm.password} onChange={onChangeUser} placeholder="Min. 10 characters" style={INP2}/><PasswordStrengthMeter password={userForm.password}/></div>
+                  <div><label style={LBL}>Temporary Password *</label><input name="password" type="password" value={userForm.password} onChange={onChangeUser} placeholder="Min. 5 characters" style={INP2}/><PasswordStrengthMeter password={userForm.password}/></div>
                   <div><label style={LBL}>Username <span style={{color:"var(--color-text-muted)",fontWeight:400}}>(optional)</span></label><input name="username" value={userForm.username} onChange={onChangeUser} placeholder="e.g. maria.j" style={INP2}/></div>
                   <div><label style={LBL}>Role *</label>
                     <select name="role" value={userForm.role} onChange={onChangeUser} style={{...INP2,cursor:"pointer"}}>
@@ -593,7 +542,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                     </select>
                   </div>
                   <div style={{gridColumn:"1/-1"}}>
-                    <label style={LBL}>Companies * (select one or more)</label>
+                    <label style={LBL}>Care Facilities * (select one or more)</label>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,background:"rgba(255,255,255,0.03)",borderRadius:8,padding:12,border:"1px solid rgba(255,255,255,0.08)"}}>
                       {companies.filter(c=>!c.archived_at).map(c=>(
                         <label key={c.id} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"var(--color-text-primary)",cursor:"pointer"}}>
@@ -607,6 +556,38 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#f59e0b"}}>
                   ⚠️ User will be required to change their password on first login.
                 </div>
+                {emailConflict&&(
+                  <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,padding:"12px 14px",marginBottom:12}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"#ef4444",marginBottom:6}}>⚠ Email already registered</div>
+                    <div style={{fontSize:12,color:"var(--color-text-secondary)",marginBottom:8}}>
+                      <strong style={{color:"var(--color-text-primary)"}}>{emailConflict.name}</strong> ({emailConflict.email}) already exists
+                      {emailConflict.companies.length>0?<> — currently in <strong style={{color:"var(--color-text-primary)"}}>{emailConflict.companies.join(", ")}</strong></>:" — not assigned to any company"}.
+                    </div>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                      {emailConflict.user_id&&emailConflict.companies.length>0&&(
+                        <button type="button" onClick={()=>{
+                          setExistingForm(f=>({...f,user_id:emailConflict.user_id,name:emailConflict.name}));
+                          setShowExistingForm(true);setShowUserForm(false);setEmailConflict(null);
+                        }} style={{padding:"6px 14px",borderRadius:7,border:"none",background:"#6366f1",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                          + Add to this care facility
+                        </button>
+                      )}
+                      {emailConflict.user_id&&(
+                        <button type="button" disabled={saving} onClick={async()=>{
+                          if(!window.confirm(`Permanently delete ${emailConflict.name||emailConflict.email}? This cannot be undone.`))return;
+                          await deleteUser(emailConflict.user_id);
+                          setEmailConflict(null);
+                        }} style={{padding:"6px 14px",borderRadius:7,border:"none",background:"#ef4444",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                          🗑 Delete permanently
+                        </button>
+                      )}
+                      <button type="button" onClick={()=>setEmailConflict(null)}
+                        style={{padding:"6px 14px",borderRadius:7,border:"1px solid rgba(255,255,255,0.12)",background:"none",color:"var(--color-text-secondary)",fontSize:12,cursor:"pointer"}}>
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <button type="submit" disabled={saving}
                   style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"var(--color-text-muted)":"#fff",fontWeight:700,fontSize:14}}>
                   {saving?"Creating...":"Create User"}
@@ -616,7 +597,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
           )}
 
           {/* User filter tabs + search */}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div className="um-filter-bar" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <div style={{display:"flex",gap:2,borderBottom:"1px solid var(--color-border)"}}>
               {[["all","All"],["active","Active"],["inactive","Inactive"]].map(([id,label])=>(
                 <button key={id} onClick={()=>setUserTab(id)}
@@ -625,7 +606,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 </button>
               ))}
             </div>
-            <input style={{...INP2,width:200}} placeholder="Search users..." value={search} onChange={e=>setSearch(e.target.value)}/>
+            <input className="um-search" style={{...INP2,width:200}} placeholder="Search users..." value={search} onChange={e=>setSearch(e.target.value)}/>
           </div>
 
           {/* User List */}
@@ -637,8 +618,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
                   <thead>
                     <tr style={{borderBottom:"1px solid var(--color-border)"}}>
-                      {[["Name",160],["Email",160],["Role",110],["Companies",null],["Actions",180]].map(([h,minW])=>(
-                        <th key={h} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"var(--color-accent)",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
+                      {[["Name",160,false],["Email",160,true],["Role",110,false],["Care Facilities",null,true],["Actions",180,false]].map(([h,minW,hideOnMobile])=>(
+                        <th key={h} className={hideOnMobile?"um-hide-mobile":undefined} style={{padding:"12px 16px",textAlign:"left",fontSize:11,fontWeight:700,color:"var(--color-accent)",letterSpacing:0.5,minWidth:minW||undefined,whiteSpace:"nowrap"}}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -668,7 +649,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                           )}
                         </td>
                         {/* Email cell */}
-                        <td style={{padding:"10px 16px",color:"var(--color-text-dim)",fontSize:13}}>
+                        <td className="um-hide-mobile" style={{padding:"10px 16px",color:"var(--color-text-dim)",fontSize:13}}>
                           {isEditing?(
                             <input value={editForm.email} onChange={e=>setEditForm(p=>({...p,email:e.target.value}))}
                               placeholder="Email" style={{background:"rgba(255,255,255,0.03)",border:"1px solid #6366f1",borderRadius:6,padding:"4px 8px",color:"var(--color-text-primary)",fontSize:12,width:160}}/>
@@ -692,7 +673,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                           })()}
                         </td>
                         {/* Companies cell */}
-                        <td style={{padding:"10px 16px"}}>
+                        <td className="um-hide-mobile" style={{padding:"10px 16px"}}>
                           <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}>
                             {allUserRoles.filter(r=>r.user_id===u.user_id).map(r=>(
                               <span key={r.company_id} style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(99,102,241,0.12)",border:"1px solid rgba(99,102,241,0.25)",borderRadius:12,padding:"2px 8px",fontSize:11,color:"#a5b4fc",whiteSpace:"nowrap"}}>
@@ -751,6 +732,12 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                     style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontSize:12}}>
                                     ✏️
                                   </button>
+                                  {can(currentUser.role,"change_password",perms)&&(
+                                    <button onClick={()=>{setPasswordModal({userId:u.user_id,userName:u.name||u.email});setNewPassword("");}} title="Change password"
+                                      style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontSize:12}}>
+                                      🔑
+                                    </button>
+                                  )}
                                   {currentUser.role==="superadmin"&&(
                                     <button onClick={()=>{setDeleteConfirmUser(u.user_id);setEditingUser(null);setExpandedUser(null);}} title="Delete user (superadmin only)"
                                       style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(220,38,38,0.3)",background:"transparent",color:"#f87171",fontSize:12}}>
@@ -761,7 +748,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                     const RORD={superadmin:1,admin:2,power_user:3,nurse:4,care_assistant:5,user:6,inactive:7};
                                     const canDeactivate=u.role!=="inactive"&&(currentUser.role==="superadmin"||(RORD[u.role]??9)>(RORD[currentUser.role]??9));
                                     return canDeactivate?(
-                                      <button onClick={()=>setPendingAction({type:"deactivate",userId:u.user_id,userName:u.name||u.email,meta:{}})}
+                                      <button className="um-deactivate" onClick={()=>setPendingAction({type:"deactivate",userId:u.user_id,userName:u.name||u.email,meta:{}})}
                                         style={{padding:"4px 12px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-dim)",fontSize:11,fontWeight:600}}>
                                         Deactivate
                                       </button>
@@ -890,187 +877,6 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
         </div>
       )}
 
-      {/* ═══════════════ COMPANIES TAB ═══════════════ */}
-      {mainTab==="companies"&&(
-        <>
-          {/* Create Company Form */}
-          {showCompanyForm&&(
-            <div style={{background:"var(--color-bg-card)",border:"1px solid #10b981",borderRadius:12,padding:20,marginBottom:20}}>
-              <div style={{fontSize:14,color:"var(--color-text-primary)",fontWeight:700,marginBottom:16,letterSpacing:"-0.2px"}}>Create New Company</div>
-              <form onSubmit={createCompany}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-                  <div><label style={LBL}>Company Name *</label><input name="name" value={companyForm.name} onChange={onChangeCompany} placeholder="e.g. Sunrise Care Center" style={INP2}/></div>
-                  <div><label style={LBL}>Email</label><input name="email" type="email" value={companyForm.email} onChange={onChangeCompany} placeholder="info@company.aw" style={INP2}/></div>
-                  <div><label style={LBL}>Phone</label><input name="phone" value={companyForm.phone} onChange={onChangeCompany} placeholder="+297-..." style={INP2}/></div>
-                  <div><label style={LBL}>Website</label><input name="website" value={companyForm.website} onChange={onChangeCompany} placeholder="www.company.aw" style={INP2}/></div>
-                  <div style={{gridColumn:"1/-1"}}><label style={LBL}>Address</label><input name="address" value={companyForm.address} onChange={onChangeCompany} placeholder="Oranjestad, Aruba" style={INP2}/></div>
-                  <div style={{gridColumn:"1/-1"}}><label style={LBL}>Mission Statement</label><textarea name="mission_statement" value={companyForm.mission_statement} onChange={onChangeCompany} placeholder="e.g. Providing compassionate care..." rows={2} style={{...INP2,resize:"vertical"}}/></div>
-                </div>
-                <div style={{background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#10b981"}}>
-                  ✓ Default hours of operation will be set automatically. You can update them in Company Settings.
-                </div>
-                <button type="submit" disabled={saving}
-                  style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"var(--color-text-muted)":"#fff",fontWeight:700,fontSize:14}}>
-                  {saving?"Creating...":"Create Company"}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* Company List */}
-          {loading?<div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"40px 0"}}>Loading...</div>:(()=>{
-            const visibleCompanies=companies.filter(c=>showArchived?true:!c.archived_at);
-            return(
-              <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                {visibleCompanies.length===0?(
-                  <div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"40px 0"}}>
-                    {showArchived?"No archived companies.":" No companies yet. Create your first one."}
-                  </div>
-                ):visibleCompanies.map((c)=>{
-                  const st=companyStats[c.id]||{clients:0,archivedClients:0,users:0,lastActivity:null};
-                  const lastAct=st.lastActivity?new Date(st.lastActivity).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"No activity";
-                  const isArchived=!!c.archived_at;
-                  const isSuperAdmin=currentUser?.role==="superadmin";
-                  return(
-                    <div key={c.id} style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16,opacity:isArchived?0.72:1,border:isArchived?"1px solid rgba(245,158,11,0.25)":"1px solid transparent"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
-                        <div style={{flex:1,minWidth:200}}>
-                          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
-                            {c.logo_url&&(
-                              <div style={{background:"#fff",borderRadius:8,padding:"4px 6px",flexShrink:0}}>
-                                <img src={c.logo_url} alt={c.name} style={{height:32,maxWidth:80,objectFit:"contain",display:"block"}}/>
-                              </div>
-                            )}
-                            <div>
-                              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                <div style={{fontSize:15,fontWeight:700,color:isArchived?"rgba(240,242,250,0.4)":"var(--color-text-primary)",letterSpacing:"-0.2px"}}>{c.name}</div>
-                                {isArchived&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>ARCHIVED</span>}
-                              </div>
-                              {c.mission_statement&&<div style={{fontSize:11,color:"var(--color-text-dim)",fontStyle:"italic",marginTop:2}}>"{c.mission_statement}"</div>}
-                            </div>
-                          </div>
-                          <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8}}>
-                            {c.address&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>📍 {c.address}</span>}
-                            {c.phone&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>📞 {c.phone}</span>}
-                            {c.email&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>✉️ {c.email}</span>}
-                            {c.website&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>🌐 {c.website}</span>}
-                          </div>
-                          {/* Superadmin action buttons */}
-                          {isSuperAdmin&&(
-                            <div style={{display:"flex",gap:8,marginTop:14,flexWrap:"wrap"}}>
-                              {isArchived?(
-                                <>
-                                  <button onClick={()=>unarchiveCompany(c)} disabled={saving}
-                                    style={{padding:"5px 14px",borderRadius:8,border:"1px solid #10b981",background:"rgba(16,185,129,0.1)",color:"#10b981",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                                    ↩ Restore
-                                  </button>
-                                  <button onClick={()=>{setDeleteConfirmCompany(c);setDeleteCompanyInput("");}}
-                                    style={{padding:"5px 14px",borderRadius:8,border:"1px solid rgba(239,68,68,0.4)",background:"rgba(239,68,68,0.08)",color:"#f87171",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                                    🗑 Delete Permanently
-                                  </button>
-                                </>
-                              ):(
-                                <button onClick={()=>setArchiveConfirmCompany(c)}
-                                  style={{padding:"5px 14px",borderRadius:8,border:"1px solid rgba(245,158,11,0.4)",background:"rgba(245,158,11,0.08)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                                  📦 Archive
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        {/* Stats */}
-                        <div style={{display:"flex",gap:8,flexShrink:0,flexWrap:"wrap"}}>
-                          <div style={{textAlign:"center",background:"rgba(16,185,129,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
-                            <div style={{fontSize:22,fontWeight:700,color:"#10b981"}}>{st.clients}</div>
-                            <div style={{fontSize:10,color:"var(--color-text-dim)",fontWeight:600}}>CLIENTS</div>
-                            {st.archivedClients>0&&<div style={{fontSize:9,color:"var(--color-text-muted)",marginTop:2}}>{st.archivedClients} archived</div>}
-                          </div>
-                          <div style={{textAlign:"center",background:"rgba(99,102,241,0.12)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
-                            <div style={{fontSize:22,fontWeight:700,color:"#6366f1"}}>{st.users}</div>
-                            <div style={{fontSize:10,color:"var(--color-text-dim)",fontWeight:600}}>USERS</div>
-                          </div>
-                          <div style={{textAlign:"center",background:"rgba(71,85,105,0.2)",borderRadius:10,padding:"10px 16px",minWidth:80}}>
-                            <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-secondary)",lineHeight:1.3}}>{lastAct}</div>
-                            <div style={{fontSize:10,color:"var(--color-text-dim)",fontWeight:600,marginTop:4}}>LAST ACTIVITY</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-
-          {/* ── Archive Company Confirmation ── */}
-          {archiveConfirmCompany&&(
-            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-              <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
-                <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>📦</div>
-                <div style={{fontSize:16,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",textAlign:"center",marginBottom:10}}>Archive Company</div>
-                <div style={{fontSize:13,color:"var(--color-text-secondary)",textAlign:"center",lineHeight:1.7,marginBottom:28}}>
-                  Archive <strong style={{color:"var(--color-text-primary)"}}>{archiveConfirmCompany.name}</strong>? It will be hidden from the company picker and all active lists. No data is deleted. You can restore it at any time.
-                </div>
-                <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-                  <button onClick={()=>setArchiveConfirmCompany(null)}
-                    style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:14,cursor:"pointer"}}>
-                    Cancel
-                  </button>
-                  <button disabled={saving} onClick={()=>archiveCompany(archiveConfirmCompany)}
-                    style={{padding:"10px 28px",borderRadius:9,border:"none",background:"#f59e0b",color:"#000",fontWeight:700,fontSize:14,cursor:"pointer",opacity:saving?0.6:1}}>
-                    {saving?"Archiving…":"Archive"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── Delete Company Confirmation (type to confirm) ── */}
-          {deleteConfirmCompany&&(()=>{
-            const st=companyStats[deleteConfirmCompany.id]||{clients:0,archivedClients:0,users:0};
-            const totalClients=(st.clients||0)+(st.archivedClients||0);
-            const hasData=totalClients>0||st.users>0;
-            const confirmWord=deleteConfirmCompany.name;
-            const canConfirm=!hasData&&deleteCompanyInput===confirmWord;
-            return(
-              <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.80)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-                <div style={{background:"var(--color-bg-card)",border:"1px solid #ef4444",borderRadius:16,padding:36,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
-                  <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>🗑</div>
-                  <div style={{fontSize:16,fontWeight:700,color:"#ef4444",textAlign:"center",marginBottom:10,letterSpacing:"-0.2px"}}>Delete Company Permanently</div>
-                  {hasData?(
-                    <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"14px 16px",marginBottom:20,fontSize:13,color:"#fca5a5",textAlign:"center",lineHeight:1.6}}>
-                      ⛔ Cannot delete — <strong>{deleteConfirmCompany.name}</strong> still has{totalClients>0?` ${totalClients} client${totalClients!==1?"s":""}`:""}{totalClients>0&&st.users>0?" and":""}{st.users>0?` ${st.users} user${st.users!==1?"s":""}`:""} assigned. Remove them first.
-                    </div>
-                  ):(
-                    <div style={{fontSize:13,color:"var(--color-text-secondary)",textAlign:"center",lineHeight:1.7,marginBottom:20}}>
-                      This action <strong style={{color:"var(--color-text-primary)"}}>cannot be undone</strong>. All company settings and history will be permanently removed.<br/><br/>
-                      Type <strong style={{color:"var(--color-text-primary)",fontFamily:"monospace"}}>{confirmWord}</strong> to confirm:
-                    </div>
-                  )}
-                  {!hasData&&(
-                    <input
-                      value={deleteCompanyInput}
-                      onChange={e=>setDeleteCompanyInput(e.target.value)}
-                      placeholder={`Type "${confirmWord}" to confirm`}
-                      style={{width:"100%",padding:"10px 14px",borderRadius:9,border:"1px solid "+(canConfirm?"#ef4444":"rgba(255,255,255,0.1)"),background:"#161927",color:"var(--color-text-primary)",fontSize:14,marginBottom:20,outline:"none"}}
-                    />
-                  )}
-                  <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-                    <button onClick={()=>{setDeleteConfirmCompany(null);setDeleteCompanyInput("");}}
-                      style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:14,cursor:"pointer"}}>
-                      Cancel
-                    </button>
-                    <button disabled={saving||!canConfirm} onClick={()=>deleteCompany(deleteConfirmCompany)}
-                      style={{padding:"10px 28px",borderRadius:9,border:"none",background:canConfirm?"#dc2626":"rgba(255,255,255,0.1)",color:canConfirm?"#fff":"var(--color-text-muted)",fontWeight:700,fontSize:14,cursor:canConfirm?"pointer":"not-allowed",opacity:saving?0.6:1}}>
-                      {saving?"Deleting…":"Delete Permanently"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-        </>
-      )}
 
       {/* ═══════════════ CONFIRM ACTION MODAL ═══════════════ */}
       {pendingAction&&(
@@ -1103,6 +909,34 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 }}
                 style={{padding:"10px 28px",borderRadius:9,border:"none",background:pendingAction.type==="role_change"?"var(--color-accent)":"#dc2626",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity:saving?0.6:1}}>
                 {saving?"Working…":"Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ CHANGE PASSWORD MODAL ═══════════════ */}
+      {passwordModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:36,maxWidth:400,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+            <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>🔑</div>
+            <div style={{fontSize:16,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",textAlign:"center",marginBottom:6}}>Change Password</div>
+            <div style={{fontSize:13,color:"var(--color-text-secondary)",textAlign:"center",lineHeight:1.7,marginBottom:20}}>
+              Set a new password for <strong style={{color:"var(--color-text-primary)"}}>{passwordModal.userName}</strong>.<br/>
+              They will be required to change it on next login.
+            </div>
+            <label style={LBL}>New Password *</label>
+            <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)}
+              placeholder="Min. 5 characters" style={{...INP,marginBottom:4}} autoFocus/>
+            <PasswordStrengthMeter password={newPassword}/>
+            <div style={{display:"flex",gap:10,justifyContent:"center",marginTop:20}}>
+              <button onClick={()=>{setPasswordModal(null);setNewPassword("");}}
+                style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                Cancel
+              </button>
+              <button onClick={changePassword} disabled={passwordSaving||newPassword.length<5}
+                style={{padding:"10px 28px",borderRadius:9,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:14,cursor:newPassword.length<5?"not-allowed":"pointer",opacity:passwordSaving||newPassword.length<5?0.5:1}}>
+                {passwordSaving?"Saving…":"Change Password"}
               </button>
             </div>
           </div>

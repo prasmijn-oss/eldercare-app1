@@ -160,9 +160,9 @@ export const IDLE_WARN_SECS  = 60;              // countdown before auto-logout
 
 // ── RBAC ───────────────────────────────────────────────────────────────────
 export const DEFAULT_PERMS = {
-  superadmin: ["view","add","edit","delete","audit","users","company","permissions","rooms","readmission","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub"],
-  admin:      ["view","add","edit","delete","audit","company","rooms","readmission","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub"],
-  power_user: ["view","add","edit","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub"],
+  superadmin: ["view","add","edit","delete","audit","users","company","permissions","rooms","readmission","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub","change_password","intake_checklist"],
+  admin:      ["view","add","edit","delete","audit","company","rooms","readmission","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub","change_password","intake_checklist"],
+  power_user: ["view","add","edit","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub","intake_checklist"],
   user:       ["view","medications_view","incidents_view","handover","vitals","notes","clinical","mar"],
   inactive:   [],
 };
@@ -170,9 +170,9 @@ export const DEFAULT_PERMS = {
 export const PERMISSION_GROUPS = [
   {key:"client_records", label:"Client Records",      icon:"👤", actions:["view","add","edit","delete"]},
   {key:"clinical",       label:"Clinical",            icon:"🏥", actions:["clinical","vitals","mar","prn","controlled_sub","medications_view"]},
-  {key:"documentation",  label:"Documentation",       icon:"📋", actions:["notes","care_plan","documents","incidents_view","handover"]},
+  {key:"documentation",  label:"Documentation",       icon:"📋", actions:["notes","care_plan","documents","incidents_view","handover","intake_checklist"]},
   {key:"reports",        label:"Reports & Analytics", icon:"📊", actions:["reports","audit","readmission"]},
-  {key:"admin",          label:"Administration",      icon:"⚙️", actions:["users","company","permissions","rooms"]},
+  {key:"admin",          label:"Administration",      icon:"⚙️", actions:["users","company","permissions","rooms","change_password"]},
 ];
 
 // ── Intake checklist defaults ──────────────────────────────────────────────
@@ -199,26 +199,31 @@ export const PW_LEVELS = [
 ];
 
 // ── Shared inline style objects ────────────────────────────────────────────
-export const INP  = {width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.03)",color:"var(--color-text-primary)",fontSize:16};
+export const INP  = {width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid var(--color-border)",background:"var(--color-bg-surface)",color:"var(--color-text-primary)",fontSize:16};
 export const LBL  = {display:"block",fontSize:11,fontWeight:700,color:"var(--color-text-dim)",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"};
 export const ABTN = {background:"none",border:"1.5px dashed rgba(99,102,241,0.4)",borderRadius:8,padding:"10px 14px",color:"#6366f1",fontSize:13,fontWeight:600,touchAction:"manipulation",cursor:"pointer"};
-export const IBTN = {background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--color-text-dim)",fontSize:12,flexShrink:0,touchAction:"manipulation",cursor:"pointer"};
+export const IBTN = {background:"none",border:"1px solid var(--color-border)",borderRadius:6,width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--color-text-dim)",fontSize:12,flexShrink:0,touchAction:"manipulation",cursor:"pointer"};
 
 // ── Global CSS (injected via <style dangerouslySetInnerHTML> in App) ────────
 export const GCSS = [
   "* { box-sizing: border-box; margin: 0; padding: 0; }",
   "body { font-family: 'DM Sans', system-ui, sans-serif; background: #07091c; color: #f0f2fa; -webkit-font-smoothing: antialiased; }",
+  "html.cm-light body { background: var(--color-bg-base) !important; color: var(--color-text-primary) !important; }",
   "input, textarea, select { font-family: 'DM Sans', system-ui, sans-serif; }",
   "select option { background: #111427; color: #f0f2fa; }",
+  "html.cm-light select option { background: #fff; color: #1a1a2e; }",
   "input:focus, textarea:focus, select:focus { outline: none !important; border-color: rgba(99,102,241,0.5) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important; }",
   "button { font-family: 'DM Sans', system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }",
   "button:hover { opacity: 0.88; }",
   "a { touch-action: manipulation; }",
   "::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }",
+  "html.cm-light ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }",
   ".client-row { transition: background 120ms ease !important; }",
   ".client-row:hover { background: rgba(255,255,255,0.04) !important; }",
+  "html.cm-light .client-row:hover { background: rgba(0,0,0,0.04) !important; }",
   ".dash-row { transition: background 120ms ease !important; border-radius: 9px; }",
   ".dash-row:hover { background: rgba(255,255,255,0.04) !important; }",
+  "html.cm-light .dash-row:hover { background: rgba(0,0,0,0.04) !important; }",
   ".card-hover { transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }",
   ".card-hover:hover { transform: translateY(-2px) !important; border-color: rgba(255,255,255,0.12) !important; box-shadow: 0 12px 32px rgba(0,0,0,0.4) !important; }",
   ".sidebar { transition: transform 0.25s ease; }",
@@ -315,6 +320,17 @@ export const GCSS = [
   /* Notification unread dot border matches light bg */
   "html.cm-light .notif-unread-dot { border-color: #f9fafb !important; }",
   "@media (max-width: 600px) { .missed-row { flex-wrap: wrap !important; align-items: flex-start !important; } .missed-row-actions { width: 100% !important; justify-content: flex-end !important; margin-top: 6px !important; } }",
+  /* User Management mobile */
+  "@media (max-width: 640px) {",
+  "  .um-header { flex-wrap: wrap; gap: 10px; }",
+  "  .um-header-btns { width: 100%; display: flex; gap: 8px; }",
+  "  .um-header-btns button { flex: 1; font-size: 13px !important; padding: 9px 10px !important; }",
+  "  .um-filter-bar { flex-direction: column; align-items: stretch; gap: 10px; }",
+  "  .um-filter-bar .um-search { width: 100% !important; box-sizing: border-box; }",
+  "  .um-hide-mobile { display: none !important; }",
+  "  .um-deactivate { display: none !important; }",
+  "  .um-form-grid { grid-template-columns: 1fr !important; }",
+  "}",
 ].join("\n");
 
 // ── Translations ───────────────────────────────────────────────────────────

@@ -1531,6 +1531,7 @@ function HandoverNotes({supabase,companyId,currentUser,clients}){
   const [newEvent,setNewEvent]=useState({clientName:"",note:"",urgency:"Routine"});
   const [newAction,setNewAction]=useState("");
   const [signingOff,setSigningOff]=useState(null);
+  const [saveError,setSaveError]=useState(null);
 
   const load=async()=>{
     setLoading(true);
@@ -1562,7 +1563,7 @@ function HandoverNotes({supabase,companyId,currentUser,clients}){
   };
 
   const save=async()=>{
-    setSaving(true);
+    setSaving(true);setSaveError(null);
     const payload={
       company_id:companyId,date,shift,
       summary:form.summary,
@@ -1572,21 +1573,22 @@ function HandoverNotes({supabase,companyId,currentUser,clients}){
       action_items:JSON.stringify(form.action_items),
       created_by:currentUser?.displayName||currentUser?.email||"",
     };
-    if(currentNote){
-      await supabase.from("handover_notes").update(payload).eq("id",currentNote.id);
-    } else {
-      await supabase.from("handover_notes").insert(payload);
-    }
+    const {error}=currentNote
+      ?await supabase.from("handover_notes").update(payload).eq("id",currentNote.id)
+      :await supabase.from("handover_notes").insert(payload);
+    if(error){setSaveError(error.message);setSaving(false);return;}
     setSaving(false);setShowForm(false);await load();
   };
 
   const signOff=async(note)=>{
     setSigningOff(note.id);
-    await supabase.from("handover_notes").update({
+    const {error}=await supabase.from("handover_notes").update({
       signed_off_by:currentUser?.displayName||"",
       signed_off_at:new Date().toISOString(),
     }).eq("id",note.id);
-    setSigningOff(null);await load();
+    setSigningOff(null);
+    if(error){setSaveError(error.message);return;}
+    await load();
   };
 
   const addEvent=()=>{
@@ -1742,8 +1744,9 @@ function HandoverNotes({supabase,companyId,currentUser,clients}){
                 </div>
               </div>
 
+              {saveError&&<div style={{fontSize:12,color:"#ef4444",marginBottom:8,padding:"8px 12px",background:"rgba(239,68,68,0.08)",borderRadius:8,border:"1px solid rgba(239,68,68,0.2)"}}>⚠ Save failed: {saveError}</div>}
               <div style={{display:"flex",gap:10}}>
-                <button onClick={()=>setShowForm(false)} style={{...ABTN,borderStyle:"solid",borderColor:"var(--color-border)",color:"var(--color-text-secondary)"}}>Cancel</button>
+                <button onClick={()=>{setShowForm(false);setSaveError(null);}} style={{...ABTN,borderStyle:"solid",borderColor:"var(--color-border)",color:"var(--color-text-secondary)"}}>Cancel</button>
                 <button onClick={save} disabled={saving} style={{padding:"9px 22px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>
                   {saving?"Saving…":"Save Handover"}
                 </button>

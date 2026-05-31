@@ -145,7 +145,7 @@ function SearchDrop({value,onChange,options,placeholder}){
   );
 }
 
-function Sec({icon,title,accent,children,defaultOpen=true}){
+function Sec({icon,title,accent,children,defaultOpen=false}){
   const [open,setOpen]=useState(defaultOpen);
   return(
     <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,marginBottom:16,overflow:"visible"}}>
@@ -904,7 +904,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser,cfSchema,logAud
     <div style={{paddingBottom:40}}>
       <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
         <PhotoUp value={d.photo_url} onChange={v=>s("photo_url",v)} clientId={d.id} t={t}/>
-        <Sec icon="👤" title={t.personalInfo} defaultOpen={true}>
+        <Sec icon="👤" title={t.personalInfo}>
           <div className="fg" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             {[[t.fullName+" *","name","text"],[t.dob,"date_of_birth","date"],[t.phone,"phone","tel"],[t.address,"room_or_address","text"],[t.azv,"azv_number","text"],[t.emergency,"emergency_contact","text"],[t.emergPhone,"emergency_phone","tel"],[t.drCas,"dr_di_cas","text"]].map(([label,field,type])=>(
               <div key={field}><label style={LBL}>{label}</label><input type={type} style={INP} value={d[field]||""} onChange={e=>s(field,e.target.value)}/></div>
@@ -939,8 +939,8 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser,cfSchema,logAud
       <Sec icon="👨‍👩‍👧" title="Family Contacts" accent="#ec4899" defaultOpen={false}><FamilyContacts items={d.family_contacts||[]} onChange={v=>s("family_contacts",v)}/></Sec>
       <Sec icon="📅" title="Appointments & Transport" accent="#06b6d4" defaultOpen={false}><AppointmentLog items={d.appointments||[]} onChange={v=>s("appointments",v)}/></Sec>
       <Sec icon="⚠️" title="Incident Reports" accent="#ef4444" defaultOpen={false}><IncidentReports items={d.incidents||[]} onChange={v=>s("incidents",v)} currentUser={currentUser}/></Sec>
-      <Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
-      {can(role,"mar",perms)&&<Sec icon="💊" title="MAR — Daily Medication Log" accent="#16a34a" defaultOpen={true}><MARTracker marLog={d.mar_log||[]} medications={d.medications||[]} onChange={v=>s("mar_log",v)} currentUser={currentUser}/></Sec>}
+      {can(role,"intake_checklist",perms)&&<Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>}
+      {can(role,"mar",perms)&&<Sec icon="💊" title="MAR — Daily Medication Log" accent="#16a34a"><MARTracker marLog={d.mar_log||[]} medications={d.medications||[]} onChange={v=>s("mar_log",v)} currentUser={currentUser}/></Sec>}
       {can(role,"prn",perms)&&<Sec icon="⚡" title="PRN — As-Needed Medication Log" accent="#f59e0b" defaultOpen={false}><PRNLog prnLog={d.prn_log||[]} medications={d.medications||[]} onChange={v=>s("prn_log",v)} currentUser={currentUser}/></Sec>}
       <Sec icon="🏥" title="Hospitalisation Log" accent="#ef4444" defaultOpen={false}><HospLog items={d.hospitalizations||[]} onChange={v=>s("hospitalizations",v)}/></Sec>
       {can(role,"clinical",perms)&&<Sec icon="🛡" title="Preventive Care — Vaccines & Screenings" accent="#10b981" defaultOpen={false}><PreventiveCare items={d.preventive_care||[]} onChange={v=>s("preventive_care",v)}/></Sec>}
@@ -951,7 +951,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser,cfSchema,logAud
       {can(role,"clinical",perms)&&<Sec icon="🧠" title="Cognitive Screening (MMSE / MoCA)" accent="#a78bfa" defaultOpen={false}><CognitiveScreening items={d.cognitive_assessments||[]} onChange={v=>s("cognitive_assessments",v)}/></Sec>}
       {can(role,"clinical",perms)&&<Sec icon="💧" title="Continence Monitoring" accent="#06b6d4" defaultOpen={false}><ContinenceLog items={d.continence_logs||[]} onChange={v=>s("continence_logs",v)}/></Sec>}
       {can(role,"clinical",perms)&&<Sec icon="🥗" title="Nutritional Risk Screening (MUST)" accent="#10b981" defaultOpen={false}><NutritionScreening items={d.nutrition_assessments||[]} onChange={v=>s("nutrition_assessments",v)}/></Sec>}
-      {(()=>{const cfs=cfSchema?JSON.parse(cfSchema||"[]"):[];return cfs.length>0&&(<Sec icon="🧩" title="Additional Information" accent="#6366f1" defaultOpen={true}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{cfs.map(f=>{const val=d.custom_fields?.[f.id]??"";const setVal=v=>s("custom_fields",{...(d.custom_fields||{}),[f.id]:v});return(<div key={f.id} style={f.type==="textarea"?{gridColumn:"1/-1"}:{}}><label style={{...LBL,marginBottom:4}}>{f.label}{f.required&&<span style={{color:"#f87171",marginLeft:3}}>*</span>}</label>{f.type==="textarea"?<textarea value={val} onChange={e=>setVal(e.target.value)} rows={3} style={{...INP,marginBottom:0,resize:"vertical"}}/>:f.type==="select"?<select value={val} onChange={e=>setVal(e.target.value)} style={{...INP,marginBottom:0,padding:"7px 10px"}}><option value="">— Select —</option>{(f.options||"").split(",").map(o=>o.trim()).filter(Boolean).map(o=><option key={o} value={o}>{o}</option>)}</select>:f.type==="checkbox"?<label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,color:"var(--color-text-secondary)"}}><input type="checkbox" checked={!!val} onChange={e=>setVal(e.target.checked)} style={{accentColor:"#6366f1",width:16,height:16}}/>{f.label}</label>:<input type={f.type} value={val} onChange={e=>setVal(e.target.value)} style={{...INP,marginBottom:0}}/> }</div>);})}</div></Sec>);})()}
+      {(()=>{const cfs=cfSchema?JSON.parse(cfSchema||"[]"):[];return cfs.length>0&&(<Sec icon="🧩" title="Additional Information" accent="#6366f1" ><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{cfs.map(f=>{const val=d.custom_fields?.[f.id]??"";const setVal=v=>s("custom_fields",{...(d.custom_fields||{}),[f.id]:v});return(<div key={f.id} style={f.type==="textarea"?{gridColumn:"1/-1"}:{}}><label style={{...LBL,marginBottom:4}}>{f.label}{f.required&&<span style={{color:"#f87171",marginLeft:3}}>*</span>}</label>{f.type==="textarea"?<textarea value={val} onChange={e=>setVal(e.target.value)} rows={3} style={{...INP,marginBottom:0,resize:"vertical"}}/>:f.type==="select"?<select value={val} onChange={e=>setVal(e.target.value)} style={{...INP,marginBottom:0,padding:"7px 10px"}}><option value="">— Select —</option>{(f.options||"").split(",").map(o=>o.trim()).filter(Boolean).map(o=><option key={o} value={o}>{o}</option>)}</select>:f.type==="checkbox"?<label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,color:"var(--color-text-secondary)"}}><input type="checkbox" checked={!!val} onChange={e=>setVal(e.target.checked)} style={{accentColor:"#6366f1",width:16,height:16}}/>{f.label}</label>:<input type={f.type} value={val} onChange={e=>setVal(e.target.value)} style={{...INP,marginBottom:0}}/> }</div>);})}</div></Sec>);})()}
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:8}}>
         <button onClick={onCancel} style={{padding:"10px 20px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600}}>{t.cancel}</button>
         <button onClick={()=>valid&&!saving&&onSave(d)} disabled={!valid||saving}
@@ -1110,9 +1110,9 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </>
         ):(
           <>
-            <button onClick={doExport} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:600,fontSize:13}}>Export PDF</button>
+            {canEdit&&<button onClick={doExport} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:600,fontSize:13}}>Export PDF</button>}
             <button onClick={()=>setShowEmerg(true)} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontWeight:600,fontSize:13}}>Emergency Card</button>
-            <button onClick={doPrint} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:13}}>Print</button>
+            {canEdit&&<button onClick={doPrint} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:13}}>Print</button>}
             {canEdit&&<button onClick={onEdit} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontWeight:600,fontSize:13}}>{t.edit}</button>}
             {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #f59e0b",background:"rgba(245,158,11,0.1)",color:"#f59e0b",fontWeight:600,fontSize:13}}>📦 Archive</button>}
             {!canEdit&&<span style={{fontSize:12,color:"var(--color-text-muted)",alignSelf:"center",fontStyle:"italic"}}>View only</span>}
@@ -1233,60 +1233,88 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
             </div>
           </div>
         )}
-        {can(role,"documents",perms)&&(client.documents||[]).length>0&&(
-          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>DOCUMENTS</div>
-            {(client.documents||[]).map(doc=>{
-              const days=daysUntil(doc.expiry);
-              const badge=expiryBadge(days);
-              return(
-                <div key={doc.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #1e293b"}}>
-                  <div>
-                    <span style={{fontWeight:600,fontSize:13,color:"var(--color-text-primary)"}}>{doc.name}</span>
-                    {doc.expiry&&<span style={{fontSize:12,color:"var(--color-text-dim)",marginLeft:8}}>Exp: {new Date(doc.expiry+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})}</span>}
+        {can(role,"documents",perms)?(
+          (client.documents||[]).length>0&&(
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>DOCUMENTS</div>
+              {(client.documents||[]).map(doc=>{
+                const days=daysUntil(doc.expiry);
+                const badge=expiryBadge(days);
+                return(
+                  <div key={doc.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #1e293b"}}>
+                    <div>
+                      <span style={{fontWeight:600,fontSize:13,color:"var(--color-text-primary)"}}>{doc.name}</span>
+                      {doc.expiry&&<span style={{fontSize:12,color:"var(--color-text-dim)",marginLeft:8}}>Exp: {new Date(doc.expiry+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})}</span>}
+                    </div>
+                    {badge&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:badge.bg,color:badge.color}}>{badge.label} {days!==null&&(days<0?Math.abs(days)+"d ago":days+"d")}</span>}
                   </div>
-                  {badge&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:badge.bg,color:badge.color}}>{badge.label} {days!==null&&(days<0?Math.abs(days)+"d ago":days+"d")}</span>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {can(role,"care_plan",perms)&&(client.care_plan||[]).length>0&&(
-          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>CARE PLAN</div>
-            {(client.care_plan||[]).map(item=>{
-              const gs=GSTATUSES.find(s=>s.value===item.status)||GSTATUSES[0];
-              return(
-                <div key={item.id} style={{borderLeft:"3px solid "+gs.color,paddingLeft:12,marginBottom:12}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                    <span style={{fontWeight:700,color:"var(--color-text-primary)"}}>{item.goal}</span>
-                    <span style={{fontSize:11,padding:"2px 7px",borderRadius:20,background:gs.color+"20",color:gs.color,fontWeight:700}}>{item.status}</span>
-                  </div>
-                  {item.plan&&<div style={{fontSize:13,color:"var(--color-text-secondary)",lineHeight:1.6}}>{item.plan}</div>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {can(role,"vitals",perms)&&(client.vitals||[]).length>0&&(
-          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <VitalsTracker vitals={client.vitals||[]} onChange={()=>{}} t={t}/>
-          </div>
-        )}
-        {can(role,"notes",perms)&&fn.length>0&&(
-          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:12}}>SESSION NOTES</div>
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              {fn.map(n=>(
-                <div key={n.id} style={{borderLeft:"3px solid rgba(124,58,237,0.4)",paddingLeft:14}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
-                    <span style={{fontSize:12,color:"#7c3aed",fontWeight:700}}>{new Date(n.date+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</span>
-                    {(n.role||n.staff_name)&&<span style={{fontSize:11,background:"rgba(124,58,237,0.1)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:20,padding:"2px 8px",color:"#7c3aed",fontWeight:600}}>{n.role}{n.role&&n.staff_name&&" - "}{n.staff_name}</span>}
-                  </div>
-                  <div style={{color:"var(--color-text-secondary)",fontSize:14,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{n.text}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+          )
+        ):(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13}}>DOCUMENTS</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
+          </div>
+        )}
+        {can(role,"care_plan",perms)?(
+          (client.care_plan||[]).length>0&&(
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>CARE PLAN</div>
+              {(client.care_plan||[]).map(item=>{
+                const gs=GSTATUSES.find(s=>s.value===item.status)||GSTATUSES[0];
+                return(
+                  <div key={item.id} style={{borderLeft:"3px solid "+gs.color,paddingLeft:12,marginBottom:12}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                      <span style={{fontWeight:700,color:"var(--color-text-primary)"}}>{item.goal}</span>
+                      <span style={{fontSize:11,padding:"2px 7px",borderRadius:20,background:gs.color+"20",color:gs.color,fontWeight:700}}>{item.status}</span>
+                    </div>
+                    {item.plan&&<div style={{fontSize:13,color:"var(--color-text-secondary)",lineHeight:1.6}}>{item.plan}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ):(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13}}>CARE PLAN</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
+          </div>
+        )}
+        {can(role,"vitals",perms)?(
+          (client.vitals||[]).length>0&&(
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <VitalsTracker vitals={client.vitals||[]} onChange={()=>{}} t={t}/>
+            </div>
+          )
+        ):(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"var(--color-text-secondary)",fontSize:13}}>VITALS</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
+          </div>
+        )}
+        {can(role,"notes",perms)?(
+          fn.length>0&&(
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:12}}>SESSION NOTES</div>
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                {fn.map(n=>(
+                  <div key={n.id} style={{borderLeft:"3px solid rgba(124,58,237,0.4)",paddingLeft:14}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
+                      <span style={{fontSize:12,color:"#7c3aed",fontWeight:700}}>{new Date(n.date+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</span>
+                      {(n.role||n.staff_name)&&<span style={{fontSize:11,background:"rgba(124,58,237,0.1)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:20,padding:"2px 8px",color:"#7c3aed",fontWeight:600}}>{n.role}{n.role&&n.staff_name&&" - "}{n.staff_name}</span>}
+                    </div>
+                    <div style={{color:"var(--color-text-secondary)",fontSize:14,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{n.text}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        ):(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"#7c3aed",fontSize:13}}>SESSION NOTES</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
           </div>
         )}
       </div>
@@ -1322,14 +1350,30 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {/* Intake Checklist */}
-        {(()=>{const ic=client.intake_checklist||[];return(
+        {can(role,"intake_checklist",perms)?(()=>{const ic=client.intake_checklist||[];return(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>✅ INTAKE CHECKLIST</div>
             <IntakeChecklist items={ic} onChange={onInlineUpdate?v=>onInlineUpdate("intake_checklist",v):()=>{}} currentUser={currentUser}/>
           </div>
-        );})()}
+        );})():(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"#10b981",fontSize:13}}>✅ INTAKE CHECKLIST</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
+          </div>
+        )}
         {/* Clinical assessments — Professional+ plan + permission */}
-        {planCan(companyPlan,"clinical")&&can(role,"clinical",perms)?(
+        {!planCan(companyPlan,"clinical")&&(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"28px 20px",marginBottom:12,textAlign:"center",color:"var(--color-text-muted)",fontSize:13}}>
+            🔒 Clinical assessments are available on the <strong style={{color:"var(--color-text-secondary)"}}>Professional</strong> plan.
+          </div>
+        )}
+        {planCan(companyPlan,"clinical")&&!can(role,"clinical",perms)&&(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13}}>CLINICAL ASSESSMENTS</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
+          </div>
+        )}
+        {planCan(companyPlan,"clinical")&&can(role,"clinical",perms)&&(
           <>
             {/* ADL Tracking */}
             <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
@@ -1373,10 +1417,6 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
               </div>
             )}
           </>
-        ):(
-          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"28px 20px",marginBottom:12,textAlign:"center",color:"var(--color-text-muted)",fontSize:13}}>
-            🔒 Clinical assessments are available on the <strong style={{color:"var(--color-text-secondary)"}}>Professional</strong> plan.
-          </div>
         )}
       {planCan(companyPlan,"custom_fields")&&(()=>{const cfs=cfSchema?JSON.parse(cfSchema||"[]"):[];const vals=client.custom_fields||{};const filled=cfs.filter(f=>f.type==="checkbox"?vals[f.id]!==undefined:vals[f.id]);if(!cfs.length||!filled.length)return null;return(<div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}><div style={{fontWeight:700,color:"#6366f1",fontSize:13,marginBottom:12}}>🧩 ADDITIONAL INFORMATION</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px 16px"}}>{cfs.map(f=>{const v=vals[f.id];if(v===undefined||v==="")return null;return(<div key={f.id}><div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:700,letterSpacing:"0.5px",marginBottom:2}}>{f.label.toUpperCase()}</div><div style={{fontSize:13,color:"var(--color-text-secondary)"}}>{f.type==="checkbox"?(v?"Yes":"No"):String(v)}</div></div>);})}</div></div>);})()}
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
@@ -1447,7 +1487,7 @@ function Login({onLogin,t}){
       details:`Signed in from ${navigator.userAgent.includes("Mobile")?"mobile":"desktop"}`,
       device:navigator.userAgent.slice(0,220),
     }).then(()=>{});
-    onLogin({...data.user,role:rd?.role||"user",displayName:rd?.name||loginEmail.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
+    onLogin({...data.user,role:rd?.role||"user",displayName:rd?.name||loginEmail.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null,force_password_change:data.user.user_metadata?.force_password_change||false});
     setLoading(false);
   };
   return(
@@ -1529,12 +1569,12 @@ function CompanyView({company,onUpdate,currentUser,t}){
     if(fileRef.current?.files?.[0]){const u=await uploadLogo();if(u)logoUrl=u;}
     const {data,error:err}=await supabase.from("companies").update({...form,logo_url:logoUrl,updated_at:new Date().toISOString()}).eq("id",company.id).select().single();
     if(err){showToast("error","Save failed: "+err.message);}
-    else{onUpdate(data);setLogoPreview(data.logo_url);showToast("success","Company information saved!");}
+    else{onUpdate(data);setLogoPreview(data.logo_url);showToast("success","Care Facility information saved!");}
     setSaving(false);
   };
 
   const isSuperAdmin=currentUser?.role==="superadmin";
-  const TABS=[{id:"info",label:"Company Info"},{id:"hours",label:"Hours"},{id:"emergency",label:"Emergency"},{id:"fields",label:"Custom Fields"},...(isSuperAdmin?[{id:"subscription",label:"Subscriptions"}]:[])];
+  const TABS=[{id:"info",label:"Facility Info"},{id:"hours",label:"Hours"},{id:"emergency",label:"Emergency"},{id:"fields",label:"Custom Fields"},...(isSuperAdmin?[{id:"subscription",label:"Subscriptions"},{id:"facilities",label:"Care Facilities"}]:[])];
 
   // Subscription management (superadmin tab)
   const [allCompanies,setAllCompanies]=useState([]);
@@ -1546,7 +1586,70 @@ function CompanyView({company,onUpdate,currentUser,t}){
     setAllCompanies(data||[]);
     setSubLoading(false);
   };
-  useEffect(()=>{if(tab==="subscription")loadAllCompanies();},[tab]);
+  useEffect(()=>{if(tab==="subscription"||tab==="facilities")loadAllCompanies();},[tab]);
+
+  // Care Facilities tab state (superadmin)
+  const [facForm,setFacForm]=useState({name:"",address:"",phone:"",email:"",website:"",mission_statement:""});
+  const [facShowForm,setFacShowForm]=useState(false);
+  const [facShowArchived,setFacShowArchived]=useState(false);
+  const [facArchiveConfirm,setFacArchiveConfirm]=useState(null);
+  const [facDeleteConfirm,setFacDeleteConfirm]=useState(null);
+  const [facDeleteInput,setFacDeleteInput]=useState("");
+  const [facStats,setFacStats]=useState({});
+  const [facSaving,setFacSaving]=useState(false);
+  const [facAllCompanies,setFacAllCompanies]=useState([]);
+
+  const loadFacilities=async()=>{
+    const {data:cd}=await supabase.from("companies").select("*").order("name");
+    setFacAllCompanies(cd||[]);
+    const {data:clientRows}=await supabase.from("clients").select("company_id,archived");
+    const {data:auditRows}=await supabase.from("audit_log").select("company_id,performed_at").order("performed_at",{ascending:false}).limit(1000);
+    const {data:userRows}=await supabase.from("user_roles").select("user_id,company_id");
+    const stats={};
+    (cd||[]).forEach(c=>{stats[c.id]={clients:0,archivedClients:0,users:0,lastActivity:null};});
+    (clientRows||[]).forEach(r=>{if(!stats[r.company_id])stats[r.company_id]={clients:0,archivedClients:0,users:0,lastActivity:null};if(r.archived)stats[r.company_id].archivedClients++;else stats[r.company_id].clients++;});
+    const userSets={};
+    (userRows||[]).forEach(r=>{if(!userSets[r.company_id])userSets[r.company_id]=new Set();userSets[r.company_id].add(r.user_id);});
+    Object.entries(userSets).forEach(([cid,s])=>{if(stats[cid])stats[cid].users=s.size;});
+    (auditRows||[]).forEach(r=>{if(stats[r.company_id]&&!stats[r.company_id].lastActivity)stats[r.company_id].lastActivity=r.performed_at;});
+    setFacStats(stats);
+  };
+  useEffect(()=>{if(tab==="facilities")loadFacilities();},[tab]);
+
+  const createFacility=async e=>{
+    e.preventDefault();
+    if(!facForm.name){showToast("error","Facility name is required");return;}
+    setFacSaving(true);
+    const {data:existing}=await supabase.from("companies").select("id").ilike("name",facForm.name.trim()).limit(1).maybeSingle();
+    if(existing){showToast("error","A care facility with this name already exists");setFacSaving(false);return;}
+    const {error}=await supabase.from("companies").insert({...facForm,hours_of_operation:{monday:"8:00 AM - 5:00 PM",tuesday:"8:00 AM - 5:00 PM",wednesday:"8:00 AM - 5:00 PM",thursday:"8:00 AM - 5:00 PM",friday:"8:00 AM - 5:00 PM",saturday:"10:00 AM - 2:00 PM",sunday:"Closed"}}).select().single();
+    if(error){showToast("error","Failed to create: "+error.message);}
+    else{showToast("success","Care facility created! You can now assign users to it.");setFacForm({name:"",address:"",phone:"",email:"",website:"",mission_statement:""});setFacShowForm(false);await loadFacilities();}
+    setFacSaving(false);
+  };
+  const archiveFacility=async(c)=>{
+    setFacSaving(true);
+    const {error}=await supabase.from("companies").update({archived_at:new Date().toISOString()}).eq("id",c.id);
+    if(error){showToast("error","Failed: "+error.message);}
+    else{setFacArchiveConfirm(null);showToast("success",`"${c.name}" archived`);await loadFacilities();}
+    setFacSaving(false);
+  };
+  const unarchiveFacility=async(c)=>{
+    setFacSaving(true);
+    const {error}=await supabase.from("companies").update({archived_at:null}).eq("id",c.id);
+    if(error){showToast("error","Failed: "+error.message);}
+    else{showToast("success",`"${c.name}" restored`);await loadFacilities();}
+    setFacSaving(false);
+  };
+  const deleteFacility=async(c)=>{
+    const st=facStats[c.id]||{clients:0,archivedClients:0,users:0};
+    if((st.clients+st.archivedClients)>0||st.users>0){showToast("error","Remove all clients and users before deleting");return;}
+    setFacSaving(true);
+    const {error}=await supabase.from("companies").delete().eq("id",c.id);
+    if(error){showToast("error","Failed: "+error.message);}
+    else{setFacDeleteConfirm(null);setFacDeleteInput("");showToast("success",`"${c.name}" permanently deleted`);await loadFacilities();}
+    setFacSaving(false);
+  };
 
   const updateSubscription=async(companyId,patch)=>{
     setSubSaving(companyId);
@@ -1601,7 +1704,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
           </div>
         )}
         <div>
-          <div style={{fontSize:20,color:"var(--color-text-primary)",fontWeight:700,letterSpacing:"-0.4px"}}>{form.name||"Company Settings"}</div>
+          <div style={{fontSize:20,color:"var(--color-text-primary)",fontWeight:700,letterSpacing:"-0.4px"}}>{form.name||"Care Facility Settings"}</div>
           {form.mission_statement&&<div style={{color:"var(--color-text-dim)",fontSize:13,marginTop:4,fontStyle:"italic"}}>"{form.mission_statement}"</div>}
         </div>
       </div>
@@ -1614,7 +1717,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
         {tab==="info"&&(
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
             <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16}}>
-              <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>🖼 Company Logo</div>
+              <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>🖼 Facility Logo</div>
               <div style={{display:"flex",gap:16,alignItems:"center"}}>
                 <div style={{width:120,height:120,border:"2px dashed rgba(255,255,255,0.15)",borderRadius:12,background:"var(--color-bg-hover)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
                   {logoPreview
@@ -1635,7 +1738,7 @@ function CompanyView({company,onUpdate,currentUser,t}){
             <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:14,padding:16}}>
               <div style={{fontSize:11,color:"var(--color-text-dim)",fontFamily:"'DM Mono',monospace",fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.8px"}}>🏢 Basic Information</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                {fld("Company Name *","name")}
+                {fld("Facility Name *","name")}
                 {fld("Registration Number","registration_number")}
                 {fld("Address","address","text","e.g. Oranjestad, Aruba")}
                 {fld("Phone","phone","tel","+297-...")}
@@ -1784,12 +1887,175 @@ function CompanyView({company,onUpdate,currentUser,t}){
             )}
           </div>
         )}
-        {tab!=="fields"&&tab!=="subscription"&&<div style={{marginTop:20}}>
+        {tab!=="fields"&&tab!=="subscription"&&tab!=="facilities"&&<div style={{marginTop:20}}>
           <button type="submit" disabled={saving||uploading}
             style={{padding:"11px 28px",borderRadius:10,border:"none",background:saving?"var(--color-bg-hover)":"#10b981",color:saving?"var(--color-text-muted)":"#fff",fontWeight:700,fontSize:14}}>
-            {saving?"Saving...":"Save Company Information"}
+            {saving?"Saving...":"Save Facility Information"}
           </button>
         </div>}
+
+        {/* ══ CARE FACILITIES TAB ══ */}
+        {tab==="facilities"&&isSuperAdmin&&(
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <label style={{fontSize:12,color:"var(--color-text-dim)",display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+                  <input type="checkbox" checked={facShowArchived} onChange={e=>setFacShowArchived(e.target.checked)} style={{accentColor:"var(--color-accent)"}}/>
+                  Show archived
+                </label>
+              </div>
+              <button type="button" onClick={()=>setFacShowForm(s=>!s)}
+                style={{padding:"9px 18px",borderRadius:9,border:"none",background:facShowForm?"rgba(255,255,255,0.06)":"#10b981",color:facShowForm?"var(--color-text-secondary)":"#fff",fontWeight:700,fontSize:13}}>
+                {facShowForm?"Cancel":"+ New Care Facility"}
+              </button>
+            </div>
+            {facShowForm&&(
+              <div style={{background:"var(--color-bg-surface)",border:"1px solid #10b981",borderRadius:12,padding:20,marginBottom:20}}>
+                <div style={{fontSize:14,fontWeight:700,color:"var(--color-text-primary)",marginBottom:14,letterSpacing:"-0.2px"}}>Create New Care Facility</div>
+                <form onSubmit={createFacility}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                    <div><label style={lbl}>Facility Name *</label><input name="name" value={facForm.name} onChange={e=>setFacForm(p=>({...p,[e.target.name]:e.target.value}))} placeholder="e.g. Sunrise Care Center" style={{...inp,marginBottom:0}}/></div>
+                    <div><label style={lbl}>Email</label><input name="email" type="email" value={facForm.email} onChange={e=>setFacForm(p=>({...p,[e.target.name]:e.target.value}))} placeholder="info@facility.aw" style={{...inp,marginBottom:0}}/></div>
+                    <div><label style={lbl}>Phone</label><input name="phone" value={facForm.phone} onChange={e=>setFacForm(p=>({...p,[e.target.name]:e.target.value}))} placeholder="+297-..." style={{...inp,marginBottom:0}}/></div>
+                    <div><label style={lbl}>Website</label><input name="website" value={facForm.website} onChange={e=>setFacForm(p=>({...p,[e.target.name]:e.target.value}))} placeholder="www.facility.aw" style={{...inp,marginBottom:0}}/></div>
+                    <div style={{gridColumn:"1/-1"}}><label style={lbl}>Address</label><input name="address" value={facForm.address} onChange={e=>setFacForm(p=>({...p,[e.target.name]:e.target.value}))} placeholder="Oranjestad, Aruba" style={{...inp,marginBottom:0}}/></div>
+                    <div style={{gridColumn:"1/-1"}}><label style={lbl}>Mission Statement</label><textarea name="mission_statement" value={facForm.mission_statement} onChange={e=>setFacForm(p=>({...p,[e.target.name]:e.target.value}))} rows={2} style={{...inp,marginBottom:0,resize:"vertical"}}/></div>
+                  </div>
+                  <div style={{background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#10b981"}}>
+                    ✓ Default hours of operation will be set automatically. Update them in Facility Info after creation.
+                  </div>
+                  <button type="submit" disabled={facSaving}
+                    style={{padding:"10px 24px",borderRadius:9,border:"none",background:facSaving?"rgba(255,255,255,0.1)":"#10b981",color:facSaving?"var(--color-text-muted)":"#fff",fontWeight:700,fontSize:14}}>
+                    {facSaving?"Creating...":"Create Care Facility"}
+                  </button>
+                </form>
+              </div>
+            )}
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {facAllCompanies.filter(c=>facShowArchived?true:!c.archived_at).length===0?(
+                <div style={{color:"var(--color-text-muted)",textAlign:"center",padding:"40px 0"}}>
+                  {facShowArchived?"No archived facilities.":"No care facilities yet."}
+                </div>
+              ):facAllCompanies.filter(c=>facShowArchived?true:!c.archived_at).map(c=>{
+                const st=facStats[c.id]||{clients:0,archivedClients:0,users:0,lastActivity:null};
+                const lastAct=st.lastActivity?new Date(st.lastActivity).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"No activity";
+                const isArchived=!!c.archived_at;
+                return(
+                  <div key={c.id} style={{background:"var(--color-bg-card)",border:isArchived?"1px solid rgba(245,158,11,0.25)":"1px solid var(--color-border)",borderRadius:14,padding:16,opacity:isArchived?0.72:1}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
+                      <div style={{flex:1,minWidth:200}}>
+                        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
+                          {c.logo_url&&<div style={{background:"#fff",borderRadius:8,padding:"4px 6px",flexShrink:0}}><img src={c.logo_url} alt={c.name} style={{height:32,maxWidth:80,objectFit:"contain",display:"block"}}/></div>}
+                          <div>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <div style={{fontSize:15,fontWeight:700,color:isArchived?"rgba(240,242,250,0.4)":"var(--color-text-primary)",letterSpacing:"-0.2px"}}>{c.name}</div>
+                              {isArchived&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b",border:"1px solid rgba(245,158,11,0.3)"}}>ARCHIVED</span>}
+                            </div>
+                            {c.mission_statement&&<div style={{fontSize:11,color:"var(--color-text-dim)",fontStyle:"italic",marginTop:2}}>"{c.mission_statement}"</div>}
+                          </div>
+                        </div>
+                        <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8}}>
+                          {c.address&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>📍 {c.address}</span>}
+                          {c.phone&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>📞 {c.phone}</span>}
+                          {c.email&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>✉️ {c.email}</span>}
+                          {c.website&&<span style={{fontSize:12,color:"var(--color-text-secondary)"}}>🌐 {c.website}</span>}
+                        </div>
+                        <div style={{display:"flex",gap:8,marginTop:14,flexWrap:"wrap"}}>
+                          {isArchived?(
+                            <>
+                              <button type="button" onClick={()=>unarchiveFacility(c)} disabled={facSaving}
+                                style={{padding:"5px 14px",borderRadius:8,border:"1px solid #10b981",background:"rgba(16,185,129,0.1)",color:"#10b981",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                                ↩ Restore
+                              </button>
+                              <button type="button" onClick={()=>{setFacDeleteConfirm(c);setFacDeleteInput("");}}
+                                style={{padding:"5px 14px",borderRadius:8,border:"1px solid rgba(239,68,68,0.4)",background:"rgba(239,68,68,0.08)",color:"#f87171",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                                🗑 Delete Permanently
+                              </button>
+                            </>
+                          ):(
+                            <button type="button" onClick={()=>setFacArchiveConfirm(c)}
+                              style={{padding:"5px 14px",borderRadius:8,border:"1px solid rgba(245,158,11,0.4)",background:"rgba(245,158,11,0.08)",color:"#f59e0b",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                              📦 Archive
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:8,flexShrink:0,flexWrap:"wrap"}}>
+                        <div style={{textAlign:"center",background:"rgba(16,185,129,0.1)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
+                          <div style={{fontSize:22,fontWeight:700,color:"#10b981"}}>{st.clients}</div>
+                          <div style={{fontSize:10,color:"var(--color-text-dim)",fontWeight:600}}>CLIENTS</div>
+                          {st.archivedClients>0&&<div style={{fontSize:9,color:"var(--color-text-muted)",marginTop:2}}>{st.archivedClients} archived</div>}
+                        </div>
+                        <div style={{textAlign:"center",background:"rgba(99,102,241,0.12)",borderRadius:10,padding:"10px 16px",minWidth:64}}>
+                          <div style={{fontSize:22,fontWeight:700,color:"#6366f1"}}>{st.users}</div>
+                          <div style={{fontSize:10,color:"var(--color-text-dim)",fontWeight:600}}>USERS</div>
+                        </div>
+                        <div style={{textAlign:"center",background:"rgba(71,85,105,0.2)",borderRadius:10,padding:"10px 16px",minWidth:80}}>
+                          <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-secondary)",lineHeight:1.3}}>{lastAct}</div>
+                          <div style={{fontSize:10,color:"var(--color-text-dim)",fontWeight:600,marginTop:4}}>LAST ACTIVITY</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {facArchiveConfirm&&(
+              <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+                <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:36,maxWidth:420,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+                  <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>📦</div>
+                  <div style={{fontSize:16,fontWeight:700,color:"var(--color-text-primary)",textAlign:"center",marginBottom:10}}>Archive Care Facility</div>
+                  <div style={{fontSize:13,color:"var(--color-text-secondary)",textAlign:"center",lineHeight:1.7,marginBottom:28}}>
+                    Archive <strong style={{color:"var(--color-text-primary)"}}>{facArchiveConfirm.name}</strong>? It will be hidden from the facility picker and all active lists. No data is deleted. You can restore it at any time.
+                  </div>
+                  <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                    <button type="button" onClick={()=>setFacArchiveConfirm(null)}
+                      style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:14,cursor:"pointer"}}>Cancel</button>
+                    <button type="button" disabled={facSaving} onClick={()=>archiveFacility(facArchiveConfirm)}
+                      style={{padding:"10px 28px",borderRadius:9,border:"none",background:"#f59e0b",color:"#000",fontWeight:700,fontSize:14,cursor:"pointer",opacity:facSaving?0.6:1}}>
+                      {facSaving?"Archiving…":"Archive"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {facDeleteConfirm&&(()=>{
+              const st=facStats[facDeleteConfirm.id]||{clients:0,archivedClients:0,users:0};
+              const totalClients=(st.clients||0)+(st.archivedClients||0);
+              const hasData=totalClients>0||st.users>0;
+              const canConfirm=!hasData&&facDeleteInput===facDeleteConfirm.name;
+              return(
+                <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.80)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+                  <div style={{background:"var(--color-bg-card)",border:"1px solid #ef4444",borderRadius:16,padding:36,maxWidth:460,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+                    <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>🗑</div>
+                    <div style={{fontSize:16,fontWeight:700,color:"#ef4444",textAlign:"center",marginBottom:10}}>Delete Care Facility Permanently</div>
+                    {hasData?(
+                      <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"14px 16px",marginBottom:20,fontSize:13,color:"#fca5a5",textAlign:"center",lineHeight:1.6}}>
+                        ⛔ Cannot delete — <strong>{facDeleteConfirm.name}</strong> still has{totalClients>0?` ${totalClients} client${totalClients!==1?"s":""}`:""}{totalClients>0&&st.users>0?" and":""}{st.users>0?` ${st.users} user${st.users!==1?"s":""}`:""} assigned. Remove them first.
+                      </div>
+                    ):(
+                      <div style={{fontSize:13,color:"var(--color-text-secondary)",textAlign:"center",lineHeight:1.7,marginBottom:20}}>
+                        This action <strong style={{color:"var(--color-text-primary)"}}>cannot be undone</strong>. Type <strong style={{color:"var(--color-text-primary)",fontFamily:"monospace"}}>{facDeleteConfirm.name}</strong> to confirm:
+                      </div>
+                    )}
+                    {!hasData&&(
+                      <input value={facDeleteInput} onChange={e=>setFacDeleteInput(e.target.value)} placeholder={`Type "${facDeleteConfirm.name}" to confirm`}
+                        style={{width:"100%",padding:"10px 14px",borderRadius:9,border:"1px solid "+(canConfirm?"#ef4444":"rgba(255,255,255,0.1)"),background:"#161927",color:"var(--color-text-primary)",fontSize:14,marginBottom:20,outline:"none"}}/>
+                    )}
+                    <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                      <button type="button" onClick={()=>{setFacDeleteConfirm(null);setFacDeleteInput("");}}
+                        style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:14,cursor:"pointer"}}>Cancel</button>
+                      <button type="button" disabled={facSaving||!canConfirm} onClick={()=>deleteFacility(facDeleteConfirm)}
+                        style={{padding:"10px 28px",borderRadius:9,border:"none",background:canConfirm?"#dc2626":"rgba(255,255,255,0.1)",color:canConfirm?"#fff":"var(--color-text-muted)",fontWeight:700,fontSize:14,cursor:canConfirm?"pointer":"not-allowed",opacity:facSaving?0.6:1}}>
+                        {facSaving?"Deleting…":"Delete Permanently"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </form>
     </div>
   );
@@ -1840,7 +2106,7 @@ function CompanyPicker({onSelect,currentUser,t}){
           <div style={{fontSize:13,color:"var(--color-text-dim)"}}>Choose which care facility to manage</div>
         </div>
         {loading?(
-          <div style={{textAlign:"center",color:"var(--color-text-muted)",padding:"40px 0"}}>Loading companies...</div>
+          <div style={{textAlign:"center",color:"var(--color-text-muted)",padding:"40px 0"}}>Loading care facilities...</div>
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {companies.map(c=>{
@@ -1887,7 +2153,7 @@ const ACTIONS=[
   {key:"edit",          label:"Edit Clients",          icon:"✏️", desc:"Modify client data and assessments"},
   {key:"delete",        label:"Delete Clients",        icon:"🗑",  desc:"Permanently delete client records"},
   {key:"audit",         label:"Audit Trail",           icon:"📋", desc:"Access the full system audit log"},
-  {key:"company",       label:"Company Settings",      icon:"🏢", desc:"Edit company profile and settings"},
+  {key:"company",       label:"Care Facility Settings", icon:"🏢", desc:"Edit care facility profile and settings"},
   {key:"users",         label:"User Management",       icon:"👥", desc:"Create, edit and deactivate staff accounts"},
   {key:"permissions",   label:"Permissions Panel",     icon:"🔐", desc:"Edit what each role can do"},
   {key:"rooms",         label:"Rooms Board",           icon:"🛏", desc:"View room assignments and isolation flags"},
@@ -1904,6 +2170,8 @@ const ACTIONS=[
   {key:"mar",           label:"MAR Tracker",           icon:"💉", desc:"Medication administration record and export"},
   {key:"prn",           label:"PRN Log",               icon:"⚗️", desc:"As-needed medication justification log"},
   {key:"controlled_sub",label:"Controlled Substances", icon:"🔒", desc:"Controlled substance audit log with witness signatures"},
+  {key:"change_password",label:"Change User Password", icon:"🔑", desc:"Reset or change another user's password from User Management"},
+  {key:"intake_checklist",label:"Intake Checklist",   icon:"✅", desc:"View and manage client intake/onboarding checklist"},
 ];
 const ROLES=["superadmin","admin","power_user","nurse","care_assistant","user"];
 const ROLE_LABELS={superadmin:"Super Admin",admin:"Admin",power_user:"Power User",nurse:"Nurse",care_assistant:"Care Assistant",user:"User"};
@@ -1917,7 +2185,7 @@ const ROLE_DESC={
   user:"Read-only care staff — can view clients and log assessments.",
 };
 
-function PermissionsPanel({activeCompanyId,currentUser,t,refreshPerms}){
+function PermissionsPanel({activeCompanyId,currentUser,t,refreshPerms,company}){
   const [globalPerms,setGlobalPerms]=useState([]);
   const [companyPerms,setCompanyPerms]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -2069,8 +2337,8 @@ function PermissionsPanel({activeCompanyId,currentUser,t,refreshPerms}){
       <div style={{display:"flex",gap:2,borderBottom:"1px solid var(--color-border)",marginBottom:20}}>
         {(currentUser.role==="superadmin"
           ?[["global","🌐 Global Defaults","Sets the default permissions for all companies"],
-            ["company","🏢 Company Override","Override global defaults for this specific company"]]
-          :[["company","🏢 Company Override","Override global defaults for this specific company"]]
+            ["company","🏢 Facility Override","Override global defaults for this specific care facility"]]
+          :[["company","🏢 Facility Override","Override global defaults for this specific care facility"]]
         ).map(([id,label,hint])=>(
           <button key={id} onClick={()=>{setTab(id);setPendingChanges({});}}
             title={hint}
@@ -2087,8 +2355,8 @@ function PermissionsPanel({activeCompanyId,currentUser,t,refreshPerms}){
           background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",marginBottom:16}}>
           <span style={{fontSize:14}}>ℹ️</span>
           <span style={{fontSize:12,color:"#f59e0b",lineHeight:1.5}}>
-            Company overrides apply <strong>on top of</strong> global defaults — only changed permissions are stored here.
-            {!activeCompanyId&&<strong> Select a company first.</strong>}
+            Facility overrides apply <strong>on top of</strong> global defaults — only changed permissions are stored here.
+            {!activeCompanyId&&<strong> Select a care facility first.</strong>}
           </span>
         </div>
       )}
@@ -2139,6 +2407,14 @@ function PermissionsPanel({activeCompanyId,currentUser,t,refreshPerms}){
                   {pendingCount>0&&<span style={{fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b"}}>{pendingCount} pending</span>}
                 </div>
                 <div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:4}}>{ROLE_DESC[selectedRole]}</div>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:isCompanyTab?"#f59e0b":"#6366f1",flexShrink:0}}/>
+                  <span style={{fontSize:11,color:"var(--color-text-dim)"}}>
+                    {isCompanyTab
+                      ? `Facility Override${company?.name?` — ${company.name}`:" (no company selected)"}`
+                      : "Global Defaults"}
+                  </span>
+                </div>
               </div>
               {selectedRole!=="superadmin"&&(
                 <div style={{display:"flex",gap:6}}>
@@ -2146,6 +2422,8 @@ function PermissionsPanel({activeCompanyId,currentUser,t,refreshPerms}){
                     style={{fontSize:11,padding:"5px 12px",borderRadius:7,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>All</button>
                   <button onClick={()=>ACTIONS.forEach(a=>setPendingChanges(p=>({...p,[`${useCompany?"c":"g"}_${selectedRole}_${a.key}`]:false})))}
                     style={{fontSize:11,padding:"5px 12px",borderRadius:7,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>None</button>
+                  <button onClick={()=>{const updates={};ACTIONS.forEach(a=>{const gval=globalPerms.find(p=>p.role===selectedRole&&p.action===a.key);const dval=(DEFAULT_PERMS[selectedRole]||[]).includes(a.key);updates[`${useCompany?"c":"g"}_${selectedRole}_${a.key}`]=gval?gval.allowed:dval;});setPendingChanges(p=>({...p,...updates}));}}
+                    style={{fontSize:11,padding:"5px 12px",borderRadius:7,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>Default</button>
                 </div>
               )}
             </div>
@@ -3057,7 +3335,7 @@ export default function App(){
     const cid=selectedCompany||currentUser?.company_id;
     const isSuperAdmin=currentUser?.role==="superadmin";
     // Omit heavy clinical JSONB fields from the list load — they are lazy-fetched in detail view
-    const LIST_COLS="id,name,date_of_birth,status,photo_url,company_id,archived,diagnoses,medications,allergies,documents,appointments,incidents,intake_checklist,vitals,care_plan,inventory,family_contacts";
+    const LIST_COLS="id,name,date_of_birth,status,photo_url,company_id,archived,room_or_address,azv_number,isolation_type,phone,emergency_contact,emergency_phone,dr_di_cas,dr_specialista,diagnoses,medications,allergies,documents,appointments,incidents,intake_checklist,vitals,care_plan,inventory,family_contacts";
     const q=supabase.from("clients").select(LIST_COLS).order("name");
     const {data,error:err}=(isSuperAdmin&&searchAllCompanies)?await q:(cid?await q.eq("company_id",cid):await q);
     if(err)setError(err.message);else setClients((data||[]).map(fromDb));
@@ -3201,9 +3479,11 @@ export default function App(){
     const row={...toDb(data),company_id:activeCompanyId||null};
     const {error:err}=exists?await supabase.from("clients").update(row).eq("id",data.id):await supabase.from("clients").insert(row);
     if(err){setError(err.message);setSaving(false);return;}
-    await logAudit(exists?"Edited client":"Added new client",data.name,{clientId:data.id,section:"Client Profile",details:exists?`Updated client record`:`New client added — DOB: ${data.date_of_birth||"—"}, Status: ${data.status||"Active"}`});
-    await loadClients();
-    setSelected(data);setView("detail");setSaving(false);trackRecent(data);
+    try{
+      await logAudit(exists?"Edited client":"Added new client",data.name,{clientId:data.id,section:"Client Profile",details:exists?`Updated client record`:`New client added — DOB: ${data.date_of_birth||"—"}, Status: ${data.status||"Active"}`});
+      await loadClients();
+      setSelected(data);setView("detail");trackRecent(data);
+    }finally{setSaving(false);}
   };
 
   const archiveClient=async()=>{
@@ -3572,7 +3852,7 @@ export default function App(){
                       className={view==="company"?"nav-item nav-active":"nav-item"} style={NAV_STYLE(view==="company")}>
                       {view==="company"&&ACCENT_BAR}
                       <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="2" y="5" width="11" height="9" rx="1"/><polyline points="5,5 5,2.5 10,2.5 10,5"/><line x1="7.5" y1="8" x2="7.5" y2="11"/><line x1="6" y1="9.5" x2="9" y2="9.5"/></svg>
-                      Company
+                      Care Facility
                     </button>
                   )}
                   {can(currentUser.role,"permissions",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"permissions"))&&(
@@ -3697,7 +3977,7 @@ export default function App(){
             <UserManagement currentUser={currentUser} onRoleChange={refreshCurrentUser} activeCompanyId={activeCompanyId} t={t} logAudit={logAudit}/>
           )}
           {!loading&&view==="permissions"&&can(currentUser.role,"permissions",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"permissions"))&&(
-            <PermissionsPanel activeCompanyId={activeCompanyId} currentUser={currentUser} t={t} refreshPerms={refreshPerms}/>
+            <PermissionsPanel activeCompanyId={activeCompanyId} currentUser={currentUser} t={t} refreshPerms={refreshPerms} company={company}/>
           )}
           {!loading&&view!=="audit"&&searchMode==="notes"&&search.trim().length>1?(
             <div>
@@ -4123,13 +4403,15 @@ export default function App(){
             const markRescheduled=async(a,e)=>{
               e.stopPropagation();
               const updated=(a.client.appointments||[]).map(ap=>ap.id===a.id?{...ap,status:"Scheduled",date:"",notes:(ap.notes?ap.notes+" | ":"")+"Rescheduled from "+ap.date}:ap);
-              await supabase.from("clients").update({appointments:JSON.stringify(updated)}).eq("id",a.client.id);
+              const{error}=await supabase.from("clients").update({appointments:JSON.stringify(updated)}).eq("id",a.client.id);
+              if(error){showToast("error","Failed to update: "+error.message);return;}
               setClients(prev=>prev.map(c=>c.id===a.client.id?{...c,appointments:updated}:c));
             };
             const markNoShow=async(a,e)=>{
               e.stopPropagation();
               const updated=(a.client.appointments||[]).map(ap=>ap.id===a.id?{...ap,status:"No-Show"}:ap);
-              await supabase.from("clients").update({appointments:JSON.stringify(updated)}).eq("id",a.client.id);
+              const{error}=await supabase.from("clients").update({appointments:JSON.stringify(updated)}).eq("id",a.client.id);
+              if(error){showToast("error","Failed to update: "+error.message);return;}
               setClients(prev=>prev.map(c=>c.id===a.client.id?{...c,appointments:updated}:c));
             };
 
