@@ -10,7 +10,7 @@ function PasswordStrengthMeter({password}){
   const score=scorePassword(password);
   const level=PW_LEVELS[score];
   const checks=[
-    {ok:password.length>=10, label:"10+ characters"},
+    {ok:password.length>=5, label:"5+ characters"},
     {ok:/[A-Z]/.test(password), label:"Uppercase letter"},
     {ok:/[0-9]/.test(password), label:"Number"},
     {ok:/[^A-Za-z0-9]/.test(password), label:"Symbol"},
@@ -153,7 +153,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     if(!userForm.name||!userForm.email||!userForm.password||!userForm.role||userForm.company_ids.length===0){
       showToast("error","All fields are required — select at least one company");return;
     }
-    if(userForm.password.length<10){showToast("error","Temporary password must be at least 10 characters");return;}
+    if(userForm.password.length<5){showToast("error","Temporary password must be at least 5 characters");return;}
     if(scorePassword(userForm.password)<2){showToast("error","Temporary password is too weak — add uppercase letters, numbers, or symbols");return;}
     setSaving(true);
     try{
@@ -246,7 +246,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   };
 
   const changePassword=async()=>{
-    if(!newPassword||newPassword.length<10)return showToast("error","Password must be at least 10 characters");
+    if(!newPassword||newPassword.length<5)return showToast("error","Password must be at least 5 characters");
     setPasswordSaving(true);
     const res=await callManageUser("set_password",passwordModal.userId,{newPassword});
     setPasswordSaving(false);
@@ -529,7 +529,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 <div className="um-form-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                   <div><label style={LBL}>Full Name *</label><input name="name" value={userForm.name} onChange={onChangeUser} placeholder="e.g. Maria Johnson" style={INP2}/></div>
                   <div><label style={LBL}>Email *</label><input name="email" type="email" value={userForm.email} onChange={onChangeUser} placeholder="user@company.aw" style={INP2}/></div>
-                  <div><label style={LBL}>Temporary Password *</label><input name="password" type="password" value={userForm.password} onChange={onChangeUser} placeholder="Min. 10 characters" style={INP2}/><PasswordStrengthMeter password={userForm.password}/></div>
+                  <div><label style={LBL}>Temporary Password *</label><input name="password" type="password" value={userForm.password} onChange={onChangeUser} placeholder="Min. 5 characters" style={INP2}/><PasswordStrengthMeter password={userForm.password}/></div>
                   <div><label style={LBL}>Username <span style={{color:"var(--color-text-muted)",fontWeight:400}}>(optional)</span></label><input name="username" value={userForm.username} onChange={onChangeUser} placeholder="e.g. maria.j" style={INP2}/></div>
                   <div><label style={LBL}>Role *</label>
                     <select name="role" value={userForm.role} onChange={onChangeUser} style={{...INP2,cursor:"pointer"}}>
@@ -927,15 +927,15 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
             </div>
             <label style={LBL}>New Password *</label>
             <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)}
-              placeholder="Min. 10 characters" style={{...INP,marginBottom:4}} autoFocus/>
+              placeholder="Min. 5 characters" style={{...INP,marginBottom:4}} autoFocus/>
             <PasswordStrengthMeter password={newPassword}/>
             <div style={{display:"flex",gap:10,justifyContent:"center",marginTop:20}}>
               <button onClick={()=>{setPasswordModal(null);setNewPassword("");}}
                 style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:14,cursor:"pointer"}}>
                 Cancel
               </button>
-              <button onClick={changePassword} disabled={passwordSaving||newPassword.length<10}
-                style={{padding:"10px 28px",borderRadius:9,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:14,cursor:newPassword.length<10?"not-allowed":"pointer",opacity:passwordSaving||newPassword.length<10?0.5:1}}>
+              <button onClick={changePassword} disabled={passwordSaving||newPassword.length<5}
+                style={{padding:"10px 28px",borderRadius:9,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:14,cursor:newPassword.length<5?"not-allowed":"pointer",opacity:passwordSaving||newPassword.length<5?0.5:1}}>
                 {passwordSaving?"Saving…":"Change Password"}
               </button>
             </div>
