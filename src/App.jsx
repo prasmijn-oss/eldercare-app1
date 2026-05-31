@@ -2422,7 +2422,7 @@ function PermissionsPanel({activeCompanyId,currentUser,t,refreshPerms,company}){
                     style={{fontSize:11,padding:"5px 12px",borderRadius:7,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>All</button>
                   <button onClick={()=>ACTIONS.forEach(a=>setPendingChanges(p=>({...p,[`${useCompany?"c":"g"}_${selectedRole}_${a.key}`]:false})))}
                     style={{fontSize:11,padding:"5px 12px",borderRadius:7,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>None</button>
-                  <button onClick={()=>{const defs=DEFAULT_PERMS[selectedRole]||[];const updates={};ACTIONS.forEach(a=>{updates[`${useCompany?"c":"g"}_${selectedRole}_${a.key}`]=defs.includes(a.key);});setPendingChanges(p=>({...p,...updates}));}}
+                  <button onClick={()=>{const updates={};ACTIONS.forEach(a=>{const gval=globalPerms.find(p=>p.role===selectedRole&&p.action===a.key);const dval=(DEFAULT_PERMS[selectedRole]||[]).includes(a.key);updates[`${useCompany?"c":"g"}_${selectedRole}_${a.key}`]=gval?gval.allowed:dval;});setPendingChanges(p=>({...p,...updates}));}}
                     style={{fontSize:11,padding:"5px 12px",borderRadius:7,border:"1px solid var(--color-border)",background:"transparent",color:"var(--color-text-dim)",cursor:"pointer",fontWeight:600}}>Default</button>
                 </div>
               )}
