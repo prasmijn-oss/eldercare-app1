@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Fragment } from "react";
-import { supabase, supabaseAdmin } from "../lib/supabase.js";
+import { supabase, supabaseAdmin, SUPABASE_URL } from "../lib/supabase.js";
 import { can, he, uid, tod, initials, avatarColor, scorePassword } from "../lib/utils.js";
 import { INP, LBL, ABTN, IBTN, PW_LEVELS } from "../lib/constants.js";
 
