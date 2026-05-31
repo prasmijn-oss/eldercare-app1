@@ -206,7 +206,7 @@ git checkout main && git merge staging && git push origin main && git checkout s
 ## Pending Features
 
 ### Security & Auth
-- [ ] Password strength indicator on create/edit user (scorePassword() exists in utils.js, UI not wired on create/edit user form)
+- [x] Password strength indicator on create/edit user — `PasswordStrengthMeter` component in `UserManagement.jsx`; wired on create form + 🔑 change-password modal
 - [x] Force password change enforcement — fully blocks app access until changed (`force_password_change` flag in user_metadata)
 - [ ] Two-factor authentication
 - [ ] IP-based login alerts
