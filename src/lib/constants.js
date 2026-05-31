@@ -160,8 +160,8 @@ export const IDLE_WARN_SECS  = 60;              // countdown before auto-logout
 
 // ── RBAC ───────────────────────────────────────────────────────────────────
 export const DEFAULT_PERMS = {
-  superadmin: ["view","add","edit","delete","audit","users","company","permissions","rooms","readmission","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub"],
-  admin:      ["view","add","edit","delete","audit","company","rooms","readmission","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub"],
+  superadmin: ["view","add","edit","delete","audit","users","company","permissions","rooms","readmission","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub","change_password"],
+  admin:      ["view","add","edit","delete","audit","company","rooms","readmission","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub","change_password"],
   power_user: ["view","add","edit","medications_view","incidents_view","reports","handover","clinical","vitals","notes","care_plan","documents","mar","prn","controlled_sub"],
   user:       ["view","medications_view","incidents_view","handover","vitals","notes","clinical","mar"],
   inactive:   [],
@@ -172,7 +172,7 @@ export const PERMISSION_GROUPS = [
   {key:"clinical",       label:"Clinical",            icon:"🏥", actions:["clinical","vitals","mar","prn","controlled_sub","medications_view"]},
   {key:"documentation",  label:"Documentation",       icon:"📋", actions:["notes","care_plan","documents","incidents_view","handover"]},
   {key:"reports",        label:"Reports & Analytics", icon:"📊", actions:["reports","audit","readmission"]},
-  {key:"admin",          label:"Administration",      icon:"⚙️", actions:["users","company","permissions","rooms"]},
+  {key:"admin",          label:"Administration",      icon:"⚙️", actions:["users","company","permissions","rooms","change_password"]},
 ];
 
 // ── Intake checklist defaults ──────────────────────────────────────────────

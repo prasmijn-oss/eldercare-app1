@@ -3,6 +3,7 @@ import { Fragment } from "react";
 import { supabase, supabaseAdmin, SUPABASE_URL, ANON_KEY } from "../lib/supabase.js";
 import { can, he, uid, tod, initials, avatarColor, scorePassword } from "../lib/utils.js";
 import { INP, LBL, ABTN, IBTN, PW_LEVELS } from "../lib/constants.js";
+import { usePermissions } from "../lib/PermissionsContext.jsx";
 
 function PasswordStrengthMeter({password}){
   if(!password)return null;
@@ -37,6 +38,7 @@ function PasswordStrengthMeter({password}){
 }
 
 function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
+  const {perms}=usePermissions();
   const [users,setUsers]=useState([]);
   const [companies,setCompanies]=useState([]);
   const [allAuthUsers,setAllAuthUsers]=useState([]);
@@ -63,6 +65,9 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const [activityDateFrom,setActivityDateFrom]=useState("");
   const [activityDateTo,setActivityDateTo]=useState("");
   const [expandedStaff,setExpandedStaff]=useState(null);
+  const [passwordModal,setPasswordModal]=useState(null); // {userId, userName}
+  const [newPassword,setNewPassword]=useState("");
+  const [passwordSaving,setPasswordSaving]=useState(false);
   const showToast=(type,msg)=>{setToast({type,msg});setTimeout(()=>setToast(null),3500);};
 
   const loadData=async()=>{
@@ -228,16 +233,27 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   };
 
   // Helper: call manage-user edge function
-  const callManageUser=async(action,targetUserId)=>{
+  const callManageUser=async(action,targetUserId,extra={})=>{
     const {data:{session}}=await supabase.auth.getSession();
     if(!session)return{ok:false,error:"No session"};
     const res=await fetch(`${SUPABASE_URL}/functions/v1/manage-user`,{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":`Bearer ${session.access_token}`,"apikey":ANON_KEY},
-      body:JSON.stringify({action,targetUserId}),
+      body:JSON.stringify({action,targetUserId,...extra}),
     });
     const json=await res.json();
     return res.ok?{ok:true}:{ok:false,error:json.error||"Edge function error"};
+  };
+
+  const changePassword=async()=>{
+    if(!newPassword||newPassword.length<10)return showToast("error","Password must be at least 10 characters");
+    setPasswordSaving(true);
+    const res=await callManageUser("set_password",passwordModal.userId,{newPassword});
+    setPasswordSaving(false);
+    if(res?.ok){
+      showToast("success",`Password changed for ${passwordModal.userName}. They will be prompted to change it on next login.`);
+      setPasswordModal(null);setNewPassword("");
+    }else showToast("error",res?.error||"Failed to change password");
   };
 
   const updateRole=async(userId,newRole)=>{
@@ -716,6 +732,12 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                                     style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontSize:12}}>
                                     ✏️
                                   </button>
+                                  {can(currentUser.role,"change_password",perms)&&(
+                                    <button onClick={()=>{setPasswordModal({userId:u.user_id,userName:u.name||u.email});setNewPassword("");}} title="Change password"
+                                      style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontSize:12}}>
+                                      🔑
+                                    </button>
+                                  )}
                                   {currentUser.role==="superadmin"&&(
                                     <button onClick={()=>{setDeleteConfirmUser(u.user_id);setEditingUser(null);setExpandedUser(null);}} title="Delete user (superadmin only)"
                                       style={{padding:"4px 9px",borderRadius:7,border:"1px solid rgba(220,38,38,0.3)",background:"transparent",color:"#f87171",fontSize:12}}>
@@ -887,6 +909,34 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 }}
                 style={{padding:"10px 28px",borderRadius:9,border:"none",background:pendingAction.type==="role_change"?"var(--color-accent)":"#dc2626",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity:saving?0.6:1}}>
                 {saving?"Working…":"Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ CHANGE PASSWORD MODAL ═══════════════ */}
+      {passwordModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.72)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"var(--color-bg-card)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:36,maxWidth:400,width:"100%",boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+            <div style={{fontSize:36,textAlign:"center",marginBottom:12}}>🔑</div>
+            <div style={{fontSize:16,fontWeight:700,color:"var(--color-text-primary)",letterSpacing:"-0.3px",textAlign:"center",marginBottom:6}}>Change Password</div>
+            <div style={{fontSize:13,color:"var(--color-text-secondary)",textAlign:"center",lineHeight:1.7,marginBottom:20}}>
+              Set a new password for <strong style={{color:"var(--color-text-primary)"}}>{passwordModal.userName}</strong>.<br/>
+              They will be required to change it on next login.
+            </div>
+            <label style={LBL}>New Password *</label>
+            <input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)}
+              placeholder="Min. 10 characters" style={{...INP,marginBottom:4}} autoFocus/>
+            <PasswordStrengthMeter password={newPassword}/>
+            <div style={{display:"flex",gap:10,justifyContent:"center",marginTop:20}}>
+              <button onClick={()=>{setPasswordModal(null);setNewPassword("");}}
+                style={{padding:"10px 28px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:14,cursor:"pointer"}}>
+                Cancel
+              </button>
+              <button onClick={changePassword} disabled={passwordSaving||newPassword.length<10}
+                style={{padding:"10px 28px",borderRadius:9,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:700,fontSize:14,cursor:newPassword.length<10?"not-allowed":"pointer",opacity:passwordSaving||newPassword.length<10?0.5:1}}>
+                {passwordSaving?"Saving…":"Change Password"}
               </button>
             </div>
           </div>

@@ -55,7 +55,7 @@ serve(async (req) => {
       });
     }
 
-    const { action, targetUserId } = await req.json();
+    const { action, targetUserId, newPassword } = await req.json();
 
     if (!action || !targetUserId) {
       return new Response(JSON.stringify({ error: "Missing action or targetUserId" }), {
@@ -109,6 +109,26 @@ serve(async (req) => {
     if (action === "unban") {
       const { error } = await adminClient.auth.admin.updateUserById(targetUserId, {
         ban_duration: "none",
+      });
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "set_password") {
+      if (!newPassword || newPassword.length < 10) {
+        return new Response(JSON.stringify({ error: "Password must be at least 10 characters" }), {
+          status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
+      const { error } = await adminClient.auth.admin.updateUserById(targetUserId, {
+        password: newPassword,
+        user_metadata: { force_password_change: true },
       });
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {

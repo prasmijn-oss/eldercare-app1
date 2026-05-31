@@ -2130,6 +2130,7 @@ const ACTIONS=[
   {key:"mar",           label:"MAR Tracker",           icon:"💉", desc:"Medication administration record and export"},
   {key:"prn",           label:"PRN Log",               icon:"⚗️", desc:"As-needed medication justification log"},
   {key:"controlled_sub",label:"Controlled Substances", icon:"🔒", desc:"Controlled substance audit log with witness signatures"},
+  {key:"change_password",label:"Change User Password", icon:"🔑", desc:"Reset or change another user's password from User Management"},
 ];
 const ROLES=["superadmin","admin","power_user","nurse","care_assistant","user"];
 const ROLE_LABELS={superadmin:"Super Admin",admin:"Admin",power_user:"Power User",nurse:"Nurse",care_assistant:"Care Assistant",user:"User"};
