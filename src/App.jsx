@@ -2144,7 +2144,7 @@ const ROLE_DESC={
   user:"Read-only care staff — can view clients and log assessments.",
 };
 
-function PermissionsPanel({activeCompanyId,currentUser,t,refreshPerms}){
+function PermissionsPanel({activeCompanyId,currentUser,t,refreshPerms,company}){
   const [globalPerms,setGlobalPerms]=useState([]);
   const [companyPerms,setCompanyPerms]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -2366,6 +2366,14 @@ function PermissionsPanel({activeCompanyId,currentUser,t,refreshPerms}){
                   {pendingCount>0&&<span style={{fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:20,background:"rgba(245,158,11,0.15)",color:"#f59e0b"}}>{pendingCount} pending</span>}
                 </div>
                 <div style={{fontSize:11,color:"var(--color-text-dim)",marginTop:4}}>{ROLE_DESC[selectedRole]}</div>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:isCompanyTab?"#f59e0b":"#6366f1",flexShrink:0}}/>
+                  <span style={{fontSize:11,color:"var(--color-text-dim)"}}>
+                    {isCompanyTab
+                      ? `Facility Override${company?.name?` — ${company.name}`:" (no company selected)"}`
+                      : "Global Defaults"}
+                  </span>
+                </div>
               </div>
               {selectedRole!=="superadmin"&&(
                 <div style={{display:"flex",gap:6}}>
@@ -3924,7 +3932,7 @@ export default function App(){
             <UserManagement currentUser={currentUser} onRoleChange={refreshCurrentUser} activeCompanyId={activeCompanyId} t={t} logAudit={logAudit}/>
           )}
           {!loading&&view==="permissions"&&can(currentUser.role,"permissions",perms)&&(currentUser.role==="superadmin"||planCan(company?.plan,"permissions"))&&(
-            <PermissionsPanel activeCompanyId={activeCompanyId} currentUser={currentUser} t={t} refreshPerms={refreshPerms}/>
+            <PermissionsPanel activeCompanyId={activeCompanyId} currentUser={currentUser} t={t} refreshPerms={refreshPerms} company={company}/>
           )}
           {!loading&&view!=="audit"&&searchMode==="notes"&&search.trim().length>1?(
             <div>
