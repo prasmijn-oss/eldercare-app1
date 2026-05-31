@@ -939,7 +939,7 @@ function ClientForm({client,onSave,onCancel,saving,t,currentUser,cfSchema,logAud
       <Sec icon="👨‍👩‍👧" title="Family Contacts" accent="#ec4899" defaultOpen={false}><FamilyContacts items={d.family_contacts||[]} onChange={v=>s("family_contacts",v)}/></Sec>
       <Sec icon="📅" title="Appointments & Transport" accent="#06b6d4" defaultOpen={false}><AppointmentLog items={d.appointments||[]} onChange={v=>s("appointments",v)}/></Sec>
       <Sec icon="⚠️" title="Incident Reports" accent="#ef4444" defaultOpen={false}><IncidentReports items={d.incidents||[]} onChange={v=>s("incidents",v)} currentUser={currentUser}/></Sec>
-      <Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>
+      {can(role,"intake_checklist",perms)&&<Sec icon="✅" title="Intake Checklist" accent="#10b981" defaultOpen={false}><IntakeChecklist items={d.intake_checklist||[]} onChange={v=>s("intake_checklist",v)} currentUser={currentUser}/></Sec>}
       {can(role,"mar",perms)&&<Sec icon="💊" title="MAR — Daily Medication Log" accent="#16a34a" defaultOpen={true}><MARTracker marLog={d.mar_log||[]} medications={d.medications||[]} onChange={v=>s("mar_log",v)} currentUser={currentUser}/></Sec>}
       {can(role,"prn",perms)&&<Sec icon="⚡" title="PRN — As-Needed Medication Log" accent="#f59e0b" defaultOpen={false}><PRNLog prnLog={d.prn_log||[]} medications={d.medications||[]} onChange={v=>s("prn_log",v)} currentUser={currentUser}/></Sec>}
       <Sec icon="🏥" title="Hospitalisation Log" accent="#ef4444" defaultOpen={false}><HospLog items={d.hospitalizations||[]} onChange={v=>s("hospitalizations",v)}/></Sec>
@@ -1350,12 +1350,17 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         )}
         {/* Intake Checklist */}
-        {(()=>{const ic=client.intake_checklist||[];return(
+        {can(role,"intake_checklist",perms)?(()=>{const ic=client.intake_checklist||[];return(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontWeight:700,color:"#10b981",fontSize:13,marginBottom:12}}>✅ INTAKE CHECKLIST</div>
             <IntakeChecklist items={ic} onChange={onInlineUpdate?v=>onInlineUpdate("intake_checklist",v):()=>{}} currentUser={currentUser}/>
           </div>
-        );})()}
+        );})():(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"#10b981",fontSize:13}}>✅ INTAKE CHECKLIST</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
+          </div>
+        )}
         {/* Clinical assessments — Professional+ plan + permission */}
         {!planCan(companyPlan,"clinical")&&(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"28px 20px",marginBottom:12,textAlign:"center",color:"var(--color-text-muted)",fontSize:13}}>
@@ -2166,6 +2171,7 @@ const ACTIONS=[
   {key:"prn",           label:"PRN Log",               icon:"⚗️", desc:"As-needed medication justification log"},
   {key:"controlled_sub",label:"Controlled Substances", icon:"🔒", desc:"Controlled substance audit log with witness signatures"},
   {key:"change_password",label:"Change User Password", icon:"🔑", desc:"Reset or change another user's password from User Management"},
+  {key:"intake_checklist",label:"Intake Checklist",   icon:"✅", desc:"View and manage client intake/onboarding checklist"},
 ];
 const ROLES=["superadmin","admin","power_user","nurse","care_assistant","user"];
 const ROLE_LABELS={superadmin:"Super Admin",admin:"Admin",power_user:"Power User",nurse:"Nurse",care_assistant:"Care Assistant",user:"User"};
