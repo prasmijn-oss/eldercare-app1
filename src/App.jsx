@@ -3092,7 +3092,7 @@ function ForcePasswordChange({currentUser,onDone}){
           <div style={{marginBottom:16}}>
             <label style={{display:"block",fontSize:11,fontWeight:700,color:"var(--color-text-dim)",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"}}>New Password</label>
             <input type="password" value={pw} onChange={e=>setPw(e.target.value)}
-              placeholder="Min. 10 characters"
+              placeholder="Min. 5 characters"
               style={{width:"100%",padding:"11px 14px",borderRadius:8,border:"1.5px solid rgba(255,255,255,0.1)",background:"var(--color-bg-hover)",color:"var(--color-text-primary)",fontSize:14}}
               onKeyDown={e=>e.key==="Enter"&&document.getElementById("fpc-confirm")?.focus()}/>
             <PasswordStrengthMeter password={pw}/>
