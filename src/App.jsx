@@ -2893,7 +2893,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
   const changePassword=async()=>{
     if(!pwForm.newPw||!pwForm.confirm){setMsg({type:"error",text:"Fill in all fields"});return;}
     if(pwForm.newPw!==pwForm.confirm){setMsg({type:"error",text:"Passwords don't match"});return;}
-    if(pwForm.newPw.length<10){setMsg({type:"error",text:"Password must be at least 10 characters"});return;}
+    if(pwForm.newPw.length<5){setMsg({type:"error",text:"Password must be at least 5 characters"});return;}
     if(scorePassword(pwForm.newPw)<2){setMsg({type:"error",text:"Password is too weak — add uppercase letters, numbers, or symbols"});return;}
     setSaving(true);setMsg(null);
     const {error}=await supabase.auth.updateUser({password:pwForm.newPw});
@@ -2986,7 +2986,7 @@ function UserProfile({currentUser,onUpdate,onClose,t}){
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             <div>
               <label style={LB}>New Password</label>
-              <input type="password" style={INP3} value={pwForm.newPw} onChange={e=>setPwForm(f=>({...f,newPw:e.target.value}))} placeholder="Min. 10 characters"/>
+              <input type="password" style={INP3} value={pwForm.newPw} onChange={e=>setPwForm(f=>({...f,newPw:e.target.value}))} placeholder="Min. 5 characters"/>
               <PasswordStrengthMeter password={pwForm.newPw}/>
             </div>
             <div>
@@ -3052,7 +3052,7 @@ function ForcePasswordChange({currentUser,onDone}){
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState(null);
   const score=scorePassword(pw);
-  const canSubmit=pw.length>=10&&score>=2&&pw===confirm&&!saving;
+  const canSubmit=pw.length>=5&&score>=2&&pw===confirm&&!saving;
 
   const handle=async()=>{
     if(!canSubmit)return;

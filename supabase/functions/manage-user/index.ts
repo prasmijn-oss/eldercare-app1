@@ -121,8 +121,8 @@ serve(async (req) => {
     }
 
     if (action === "set_password") {
-      if (!newPassword || newPassword.length < 10) {
-        return new Response(JSON.stringify({ error: "Password must be at least 10 characters" }), {
+      if (!newPassword || newPassword.length < 5) {
+        return new Response(JSON.stringify({ error: "Password must be at least 5 characters" }), {
           status: 400, headers: { ...CORS, "Content-Type": "application/json" },
         });
       }
