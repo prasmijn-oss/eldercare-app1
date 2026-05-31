@@ -1329,7 +1329,12 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </div>
         );})()}
         {/* Clinical assessments — Professional+ plan + permission */}
-        {planCan(companyPlan,"clinical")&&can(role,"clinical",perms)?(
+        {!planCan(companyPlan,"clinical")&&(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"28px 20px",marginBottom:12,textAlign:"center",color:"var(--color-text-muted)",fontSize:13}}>
+            🔒 Clinical assessments are available on the <strong style={{color:"var(--color-text-secondary)"}}>Professional</strong> plan.
+          </div>
+        )}
+        {planCan(companyPlan,"clinical")&&can(role,"clinical",perms)&&(
           <>
             {/* ADL Tracking */}
             <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
@@ -1373,10 +1378,6 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
               </div>
             )}
           </>
-        ):(
-          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"28px 20px",marginBottom:12,textAlign:"center",color:"var(--color-text-muted)",fontSize:13}}>
-            🔒 Clinical assessments are available on the <strong style={{color:"var(--color-text-secondary)"}}>Professional</strong> plan.
-          </div>
         )}
       {planCan(companyPlan,"custom_fields")&&(()=>{const cfs=cfSchema?JSON.parse(cfSchema||"[]"):[];const vals=client.custom_fields||{};const filled=cfs.filter(f=>f.type==="checkbox"?vals[f.id]!==undefined:vals[f.id]);if(!cfs.length||!filled.length)return null;return(<div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}><div style={{fontWeight:700,color:"#6366f1",fontSize:13,marginBottom:12}}>🧩 ADDITIONAL INFORMATION</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px 16px"}}>{cfs.map(f=>{const v=vals[f.id];if(v===undefined||v==="")return null;return(<div key={f.id}><div style={{fontSize:10,color:"var(--color-text-muted)",fontWeight:700,letterSpacing:"0.5px",marginBottom:2}}>{f.label.toUpperCase()}</div><div style={{fontSize:13,color:"var(--color-text-secondary)"}}>{f.type==="checkbox"?(v?"Yes":"No"):String(v)}</div></div>);})}</div></div>);})()}
       {showEmerg&&<EmergCard client={client} onClose={()=>setShowEmerg(false)} t={t}/>}
