@@ -199,26 +199,31 @@ export const PW_LEVELS = [
 ];
 
 // ── Shared inline style objects ────────────────────────────────────────────
-export const INP  = {width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.03)",color:"var(--color-text-primary)",fontSize:16};
+export const INP  = {width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid var(--color-border)",background:"var(--color-bg-surface)",color:"var(--color-text-primary)",fontSize:16};
 export const LBL  = {display:"block",fontSize:11,fontWeight:700,color:"var(--color-text-dim)",marginBottom:4,letterSpacing:0.5,textTransform:"uppercase"};
 export const ABTN = {background:"none",border:"1.5px dashed rgba(99,102,241,0.4)",borderRadius:8,padding:"10px 14px",color:"#6366f1",fontSize:13,fontWeight:600,touchAction:"manipulation",cursor:"pointer"};
-export const IBTN = {background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--color-text-dim)",fontSize:12,flexShrink:0,touchAction:"manipulation",cursor:"pointer"};
+export const IBTN = {background:"none",border:"1px solid var(--color-border)",borderRadius:6,width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--color-text-dim)",fontSize:12,flexShrink:0,touchAction:"manipulation",cursor:"pointer"};
 
 // ── Global CSS (injected via <style dangerouslySetInnerHTML> in App) ────────
 export const GCSS = [
   "* { box-sizing: border-box; margin: 0; padding: 0; }",
   "body { font-family: 'DM Sans', system-ui, sans-serif; background: #07091c; color: #f0f2fa; -webkit-font-smoothing: antialiased; }",
+  "html.cm-light body { background: var(--color-bg-base) !important; color: var(--color-text-primary) !important; }",
   "input, textarea, select { font-family: 'DM Sans', system-ui, sans-serif; }",
   "select option { background: #111427; color: #f0f2fa; }",
+  "html.cm-light select option { background: #fff; color: #1a1a2e; }",
   "input:focus, textarea:focus, select:focus { outline: none !important; border-color: rgba(99,102,241,0.5) !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important; }",
   "button { font-family: 'DM Sans', system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }",
   "button:hover { opacity: 0.88; }",
   "a { touch-action: manipulation; }",
   "::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }",
+  "html.cm-light ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }",
   ".client-row { transition: background 120ms ease !important; }",
   ".client-row:hover { background: rgba(255,255,255,0.04) !important; }",
+  "html.cm-light .client-row:hover { background: rgba(0,0,0,0.04) !important; }",
   ".dash-row { transition: background 120ms ease !important; border-radius: 9px; }",
   ".dash-row:hover { background: rgba(255,255,255,0.04) !important; }",
+  "html.cm-light .dash-row:hover { background: rgba(0,0,0,0.04) !important; }",
   ".card-hover { transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }",
   ".card-hover:hover { transform: translateY(-2px) !important; border-color: rgba(255,255,255,0.12) !important; box-shadow: 0 12px 32px rgba(0,0,0,0.4) !important; }",
   ".sidebar { transition: transform 0.25s ease; }",
