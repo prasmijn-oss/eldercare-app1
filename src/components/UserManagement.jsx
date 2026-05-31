@@ -85,8 +85,8 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   useEffect(()=>{
     if(!roleDropdown)return;
     const handler=()=>setRoleDropdown(null);
-    document.addEventListener("click",handler,true);
-    return()=>document.removeEventListener("click",handler,true);
+    document.addEventListener("click",handler);
+    return()=>document.removeEventListener("click",handler);
   },[roleDropdown]);
 
   const loadActivity=async(from,to)=>{
