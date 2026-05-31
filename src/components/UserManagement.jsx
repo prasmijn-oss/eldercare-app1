@@ -61,6 +61,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
   const [companyForm,setCompanyForm]=useState({name:"",address:"",phone:"",email:"",website:"",mission_statement:""});
   const [activityData,setActivityData]=useState([]);
   const [activityLoading,setActivityLoading]=useState(false);
+  const [emailConflict,setEmailConflict]=useState(null); // {user_id,name,email,companies:[]}
   const [activityDateFrom,setActivityDateFrom]=useState("");
   const [activityDateTo,setActivityDateTo]=useState("");
   const [expandedStaff,setExpandedStaff]=useState(null);
@@ -144,7 +145,7 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
 
   useEffect(()=>{if(mainTab==="activity")loadActivity(activityDateFrom,activityDateTo);},[mainTab,activeCompanyId,activityDateFrom,activityDateTo]);
 
-  const onChangeUser=e=>setUserForm(p=>({...p,[e.target.name]:e.target.value}));
+  const onChangeUser=e=>{setUserForm(p=>({...p,[e.target.name]:e.target.value}));if(e.target.name==="email")setEmailConflict(null);};
   const onChangeExisting=e=>setExistingForm(p=>({...p,[e.target.name]:e.target.value}));
   const onToggleCompany=id=>setExistingForm(p=>({...p,company_ids:p.company_ids.includes(id)?p.company_ids.filter(x=>x!==id):[...p.company_ids,id]}));
   const onToggleUserCompany=id=>setUserForm(p=>({...p,company_ids:p.company_ids.includes(id)?p.company_ids.filter(x=>x!==id):[...p.company_ids,id]}));
@@ -187,8 +188,16 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
     setSaving(true);
     try{
       // Pre-flight duplicate checks (fast, before hitting the edge function)
-      const {data:existingEmail}=await supabase.from("user_roles").select("user_id").eq("email",userForm.email.toLowerCase().trim()).limit(1).maybeSingle();
-      if(existingEmail){showToast("error","A user with this email already exists");setSaving(false);return;}
+      const {data:existingEmail}=await supabase.from("user_roles").select("user_id,name,email,company_id").eq("email",userForm.email.toLowerCase().trim());
+      if(existingEmail&&existingEmail.length>0){
+        const row=existingEmail[0];
+        // Fetch company names for the conflicting user
+        const companyIds=[...new Set(existingEmail.map(r=>r.company_id).filter(Boolean))];
+        const {data:companyRows}=await supabase.from("companies").select("id,name").in("id",companyIds);
+        const companyNames=(companyRows||[]).map(c=>c.name);
+        setEmailConflict({user_id:row.user_id,name:row.name,email:row.email,companies:companyNames});
+        setSaving(false);return;
+      }
       if(userForm.username.trim()){
         const {data:existingUsername}=await supabase.from("user_roles").select("user_id").eq("username",userForm.username.toLowerCase().trim()).limit(1).maybeSingle();
         if(existingUsername){showToast("error","This username is already taken");setSaving(false);return;}
@@ -607,6 +616,27 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
                 <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#f59e0b"}}>
                   ⚠️ User will be required to change their password on first login.
                 </div>
+                {emailConflict&&(
+                  <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,padding:"12px 14px",marginBottom:12}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"#ef4444",marginBottom:6}}>⚠ Email already registered</div>
+                    <div style={{fontSize:12,color:"var(--color-text-secondary)",marginBottom:8}}>
+                      <strong style={{color:"var(--color-text-primary)"}}>{emailConflict.name}</strong> ({emailConflict.email}) already exists
+                      {emailConflict.companies.length>0&&<> — in <strong style={{color:"var(--color-text-primary)"}}>{emailConflict.companies.join(", ")}</strong></>}.
+                    </div>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                      <button type="button" onClick={()=>{
+                        setExistingForm(f=>({...f,user_id:emailConflict.user_id,name:emailConflict.name}));
+                        setShowExistingForm(true);setShowUserForm(false);setEmailConflict(null);
+                      }} style={{padding:"6px 14px",borderRadius:7,border:"none",background:"#6366f1",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                        + Add to this company
+                      </button>
+                      <button type="button" onClick={()=>setEmailConflict(null)}
+                        style={{padding:"6px 14px",borderRadius:7,border:"1px solid rgba(255,255,255,0.12)",background:"none",color:"var(--color-text-secondary)",fontSize:12,cursor:"pointer"}}>
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <button type="submit" disabled={saving}
                   style={{padding:"10px 24px",borderRadius:9,border:"none",background:saving?"rgba(255,255,255,0.1)":"#10b981",color:saving?"var(--color-text-muted)":"#fff",fontWeight:700,fontSize:14}}>
                   {saving?"Creating...":"Create User"}
