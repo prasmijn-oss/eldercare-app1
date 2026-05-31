@@ -1447,7 +1447,7 @@ function Login({onLogin,t}){
       details:`Signed in from ${navigator.userAgent.includes("Mobile")?"mobile":"desktop"}`,
       device:navigator.userAgent.slice(0,220),
     }).then(()=>{});
-    onLogin({...data.user,role:rd?.role||"user",displayName:rd?.name||loginEmail.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null});
+    onLogin({...data.user,role:rd?.role||"user",displayName:rd?.name||loginEmail.split("@")[0],company_id:rd?.company_id||null,allRoles:roles||[],avatar_url:rd?.avatar_url||null,username:rd?.username||null,force_password_change:data.user.user_metadata?.force_password_change||false});
     setLoading(false);
   };
   return(

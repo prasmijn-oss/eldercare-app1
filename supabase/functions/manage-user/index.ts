@@ -126,15 +126,20 @@ serve(async (req) => {
           status: 400, headers: { ...CORS, "Content-Type": "application/json" },
         });
       }
-      const { error } = await adminClient.auth.admin.updateUserById(targetUserId, {
+      // Update password in a separate call — combining password + user_metadata in one call
+      // causes Supabase to silently skip the password update while returning no error.
+      const { error: pwErr } = await adminClient.auth.admin.updateUserById(targetUserId, {
         password: newPassword,
-        user_metadata: { force_password_change: true },
       });
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+      if (pwErr) {
+        return new Response(JSON.stringify({ error: pwErr.message }), {
           status: 400, headers: { ...CORS, "Content-Type": "application/json" },
         });
       }
+      // Set force_password_change flag separately after password is confirmed updated
+      await adminClient.auth.admin.updateUserById(targetUserId, {
+        user_metadata: { force_password_change: true },
+      });
       return new Response(JSON.stringify({ ok: true }), {
         status: 200, headers: { ...CORS, "Content-Type": "application/json" },
       });
