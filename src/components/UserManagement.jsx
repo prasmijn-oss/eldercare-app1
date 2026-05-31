@@ -221,7 +221,24 @@ function UserManagement({currentUser,onRoleChange,activeCompanyId,t,logAudit}){
         }),
       });
       const result=await res.json();
-      if(!res.ok)throw new Error(result.error||"Failed to create user");
+      if(!res.ok){
+        const msg=result.error||"Failed to create user";
+        if(msg.toLowerCase().includes("already been registered")||msg.toLowerCase().includes("already registered")||msg.toLowerCase().includes("already exists")){
+          // Auth user exists but may not be in user_roles — look them up by email
+          const {data:rows}=await supabase.from("user_roles").select("user_id,name,email,company_id").eq("email",userForm.email.toLowerCase().trim());
+          const companyIds=[...new Set((rows||[]).map(r=>r.company_id).filter(Boolean))];
+          const {data:companyRows}=companyIds.length?await supabase.from("companies").select("id,name").in("id",companyIds):{data:[]};
+          const row=(rows||[])[0];
+          setEmailConflict({
+            user_id:row?.user_id||null,
+            name:row?.name||userForm.name,
+            email:userForm.email,
+            companies:(companyRows||[]).map(c=>c.name),
+          });
+          setSaving(false);return;
+        }
+        throw new Error(msg);
+      }
       if(result.anyFailed)showToast("warning","User created but some company assignments failed");
       else showToast("success","User created successfully!");
       setUserForm({name:"",email:"",password:"",username:"",role:"user",company_ids:activeCompanyId?[activeCompanyId]:[]});
