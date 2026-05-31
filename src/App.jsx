@@ -1110,9 +1110,9 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
           </>
         ):(
           <>
-            <button onClick={doExport} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:600,fontSize:13}}>Export PDF</button>
+            {canEdit&&<button onClick={doExport} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--color-accent)",color:"#fff",fontWeight:600,fontSize:13}}>Export PDF</button>}
             <button onClick={()=>setShowEmerg(true)} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#ef4444",color:"#fff",fontWeight:600,fontSize:13}}>Emergency Card</button>
-            <button onClick={doPrint} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:13}}>Print</button>
+            {canEdit&&<button onClick={doPrint} style={{padding:"8px 16px",borderRadius:8,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"var(--color-text-secondary)",fontWeight:600,fontSize:13}}>Print</button>}
             {canEdit&&<button onClick={onEdit} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #6366f1",background:"rgba(99,102,241,0.1)",color:"#6366f1",fontWeight:600,fontSize:13}}>{t.edit}</button>}
             {canDelete&&<button onClick={onDelete} style={{padding:"8px 16px",borderRadius:8,border:"1px solid #f59e0b",background:"rgba(245,158,11,0.1)",color:"#f59e0b",fontWeight:600,fontSize:13}}>📦 Archive</button>}
             {!canEdit&&<span style={{fontSize:12,color:"var(--color-text-muted)",alignSelf:"center",fontStyle:"italic"}}>View only</span>}
@@ -1233,60 +1233,88 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
             </div>
           </div>
         )}
-        {can(role,"documents",perms)&&(client.documents||[]).length>0&&(
-          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>DOCUMENTS</div>
-            {(client.documents||[]).map(doc=>{
-              const days=daysUntil(doc.expiry);
-              const badge=expiryBadge(days);
-              return(
-                <div key={doc.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #1e293b"}}>
-                  <div>
-                    <span style={{fontWeight:600,fontSize:13,color:"var(--color-text-primary)"}}>{doc.name}</span>
-                    {doc.expiry&&<span style={{fontSize:12,color:"var(--color-text-dim)",marginLeft:8}}>Exp: {new Date(doc.expiry+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})}</span>}
+        {can(role,"documents",perms)?(
+          (client.documents||[]).length>0&&(
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#06b6d4",fontSize:13,marginBottom:12}}>DOCUMENTS</div>
+              {(client.documents||[]).map(doc=>{
+                const days=daysUntil(doc.expiry);
+                const badge=expiryBadge(days);
+                return(
+                  <div key={doc.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #1e293b"}}>
+                    <div>
+                      <span style={{fontWeight:600,fontSize:13,color:"var(--color-text-primary)"}}>{doc.name}</span>
+                      {doc.expiry&&<span style={{fontSize:12,color:"var(--color-text-dim)",marginLeft:8}}>Exp: {new Date(doc.expiry+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})}</span>}
+                    </div>
+                    {badge&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:badge.bg,color:badge.color}}>{badge.label} {days!==null&&(days<0?Math.abs(days)+"d ago":days+"d")}</span>}
                   </div>
-                  {badge&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:badge.bg,color:badge.color}}>{badge.label} {days!==null&&(days<0?Math.abs(days)+"d ago":days+"d")}</span>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {can(role,"care_plan",perms)&&(client.care_plan||[]).length>0&&(
-          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>CARE PLAN</div>
-            {(client.care_plan||[]).map(item=>{
-              const gs=GSTATUSES.find(s=>s.value===item.status)||GSTATUSES[0];
-              return(
-                <div key={item.id} style={{borderLeft:"3px solid "+gs.color,paddingLeft:12,marginBottom:12}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                    <span style={{fontWeight:700,color:"var(--color-text-primary)"}}>{item.goal}</span>
-                    <span style={{fontSize:11,padding:"2px 7px",borderRadius:20,background:gs.color+"20",color:gs.color,fontWeight:700}}>{item.status}</span>
-                  </div>
-                  {item.plan&&<div style={{fontSize:13,color:"var(--color-text-secondary)",lineHeight:1.6}}>{item.plan}</div>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {can(role,"vitals",perms)&&(client.vitals||[]).length>0&&(
-          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <VitalsTracker vitals={client.vitals||[]} onChange={()=>{}} t={t}/>
-          </div>
-        )}
-        {can(role,"notes",perms)&&fn.length>0&&(
-          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:12}}>SESSION NOTES</div>
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              {fn.map(n=>(
-                <div key={n.id} style={{borderLeft:"3px solid rgba(124,58,237,0.4)",paddingLeft:14}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
-                    <span style={{fontSize:12,color:"#7c3aed",fontWeight:700}}>{new Date(n.date+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</span>
-                    {(n.role||n.staff_name)&&<span style={{fontSize:11,background:"rgba(124,58,237,0.1)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:20,padding:"2px 8px",color:"#7c3aed",fontWeight:600}}>{n.role}{n.role&&n.staff_name&&" - "}{n.staff_name}</span>}
-                  </div>
-                  <div style={{color:"var(--color-text-secondary)",fontSize:14,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{n.text}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+          )
+        ):(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13}}>DOCUMENTS</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
+          </div>
+        )}
+        {can(role,"care_plan",perms)?(
+          (client.care_plan||[]).length>0&&(
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13,marginBottom:12}}>CARE PLAN</div>
+              {(client.care_plan||[]).map(item=>{
+                const gs=GSTATUSES.find(s=>s.value===item.status)||GSTATUSES[0];
+                return(
+                  <div key={item.id} style={{borderLeft:"3px solid "+gs.color,paddingLeft:12,marginBottom:12}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                      <span style={{fontWeight:700,color:"var(--color-text-primary)"}}>{item.goal}</span>
+                      <span style={{fontSize:11,padding:"2px 7px",borderRadius:20,background:gs.color+"20",color:gs.color,fontWeight:700}}>{item.status}</span>
+                    </div>
+                    {item.plan&&<div style={{fontSize:13,color:"var(--color-text-secondary)",lineHeight:1.6}}>{item.plan}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ):(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"#8b5cf6",fontSize:13}}>CARE PLAN</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
+          </div>
+        )}
+        {can(role,"vitals",perms)?(
+          (client.vitals||[]).length>0&&(
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <VitalsTracker vitals={client.vitals||[]} onChange={()=>{}} t={t}/>
+            </div>
+          )
+        ):(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"var(--color-text-secondary)",fontSize:13}}>VITALS</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
+          </div>
+        )}
+        {can(role,"notes",perms)?(
+          fn.length>0&&(
+            <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontWeight:700,color:"#7c3aed",fontSize:13,marginBottom:12}}>SESSION NOTES</div>
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                {fn.map(n=>(
+                  <div key={n.id} style={{borderLeft:"3px solid rgba(124,58,237,0.4)",paddingLeft:14}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
+                      <span style={{fontSize:12,color:"#7c3aed",fontWeight:700}}>{new Date(n.date+"T00:00:00").toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</span>
+                      {(n.role||n.staff_name)&&<span style={{fontSize:11,background:"rgba(124,58,237,0.1)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:20,padding:"2px 8px",color:"#7c3aed",fontWeight:600}}>{n.role}{n.role&&n.staff_name&&" - "}{n.staff_name}</span>}
+                    </div>
+                    <div style={{color:"var(--color-text-secondary)",fontSize:14,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{n.text}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        ):(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"#7c3aed",fontSize:13}}>SESSION NOTES</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
           </div>
         )}
       </div>
@@ -1332,6 +1360,12 @@ function ClientDetail({client,onEdit,onDelete,onRestore,onInlineUpdate,t,current
         {!planCan(companyPlan,"clinical")&&(
           <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"28px 20px",marginBottom:12,textAlign:"center",color:"var(--color-text-muted)",fontSize:13}}>
             🔒 Clinical assessments are available on the <strong style={{color:"var(--color-text-secondary)"}}>Professional</strong> plan.
+          </div>
+        )}
+        {planCan(companyPlan,"clinical")&&!can(role,"clinical",perms)&&(
+          <div style={{background:"var(--color-bg-card)",border:"1px solid var(--color-border)",borderRadius:12,padding:"14px 16px",marginBottom:12,opacity:0.45,pointerEvents:"none",userSelect:"none"}}>
+            <div style={{fontWeight:700,color:"#06b6d4",fontSize:13}}>CLINICAL ASSESSMENTS</div>
+            <div style={{fontSize:12,color:"var(--color-text-muted)",marginTop:6}}>🔒 You don't have access to this section.</div>
           </div>
         )}
         {planCan(companyPlan,"clinical")&&can(role,"clinical",perms)&&(
